@@ -19,11 +19,11 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val result = repository.login(username, password)
-                Log.d("AuthViewModel", "Login successful: ${result.token}")
+                Log.d("AuthViewModel", "Login successful: ${result.accessToken}")
 
                 _loginState.value = Result.success(result).also {
                     println("API Response: $it")
-                    println("Token: ${result.token}")
+                    println("Token: ${result.accessToken}")
                 }
 
             } catch (e: Exception) {
