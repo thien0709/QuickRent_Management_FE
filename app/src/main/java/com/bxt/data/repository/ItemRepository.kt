@@ -2,8 +2,11 @@ package com.bxt.data.repository
 
 import com.bxt.data.api.ApiService
 import com.bxt.data.api.dto.response.ItemResponse
+import javax.inject.Inject
 
-class ItemRepository (private val apiService: ApiService) {
+class ItemRepository @Inject constructor(
+    private val apiService: ApiService
+) {
 
     suspend fun getAvailableItem(): List<ItemResponse> {
         return apiService.getAvailableItems()

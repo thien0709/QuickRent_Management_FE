@@ -8,10 +8,12 @@ import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ItemRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 sealed class HomeScreenState {
     data class Success(
@@ -23,10 +25,12 @@ sealed class HomeScreenState {
     object Loading : HomeScreenState()
 }
 
-class HomeScreenViewModel : ViewModel() {
+@HiltViewModel
+class HomeScreenViewModel @Inject constructor(
+    private val categoryRepository: CategoryRepository,
+    private val itemRepository: ItemRepository
+) : ViewModel() {
 
-    private val categoryRepository = CategoryRepository(RetrofitClient.apiService)
-    private val itemRepository = ItemRepository(RetrofitClient.apiService)
 
     private val _categories = MutableStateFlow<List<CategoryResponse>>(emptyList())
     val categories: StateFlow<List<CategoryResponse>> = _categories

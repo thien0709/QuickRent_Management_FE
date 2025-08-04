@@ -1,16 +1,25 @@
 package com.bxt.viewmodel
 
+import android.content.Context
 import android.util.Log
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.repository.AuthRepository
 import com.bxt.data.api.RetrofitClient
+import com.bxt.data.local.DataStoreManager
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-class AuthViewModel : ViewModel() {
-    private val repository = AuthRepository(RetrofitClient.apiService)
+import javax.inject.Inject
+
+@HiltViewModel
+class AuthViewModel @Inject constructor(
+    private val repository : AuthRepository,
+    private val dataStore : DataStoreManager
+) : ViewModel() {
 
     private val _loginState = MutableStateFlow<Result<LoginResponse>?>(null)
     val loginState: StateFlow<Result<LoginResponse>?> = _loginState
@@ -24,6 +33,8 @@ class AuthViewModel : ViewModel() {
                 _loginState.value = Result.success(result).also {
                     println("API Response: $it")
                     println("Token: ${result.accessToken}")
+                    dataStore.saveAccessToken(result.accessToken)
+                    dataStore.saveRefreshToken(result.refreshToken)
                 }
 
             } catch (e: Exception) {

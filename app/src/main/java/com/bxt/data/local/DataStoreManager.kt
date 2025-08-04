@@ -3,14 +3,20 @@ package com.bxt.data.local
 import android.content.Context
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
 
 private const val DATASTORE_NAME = "app_preferences"
 
 val Context.dataStore by preferencesDataStore(name = DATASTORE_NAME)
 
-class DataStoreManager(private val context: Context) {
+@Singleton
+class DataStoreManager @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
 
     companion object {
         val TOKEN_KEY = stringPreferencesKey("auth_token")

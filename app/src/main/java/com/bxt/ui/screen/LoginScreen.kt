@@ -22,6 +22,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bxt.R
 import com.bxt.viewmodel.AuthViewModel
 
@@ -31,7 +33,7 @@ fun LoginScreen(
     onSignUpClick: () -> Unit,
     onForgotPasswordClick: () -> Unit
 ) {
-    val viewModel = remember { AuthViewModel() }
+    val viewModel : AuthViewModel = hiltViewModel()
     val loginState by viewModel.loginState.collectAsState()
 
     var email by remember { mutableStateOf("") }
