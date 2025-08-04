@@ -1,12 +1,12 @@
 package com.bxt.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bxt.data.api.RetrofitClient
 import com.bxt.data.api.dto.response.CategoryResponse
+import com.bxt.data.api.dto.response.ItemImageResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.repository.CategoryRepository
+import com.bxt.data.repository.ItemImageRepository
 import com.bxt.data.repository.ItemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -26,40 +26,39 @@ sealed class HomeScreenState {
 }
 
 @HiltViewModel
-class HomeScreenViewModel @Inject constructor(
+class HomeViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val itemRepository: ItemRepository
 ) : ViewModel() {
 
+    private val _homeState = MutableStateFlow<HomeScreenState>(HomeScreenState.Loading)
+    val homeState: StateFlow<HomeScreenState> = _homeState
 
-    private val _categories = MutableStateFlow<List<CategoryResponse>>(emptyList())
-    val categories: StateFlow<List<CategoryResponse>> = _categories
+    init {
+        fetchHomeData()
+    }
 
-    private val _homescreen = MutableStateFlow<HomeScreenState>(HomeScreenState.Loading)
-    val homescreen: StateFlow<HomeScreenState> = _homescreen
-
-    fun getDataDefault() {
+    private fun fetchHomeData() {
         viewModelScope.launch {
             try {
-                _homescreen.value = HomeScreenState.Loading
+                _homeState.value = HomeScreenState.Loading
 
                 val categoriesDeferred = async { categoryRepository.getCategories() }
-                val popularItemsDeferred = async { itemRepository.getAvailableItem() }
+                val itemsDeferred = async { itemRepository.getAvailableItem() }
 
                 val categories = categoriesDeferred.await()
-                val popularItems = popularItemsDeferred.await()
+                val pagedItems = itemsDeferred.await() // Đây là PagedResponse<ItemResponse>
+                val items = pagedItems.content          // Lấy danh sách item thực tế
 
-                _categories.value = categories
-
-                _homescreen.value = HomeScreenState.Success(
+                _homeState.value = HomeScreenState.Success(
                     categories = categories,
-                    popularItems = popularItems
+                    popularItems = items
                 )
-                Log.e("HomeScreenViewModel", "Categories: $categories")
-                Log.e("HomeScreenViewModel", "Popular Items: $popularItems")
+
             } catch (e: Exception) {
-                _homescreen.value = HomeScreenState.Error(e.message ?: "Unknown error")
+                _homeState.value = HomeScreenState.Error(e.message ?: "Unknown error")
             }
         }
     }
 }
+

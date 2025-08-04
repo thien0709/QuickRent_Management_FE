@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.repository.AuthRepository
-import com.bxt.data.api.RetrofitClient
 import com.bxt.data.local.DataStoreManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +34,7 @@ class AuthViewModel @Inject constructor(
                     println("Token: ${result.accessToken}")
                     dataStore.saveAccessToken(result.accessToken)
                     dataStore.saveRefreshToken(result.refreshToken)
+                    Log.d("AuthViewModel", "Access token saved: ${result.accessToken}")
                 }
 
             } catch (e: Exception) {
