@@ -35,6 +35,7 @@ import coil.compose.AsyncImage
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 // import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bxt.viewmodel.HomeViewModel
 import com.bxt.viewmodel.HomeScreenState
@@ -43,6 +44,7 @@ import com.bxt.data.api.dto.response.ItemResponse
 
 @Composable
 fun HomeScreen(
+    navController: NavController,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     // Search state
@@ -70,7 +72,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .size(50.dp)
                     .clip(CircleShape)
-                    .clickable { /* Handle profile click */ },
+                    .clickable {  navController.navigate("profile")},
                 contentScale = ContentScale.Crop
             )
 
@@ -287,7 +289,6 @@ fun CategoryCard(
         }
     }
 }
-
 @Composable
 fun PopularItemCard(
     item: ItemResponse,
@@ -306,13 +307,9 @@ fun PopularItemCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = item.imagePrimary?.let {
-                    if (it.startsWith("http")) it else "https://$it"
-                } ?: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=200",
-                contentDescription = "Food Image",
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(16.dp)),
+                model = item.imagePrimary,
+                contentDescription = "Item Image",
+                modifier = Modifier.size(100.dp),
                 contentScale = ContentScale.Crop,
             )
 
@@ -337,7 +334,7 @@ fun PopularItemCard(
                 )
 
                 Text(
-                    text = "₹ ${item.rentalPricePerHour}",
+                    text = "₹ ${item.rentalPricePerHour ?: 0}",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,

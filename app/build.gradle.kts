@@ -67,10 +67,14 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 
     //Hilt
-    implementation("com.google.dagger:hilt-android:2.57")
-    ksp("com.google.dagger:hilt-compiler:2.57")
-    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
-    ksp("androidx.hilt:hilt-compiler:1.1.0")
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
+    ksp(libs.androidx.hilt.compiler)
+
+    // Paging3
+    implementation(libs.androidx.paging.runtime)
+    implementation(libs.paging.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

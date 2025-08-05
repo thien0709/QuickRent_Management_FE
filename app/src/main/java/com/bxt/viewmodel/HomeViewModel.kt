@@ -47,8 +47,8 @@ class HomeViewModel @Inject constructor(
                 val itemsDeferred = async { itemRepository.getAvailableItem() }
 
                 val categories = categoriesDeferred.await()
-                val pagedItems = itemsDeferred.await() // Đây là PagedResponse<ItemResponse>
-                val items = pagedItems.content          // Lấy danh sách item thực tế
+                val pagedItems = itemsDeferred.await()
+                val items = pagedItems.content
 
                 _homeState.value = HomeScreenState.Success(
                     categories = categories,

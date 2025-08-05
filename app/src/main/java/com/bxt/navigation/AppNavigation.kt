@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.ui.screen.HomeScreen
 import com.bxt.ui.screen.LoginScreen
+import com.bxt.ui.screen.ProfileScreen
 import com.bxt.ui.screen.RegisterScreen
 
 @Composable
@@ -35,10 +36,13 @@ fun AppNavigation() {
         }
 
         composable("home") {
-            HomeScreen()
+            HomeScreen(navController)
         }
         composable("register") {
             RegisterScreen()
+        }
+        composable("profile") {
+             ProfileScreen(navController)
         }
     }
 }
