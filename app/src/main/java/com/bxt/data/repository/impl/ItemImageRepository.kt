@@ -1,4 +1,4 @@
-package com.bxt.data.repository
+package com.bxt.data.repository.impl
 
 import com.bxt.data.api.ApiService
 import javax.inject.Inject

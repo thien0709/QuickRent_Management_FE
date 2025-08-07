@@ -1,7 +1,6 @@
 package com.bxt.ui.screen
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -13,197 +12,125 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bxt.R
 import com.bxt.viewmodel.AuthViewModel
+import com.bxt.viewmodel.LoginUiState
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onSignUpClick: () -> Unit,
-    onForgotPasswordClick: () -> Unit
+    onForgotPasswordClick: () -> Unit,
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
-    val viewModel : AuthViewModel = hiltViewModel()
+    val formState by viewModel.formState.collectAsState()
     val loginState by viewModel.loginState.collectAsState()
 
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(loginState) {
+        if (loginState is LoginUiState.Success) {
+            onLoginSuccess()
+            viewModel.resetLoginState()
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp)
     ) {
-        // Background Image
-        Image(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-            alpha = 0.2f
-        )
-
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
-            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo
             Image(
                 painter = painterResource(id = R.drawable.ic_launcher_background),
-                contentDescription = stringResource(R.string.app_name),
-                modifier = Modifier.size(120.dp)
+                contentDescription = null,
+                modifier = Modifier.size(100.dp)
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Welcome Text
             Text(
                 text = "Chào mừng trở lại!",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            )
-
-            Text(
-                text = "Vui lòng đăng nhập để tiếp tục",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Email Field
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Email,
-                        contentDescription = null
-                    )
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
+                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Password Field
             OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
+                value = formState.email,
+                onValueChange = viewModel::onEmailChanged,
+                label = { Text("Email") },
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = formState.password,
+                onValueChange = viewModel::onPasswordChanged,
                 label = { Text("Mật khẩu") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null
-                    )
-                },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
+                shape = RoundedCornerShape(12.dp)
             )
 
-            // Forgot Password
+            Spacer(modifier = Modifier.height(8.dp))
+
             TextButton(
                 onClick = onForgotPasswordClick,
                 modifier = Modifier.align(Alignment.End)
             ) {
+                Text("Quên mật khẩu?", color = MaterialTheme.colorScheme.primary)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = { viewModel.login() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                enabled = loginState !is LoginUiState.Loading,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                if (loginState is LoginUiState.Loading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Đăng nhập")
+                }
+            }
+
+            if (loginState is LoginUiState.Error) {
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Quên mật khẩu?",
-                    color = MaterialTheme.colorScheme.primary
+                    text = (loginState as LoginUiState.Error).message,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Login Button
-            Button(
-                onClick = {
-                    viewModel.login(email, password)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White
-                )
-            ) {
-                Text(
-                    text = "ĐĂNG NHẬP",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            // Error Message
-            if (errorMessage != null) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = errorMessage ?: "",
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Sign Up Prompt
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Chưa có tài khoản? ",
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                )
-                TextButton(
-                    onClick = onSignUpClick
-                ) {
-                    Text(
-                        text = "Đăng ký ngay",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-
-        // Handle login state
-        loginState?.let { result ->
-            LaunchedEffect(result) {
-                result.onSuccess {
-                    onLoginSuccess()
-                }.onFailure { e ->
-                    errorMessage = e.message ?: "Đăng nhập thất bại. Vui lòng thử lại."
+            Row {
+                Text("Chưa có tài khoản?")
+                TextButton(onClick = onSignUpClick) {
+                    Text("Đăng ký ngay", fontWeight = FontWeight.Bold)
                 }
             }
         }

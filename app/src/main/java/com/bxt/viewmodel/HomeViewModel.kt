@@ -3,11 +3,10 @@ package com.bxt.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bxt.data.api.dto.response.CategoryResponse
-import com.bxt.data.api.dto.response.ItemImageResponse
 import com.bxt.data.api.dto.response.ItemResponse
-import com.bxt.data.repository.CategoryRepository
-import com.bxt.data.repository.ItemImageRepository
-import com.bxt.data.repository.ItemRepository
+import com.bxt.data.local.DataStoreManager
+import com.bxt.data.repository.impl.CategoryRepository
+import com.bxt.data.repository.impl.ItemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,15 +26,28 @@ sealed class HomeScreenState {
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+
     private val categoryRepository: CategoryRepository,
-    private val itemRepository: ItemRepository
+    private val itemRepository: ItemRepository,
+    private val dataStore: DataStoreManager
 ) : ViewModel() {
 
     private val _homeState = MutableStateFlow<HomeScreenState>(HomeScreenState.Loading)
     val homeState: StateFlow<HomeScreenState> = _homeState
+    private val _isLoggedIn = MutableStateFlow(false)
+    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
 
     init {
+        observeLoginState()
         fetchHomeData()
+    }
+
+    private fun observeLoginState() {
+        viewModelScope.launch {
+            dataStore.isLoggedIn.collect { loggedIn ->
+                _isLoggedIn.value = loggedIn
+            }
+        }
     }
 
     private fun fetchHomeData() {

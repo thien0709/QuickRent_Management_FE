@@ -7,6 +7,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
@@ -28,12 +29,14 @@ object NetworkModule {
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .addInterceptor { chain ->
-                val token = runBlocking { dataStoreManager.accessToken.first() }
-                val request = chain.request().newBuilder().apply {
-                    if (!token.isNullOrBlank()) {
-                        addHeader("Authorization", "Bearer $token")
-                    }
-                }.build()
+                val request = runBlocking(Dispatchers.IO) {
+                    val token = dataStoreManager.accessToken.first()
+                    chain.request().newBuilder().apply {
+                        if (!token.isNullOrBlank()) {
+                            addHeader("Authorization", "Bearer $token")
+                        }
+                    }.build()
+                }
                 chain.proceed(request)
             }
             .build()

@@ -56,8 +56,9 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F6F0))
             .padding(16.dp)
+            .background(Color(0xFFF8F6F0))
+            .systemBarsPadding()
     ) {
         // Top Bar với Profile và Notification
         Row(

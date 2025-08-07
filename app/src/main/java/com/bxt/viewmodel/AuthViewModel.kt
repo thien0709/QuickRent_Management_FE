@@ -1,45 +1,70 @@
 package com.bxt.viewmodel
 
-import android.content.Context
-import android.util.Log
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bxt.data.api.dto.response.LoginResponse
-import com.bxt.data.repository.AuthRepository
 import com.bxt.data.local.DataStoreManager
+import com.bxt.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+data class LoginFormState(
+    val email: String = "",
+    val password: String = ""
+)
+
+sealed class LoginUiState {
+    object Idle : LoginUiState()
+    object Loading : LoginUiState()
+    object Success : LoginUiState()
+    data class Error(val message: String) : LoginUiState()
+}
+
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val repository : AuthRepository,
-    private val dataStore : DataStoreManager
+    private val authRepository: AuthRepository,
+    private val dataStore: DataStoreManager
 ) : ViewModel() {
 
-    private val _loginState = MutableStateFlow<Result<LoginResponse>?>(null)
-    val loginState: StateFlow<Result<LoginResponse>?> = _loginState
+    private val _formState = MutableStateFlow(LoginFormState())
+    val formState: StateFlow<LoginFormState> get() = _formState
 
-    fun login(username: String, password: String) {
+    private val _loginState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
+    val loginState: StateFlow<LoginUiState> get() = _loginState
+
+    fun onEmailChanged(email: String) {
+        _formState.value = _formState.value.copy(email = email)
+    }
+
+    fun onPasswordChanged(password: String) {
+        _formState.value = _formState.value.copy(password = password)
+    }
+
+    fun login() {
         viewModelScope.launch {
+            _loginState.value = LoginUiState.Loading
             try {
-                val result = repository.login(username, password)
-                Log.d("AuthViewModel", "Login successful: ${result.accessToken}")
-
-                _loginState.value = Result.success(result).also {
-                    println("API Response: $it")
-                    println("Token: ${result.accessToken}")
-                    dataStore.saveAccessToken(result.accessToken)
-                    dataStore.saveRefreshToken(result.refreshToken)
-                    Log.d("AuthViewModel", "Access token saved: ${result.accessToken}")
+                val result = authRepository.login(
+                    _formState.value.email,
+                    _formState.value.password
+                )
+                result.onSuccess {
+                    dataStore.saveAccessToken(it.accessToken)
+                    dataStore.saveRefreshToken(it.refreshToken)
+                    _loginState.value = LoginUiState.Success
                 }
-
+                result.onFailure {
+                    _loginState.value = LoginUiState.Error(it.message ?: "Lỗi đăng nhập")
+                }
             } catch (e: Exception) {
-                _loginState.value = Result.failure(e)
+                _loginState.value = LoginUiState.Error(e.message ?: "Lỗi không xác định")
             }
         }
+    }
+
+    fun resetLoginState() {
+        _loginState.value = LoginUiState.Idle
     }
 }

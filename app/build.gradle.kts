@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
+    id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
 }
 
@@ -67,14 +68,14 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 
     //Hilt
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
-    ksp(libs.androidx.hilt.compiler)
+    implementation(libs.dagger.hilt.android)
+    kapt(libs.dagger.hilt.android.compiler)
+
 
     // Paging3
     implementation(libs.androidx.paging.runtime)
     implementation(libs.paging.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

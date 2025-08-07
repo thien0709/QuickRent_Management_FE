@@ -4,23 +4,70 @@ package com.bxt.data.api
 import android.graphics.pdf.PdfDocument.Page
 import com.bxt.data.api.dto.request.CategoryRequest
 import com.bxt.data.api.dto.request.LoginRequest
+import com.bxt.data.api.dto.request.RegisterRequest
+import com.bxt.data.api.dto.request.UpdateUserRequest
 import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.api.dto.response.PagedResponse
+import com.bxt.data.api.dto.response.RegisterResponse
+import com.bxt.data.api.dto.response.UserResponse
 import retrofit2.http.Body
+import retrofit2.http.DELETE
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
+import retrofit2.http.Multipart
+import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
 
 
 interface ApiService {
+
+    // Authentication
     @POST("login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 
+    @POST("logout")
+    suspend fun logout()
+
+    @POST("register")
+    suspend fun register(@Body request: LoginRequest): LoginResponse
+
+    @GET("refresh-token")
+    suspend fun refreshToken(): LoginResponse
+
+    // User Profile
+    @GET("users/profile")
+    suspend fun getUserInfo(): UserResponse
+
+    @Multipart
+    @PATCH("/api/users/{id}/profile")
+    suspend fun updateUserInfo(
+        @Path("id") id: Long,
+        @Body registerRequest : UpdateUserRequest
+    ): RegisterResponse
+
+    @POST("/api/users/{id}/change-password")
+    @FormUrlEncoded
+    suspend fun changePassword(
+        @Path("id") id: Long,
+        @Field("oldPassword") oldPassword: String,
+        @Field("newPassword") newPassword: String
+    ): Map<String, String>
+
+    @DELETE("/api/users/{id}")
+    suspend fun deleteUserAccount(
+        @Path("id") id: Long
+    ): String
+
+    // Category
     @GET("categories")
     suspend fun getCategories(): List<CategoryResponse>
 
-
+    // Item
     @GET("items")
     suspend fun getItems(): List<ItemResponse>
 
