@@ -29,9 +29,11 @@ import coil.compose.AsyncImage
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
+import com.bxt.di.ApiResult
 import com.bxt.ui.state.HomeState
 import com.bxt.viewmodel.HomeViewModel
 import com.bxt.viewmodel.LocationViewModel
+import com.bxt.viewmodel.UserViewModel
 
 @Composable
 fun HomeScreen(
@@ -41,7 +43,8 @@ fun HomeScreen(
     onItemClick: (ItemResponse) -> Unit,
     onFilterClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
-    locationViewModel: LocationViewModel = hiltViewModel()
+    locationViewModel: LocationViewModel = hiltViewModel(),
+    userViewModel: UserViewModel = hiltViewModel()
 ) {
     var searchText by remember { mutableStateOf("") }
     val homeState by viewModel.homeState.collectAsState()
@@ -55,15 +58,19 @@ fun HomeScreen(
         }
     )
 
-
-    // Hiển thị UI chính, ví dụ địa chỉ hiện tại:
     val locationState by locationViewModel.locationState.collectAsState()
 
-    when {
-        locationState.isLoading -> Text("Đang lấy vị trí...")
-        locationState.currentAddress != null -> Text("Địa chỉ hiện tại: ${locationState.currentAddress}")
-        locationState.error != null -> Text("Lỗi: ${locationState.error}")
-        else -> Text("Chưa có dữ liệu vị trí")
+    val deliveryText = when {
+        locationState.isLoading -> "Đang lấy địa chỉ..."
+        locationState.currentAddress != null -> locationState.currentAddress
+        locationState.error != null -> "Lỗi: ${locationState.error}"
+        else -> "Chưa có địa chỉ"
+    }
+
+    val userState by userViewModel.uiState.collectAsState()
+    val avatarUrl = when (val userResult = userState.user) {
+        is ApiResult.Success -> userResult.data.avatarUrl ?: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
+        else -> "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
     }
 
 
@@ -80,12 +87,12 @@ fun HomeScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
+                model = avatarUrl,
                 contentDescription = "Profile",
                 modifier = Modifier
                     .size(50.dp)
                     .clip(CircleShape)
-                    .clickable { onProfileClick() }, // gọi callback
+                    .clickable { onProfileClick() },
                 contentScale = ContentScale.Crop
             )
             IconButton(onClick = { onNotificationClick() }) {
@@ -99,10 +106,20 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        // ... các thành phần UI như Text, Search ...
+        Text(
+            text = "Welcome back!",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Delivery to: $deliveryText",
+            fontSize = 16.sp,
+            color = Color.DarkGray
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),

@@ -4,6 +4,7 @@ import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.api.dto.response.PagedResponse
+import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
 
 sealed class LoginState {
@@ -22,6 +23,14 @@ sealed class HomeState {
 
     data class Error(val error: String) : HomeState()
 }
+
+
+data class UserState(
+    val user: ApiResult<UserResponse>? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val shouldNavigateToLogin: Boolean = false
+)
 
 sealed class CategoryState {
     object Loading : CategoryState()

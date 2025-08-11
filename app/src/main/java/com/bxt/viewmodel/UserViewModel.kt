@@ -2,10 +2,10 @@ package com.bxt.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.UserRepository
 import com.bxt.di.ApiResult
+import com.bxt.ui.state.UserState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,27 +15,26 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class ProfileViewModel @Inject constructor(
+class UserViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val dataStoreManager: DataStoreManager
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ProfileUiState())
-    val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(UserState())
+    val uiState: StateFlow<UserState> = _uiState.asStateFlow()
+
 
     init {
         fetchUserProfile()
     }
 
-    private fun fetchUserProfile() {
+    fun fetchUserProfile() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
                 error = null
             )
-
             try {
-                // Kiểm tra token
                 val token = dataStoreManager.accessToken.first()
                 if (token.isNullOrEmpty()) {
                     _uiState.value = _uiState.value.copy(
@@ -47,7 +46,6 @@ class ProfileViewModel @Inject constructor(
                 }
 
                 val userInfo = userRepository.getUserInfo()
-
                 _uiState.value = _uiState.value.copy(
                     user = userInfo,
                     isLoading = false,
@@ -58,8 +56,6 @@ class ProfileViewModel @Inject constructor(
                     isLoading = false,
                     error = "Lỗi khi tải thông tin: ${e.message ?: "Không xác định"}"
                 )
-
-                // Nếu lỗi 401 Unauthorized thì chuyển sang màn hình login
                 if (e.message?.contains("401") == true) {
                     _uiState.value = _uiState.value.copy(
                         shouldNavigateToLogin = true
@@ -72,16 +68,10 @@ class ProfileViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             dataStoreManager.clear()
-            _uiState.value = ProfileUiState(
+            _uiState.value = UserState(
                 shouldNavigateToLogin = true
             )
         }
     }
 }
 
-data class ProfileUiState(
-    val user: ApiResult<UserResponse>? = null,
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val shouldNavigateToLogin: Boolean = false
-)

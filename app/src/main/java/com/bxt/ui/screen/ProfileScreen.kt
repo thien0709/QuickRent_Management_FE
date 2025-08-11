@@ -1,6 +1,7 @@
 package com.bxt.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -11,19 +12,22 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
-import com.bxt.viewmodel.ProfileViewModel
+import com.bxt.viewmodel.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    viewModel: ProfileViewModel = hiltViewModel()
+    viewModel: UserViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -97,6 +101,8 @@ private fun ProfileContent(
 ) {
     val userData = (user as? ApiResult.Success)?.data
 
+    val avatarUrl = userData?.avatarUrl ?: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -105,25 +111,15 @@ private fun ProfileContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Profile Avatar
-        Box(
+        AsyncImage(
+            model = avatarUrl,
+            contentDescription = "Profile",
             modifier = Modifier
                 .size(120.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            userData?.username?.take(2)?.let {
-                Text(
-                    text = it.uppercase(),
-                    style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
 
+            )
         Card(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -136,7 +132,6 @@ private fun ProfileContent(
             }
         }
 
-        // Logout and Edit buttons
         Button(
             onClick = onLogout,
             modifier = Modifier.fillMaxWidth(),
