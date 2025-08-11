@@ -9,9 +9,13 @@ import com.bxt.ui.screen.*
 import com.bxt.ui.screen.LoginScreen
 import com.bxt.viewmodel.WelcomeViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.bxt.ui.screen.ErrorPopupManager
 
 @Composable
 fun AppNavigation() {
+    ErrorPopupManager.ErrorPopup()
     val navController = rememberNavController()
     val welcomeViewModel: WelcomeViewModel = hiltViewModel()
 
@@ -55,8 +59,17 @@ fun AppNavigation() {
             }
 
             composable("home") {
-                HomeScreen(navController)
+                HomeScreen(
+                    onProfileClick = {
+                        navController.navigate("profile")
+                    },
+                    onNotificationClick = {},
+                    onCategoryClick = { category -> navController.navigate("category/${category.id}") },
+                    onItemClick = { item -> navController.navigate("item/${item.id}") },
+                    onFilterClick = { }
+                )
             }
+
 
             composable("register") {
                 RegisterScreen()
@@ -65,6 +78,7 @@ fun AppNavigation() {
             composable("profile") {
                 ProfileScreen(navController)
             }
+
         }
     }
 }

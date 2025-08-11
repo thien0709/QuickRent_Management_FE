@@ -20,8 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bxt.R
+import com.bxt.ui.state.LoginState
 import com.bxt.viewmodel.AuthViewModel
-import com.bxt.viewmodel.LoginUiState
 
 @Composable
 fun LoginScreen(
@@ -34,7 +34,7 @@ fun LoginScreen(
     val loginState by viewModel.loginState.collectAsState()
 
     LaunchedEffect(loginState) {
-        if (loginState is LoginUiState.Success) {
+        if (loginState is LoginState.Success) {
             onLoginSuccess()
             viewModel.resetLoginState()
         }
@@ -65,8 +65,8 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
-                value = formState.email,
-                onValueChange = viewModel::onEmailChanged,
+                value = formState.username,
+                onValueChange = viewModel::onUsernameChanged,
                 label = { Text("Email") },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -103,10 +103,10 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                enabled = loginState !is LoginUiState.Loading,
+                enabled = loginState !is LoginState.Loading,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                if (loginState is LoginUiState.Loading) {
+                if (loginState is LoginState.Loading) {
                     CircularProgressIndicator(
                         color = Color.White,
                         modifier = Modifier.size(20.dp),
@@ -115,14 +115,6 @@ fun LoginScreen(
                 } else {
                     Text("Đăng nhập")
                 }
-            }
-
-            if (loginState is LoginUiState.Error) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = (loginState as LoginUiState.Error).message,
-                    color = MaterialTheme.colorScheme.error
-                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

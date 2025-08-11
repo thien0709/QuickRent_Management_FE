@@ -1,13 +1,18 @@
 package com.bxt.di
 
+import android.content.Context
 import com.bxt.data.api.ApiService
+import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.AuthRepository
+import com.bxt.data.repository.LocationRepository
 import com.bxt.data.repository.UserRepository
 import com.bxt.data.repository.impl.AuthRepositoryImpl
+import com.bxt.data.repository.impl.LocationRepositoryImpl
 import com.bxt.data.repository.impl.UserRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -27,5 +32,13 @@ object RepositoryModule {
         return UserRepositoryImpl(apiService)
     }
 
+    @Singleton
+    @Provides
+    fun provideLocationRepo(
+        apiService: ApiService,
+        @ApplicationContext context: Context
+    ): LocationRepository {
+        return LocationRepositoryImpl(apiService ,context)
+    }
 
 }

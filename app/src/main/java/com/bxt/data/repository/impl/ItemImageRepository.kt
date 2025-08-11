@@ -1,12 +1,14 @@
 package com.bxt.data.repository.impl
 
+import com.bxt.data.api.ApiCallExecutor
 import com.bxt.data.api.ApiService
+import com.bxt.di.ApiResult
 import javax.inject.Inject
 
 class ItemImageRepository @Inject constructor(
     private val apiService: ApiService
 ) {
-    suspend fun getItemImages(itemId: Long): List<String> {
-        return apiService.getItemImages(itemId)
+    suspend fun getItemImages(itemId: Long): ApiResult<List<String>> {
+        return ApiCallExecutor.execute { apiService.getItemImages(itemId) }
     }
 }

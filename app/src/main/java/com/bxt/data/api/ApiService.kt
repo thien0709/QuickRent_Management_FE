@@ -12,6 +12,8 @@ import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.api.dto.response.PagedResponse
 import com.bxt.data.api.dto.response.RegisterResponse
 import com.bxt.data.api.dto.response.UserResponse
+import com.bxt.di.ApiResult
+import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.Field
@@ -21,7 +23,9 @@ import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 
 interface ApiService {
@@ -44,24 +48,38 @@ interface ApiService {
     suspend fun getUserInfo(): UserResponse
 
     @Multipart
-    @PATCH("/api/users/{id}/profile")
+    @PATCH("users/{id}/profile")
     suspend fun updateUserInfo(
         @Path("id") id: Long,
         @Body registerRequest : UpdateUserRequest
     ): RegisterResponse
 
-    @POST("/api/users/{id}/change-password")
+    @POST("users/{id}/change-password")
     @FormUrlEncoded
     suspend fun changePassword(
         @Path("id") id: Long,
         @Field("oldPassword") oldPassword: String,
         @Field("newPassword") newPassword: String
-    ): Map<String, String>
+    ): UserResponse
 
-    @DELETE("/api/users/{id}")
+    @Multipart
+    @PATCH("users/{id}/avatar")
+    suspend fun updateUserAvatar(
+        @Path("id") id: Long,
+        @Part avatar: MultipartBody.Part
+    ): RegisterResponse
+
+
+    @DELETE("users/{id}")
     suspend fun deleteUserAccount(
         @Path("id") id: Long
     ): String
+
+    @PATCH("users/{id}/location")
+    suspend fun updateLocation(
+        @Path("id") id: Long,
+        @Body location: Map<String, Double>
+    ): Boolean
 
     // Category
     @GET("categories")
@@ -74,7 +92,12 @@ interface ApiService {
     @GET("items/available")
     suspend fun getAvailableItems(): PagedResponse<ItemResponse>
 
-
+    @GET("items/search")
+    suspend fun getItemsByCategory(
+        @Query("categoryId") categoryId: Long,  // Đổi từ @Path sang @Query
+        @Query("page") page: Int,
+        @Query("size") size: Int
+    ): PagedResponse<ItemResponse>
     // Image Item
     @GET("items/{id}/primary-image")
     suspend fun getItemPrimaryImage(id: Long): String

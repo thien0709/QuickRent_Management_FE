@@ -1,24 +1,19 @@
 package com.bxt.ui.screen
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,30 +23,49 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-// import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bxt.viewmodel.HomeViewModel
-import com.bxt.viewmodel.HomeScreenState
 import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
+import com.bxt.ui.state.HomeState
+import com.bxt.viewmodel.HomeViewModel
+import com.bxt.viewmodel.LocationViewModel
 
 @Composable
 fun HomeScreen(
-    navController: NavController,
-    viewModel: HomeViewModel = hiltViewModel()
+    onProfileClick: () -> Unit,
+    onNotificationClick: () -> Unit,
+    onCategoryClick: (CategoryResponse) -> Unit,
+    onItemClick: (ItemResponse) -> Unit,
+    onFilterClick: () -> Unit,
+    viewModel: HomeViewModel = hiltViewModel(),
+    locationViewModel: LocationViewModel = hiltViewModel()
 ) {
-    // Search state
     var searchText by remember { mutableStateOf("") }
-
-    // Collect state from ViewModel
     val homeState by viewModel.homeState.collectAsState()
+
+    LocationPermissionHandler(
+        onPermissionGranted = {
+            locationViewModel.updateCurrentLocation()
+        },
+        onPermissionDenied = {
+            locationViewModel.setError("Bạn cần cấp quyền vị trí để sử dụng tính năng này")
+        }
+    )
+
+
+    // Hiển thị UI chính, ví dụ địa chỉ hiện tại:
+    val locationState by locationViewModel.locationState.collectAsState()
+
+    when {
+        locationState.isLoading -> Text("Đang lấy vị trí...")
+        locationState.currentAddress != null -> Text("Địa chỉ hiện tại: ${locationState.currentAddress}")
+        locationState.error != null -> Text("Lỗi: ${locationState.error}")
+        else -> Text("Chưa có dữ liệu vị trí")
+    }
+
 
     Column(
         modifier = Modifier
@@ -60,25 +74,21 @@ fun HomeScreen(
             .background(Color(0xFFF8F6F0))
             .systemBarsPadding()
     ) {
-        // Top Bar với Profile và Notification
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Profile Image
             AsyncImage(
                 model = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
                 contentDescription = "Profile",
                 modifier = Modifier
                     .size(50.dp)
                     .clip(CircleShape)
-                    .clickable {  navController.navigate("profile")},
+                    .clickable { onProfileClick() }, // gọi callback
                 contentScale = ContentScale.Crop
             )
-
-            // Notification Icon
-            IconButton(onClick = { /* Handle notification */ }) {
+            IconButton(onClick = { onNotificationClick() }) {
                 Icon(
                     Icons.Default.Notifications,
                     contentDescription = "Notifications",
@@ -90,24 +100,10 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Greeting Text
-        Text(
-            text = "Hey Shubham,",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-
-        Text(
-            text = "What would you like to eat today?",
-            fontSize = 16.sp,
-            color = Color(0xFF666666),
-            modifier = Modifier.padding(top = 4.dp)
-        )
+        // ... các thành phần UI như Text, Search ...
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Search Bar
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -115,9 +111,7 @@ fun HomeScreen(
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
-                placeholder = {
-                    Text("Search", color = Color(0xFF999999))
-                },
+                placeholder = { Text("Search", color = Color(0xFF999999)) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Search,
@@ -139,11 +133,10 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Filter Button
             Card(
                 modifier = Modifier
                     .size(56.dp)
-                    .clickable { /* Handle filter */ },
+                    .clickable { onFilterClick() }, // gọi callback filter
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -163,47 +156,16 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // State handling
-        val currentState = homeState
-        when (currentState) {
-            is HomeScreenState.Loading -> {
+        when (val currentState = homeState) {
+            is HomeState.Loading -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
-                        color = Color.Black
-                    )
+                    CircularProgressIndicator(color = Color.Black)
                 }
             }
-
-            is HomeScreenState.Error -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Something went wrong",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = currentState.message,
-                            fontSize = 14.sp,
-                            color = Color(0xFF666666),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
-
-            is HomeScreenState.Success -> {
-                // Categories Section
+            is HomeState.Success -> {
                 Text(
                     text = "CATEGORIES",
                     fontSize = 14.sp,
@@ -221,14 +183,13 @@ fun HomeScreen(
                     items(currentState.categories) { category ->
                         CategoryCard(
                             category = category,
-                            onClick = { /* Handle category click */ }
+                            onClick = { onCategoryClick(category) } // gọi callback category click
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Popular Today Section
                 Text(
                     text = "POPULAR TODAY",
                     fontSize = 14.sp,
@@ -239,20 +200,32 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Popular Items List
                 LazyColumn {
                     items(currentState.popularItems) { item ->
                         PopularItemCard(
                             item = item,
-                            onClick = { /* Handle item click */ }
+                            onClick = { onItemClick(item) }
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
             }
+            is HomeState.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = currentState.error,
+                        color = Color.Red,
+                        fontSize = 16.sp
+                    )
+                }
+            }
         }
     }
 }
+
 
 @Composable
 fun CategoryCard(
@@ -278,7 +251,7 @@ fun CategoryCard(
                 model = category.imageUrl,
                 contentDescription = "Category Image",
                 modifier = Modifier.size(48.dp),
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -290,6 +263,7 @@ fun CategoryCard(
         }
     }
 }
+
 @Composable
 fun PopularItemCard(
     item: ItemResponse,
@@ -311,12 +285,11 @@ fun PopularItemCard(
                 model = item.imagePrimary,
                 contentDescription = "Item Image",
                 modifier = Modifier.size(100.dp),
-                contentScale = ContentScale.Crop,
+                contentScale = ContentScale.Crop
             )
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Food Details
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -343,7 +316,6 @@ fun PopularItemCard(
                 )
             }
 
-            // Arrow Icon
             Card(
                 modifier = Modifier
                     .size(40.dp)
@@ -356,7 +328,7 @@ fun PopularItemCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.ArrowForward,
+                        Icons.Default.Lock,
                         contentDescription = "View Details",
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)

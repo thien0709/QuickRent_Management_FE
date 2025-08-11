@@ -1,4 +1,3 @@
-// com.bxt.di.NetworkModule.kt
 package com.bxt.di
 
 import com.bxt.data.api.ApiService
@@ -21,13 +20,15 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val BASE_URL = "http://10.0.2.2:8080/api/"
+    private const val TIMEOUT = 10L
 
     @Provides
     @Singleton
     fun provideOkHttpClient(dataStoreManager: DataStoreManager): OkHttpClient {
         return OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(TIMEOUT, TimeUnit.SECONDS)
+            .readTimeout(TIMEOUT, TimeUnit.SECONDS)
+            .writeTimeout(TIMEOUT, TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val request = runBlocking(Dispatchers.IO) {
                     val token = dataStoreManager.accessToken.first()
@@ -35,6 +36,8 @@ object NetworkModule {
                         if (!token.isNullOrBlank()) {
                             addHeader("Authorization", "Bearer $token")
                         }
+                        addHeader("Accept", "application/json")
+                        addHeader("Content-Type", "application/json")
                     }.build()
                 }
                 chain.proceed(request)
