@@ -84,7 +84,6 @@ fun HomeScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Welcome text
         item {
             Text(
                 text = "Welcome back!",
@@ -94,13 +93,27 @@ fun HomeScreen(
             )
         }
 
-        // Delivery info
         item {
             Text(
                 text = "Delivery to: $deliveryText",
                 fontSize = 16.sp,
                 color = Color.DarkGray
             )
+            Button(
+                onClick = {
+                    locationViewModel.fetchCurrentLocation()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
+            ) {
+                Text(
+                    text = "Change Location",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         // Search + Filter

@@ -53,11 +53,13 @@ class HomeViewModel @Inject constructor(
             val items = itemRepository.getAvailableItem()
 
             (categories as? ApiResult.Error)?.let {
+                _homeState.value = HomeState.Error(it.error.message ?: "Lỗi khi tải danh mục.")
                 ErrorPopupManager.showError(it.error.message, false)
                 return@launch
             }
 
             (items as? ApiResult.Error)?.let {
+                _homeState.value = HomeState.Error(it.error.message ?: "Lỗi khi tải sản phẩm.")
                 ErrorPopupManager.showError(it.error.message, false)
                 return@launch
             }
