@@ -5,4 +5,5 @@ import com.bxt.di.ApiResult
 
 interface CategoryRepository {
     suspend fun getCategories(): ApiResult<List<CategoryResponse>>
+    suspend fun getCategoryById(categoryId: Long): ApiResult<CategoryResponse>
 }

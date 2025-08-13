@@ -48,10 +48,10 @@ class AuthViewModel @Inject constructor(
                 when (result) {
                     is ApiResult.Success -> {
                         val data = result.data
-                        dataStore.saveAccessToken(data.accessToken)
-                        dataStore.saveRefreshToken(data.refreshToken)
+
+                        dataStore.saveAuthData(data.accessToken,data.refreshToken, data.userId)
                         _loginState.value = LoginState.Success(
-                            LoginResponse(data.accessToken,data.username,data.refreshToken,data.role)
+                            LoginResponse(data.accessToken,data.username,data.refreshToken, data.role, data.userId)
                         )
                     }
                     is ApiResult.Error -> {

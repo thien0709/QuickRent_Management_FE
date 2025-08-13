@@ -25,7 +25,6 @@ fun LocationPermissionHandler(
             onPermissionGranted()
         } else {
             onPermissionDenied()
-            // Bạn có thể show message hoặc UI giải thích quyền
         }
     }
     val hasPermission = remember {

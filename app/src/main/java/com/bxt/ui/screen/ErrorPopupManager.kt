@@ -40,7 +40,7 @@ object ErrorPopupManager {
                 confirmButton = {
                     if (currentError.canRetry && currentError.onRetry != null) {
                         Button(onClick = {
-                            currentError.onRetry?.invoke()
+                            currentError.onRetry.invoke()
                             error = null
                         }) {
                             Text("Thử lại")

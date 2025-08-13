@@ -7,6 +7,7 @@ import com.bxt.data.api.dto.request.LoginRequest
 import com.bxt.data.api.dto.request.RegisterRequest
 import com.bxt.data.api.dto.request.UpdateUserRequest
 import com.bxt.data.api.dto.response.CategoryResponse
+import com.bxt.data.api.dto.response.ItemImageResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.api.dto.response.PagedResponse
@@ -85,6 +86,10 @@ interface ApiService {
     @GET("categories")
     suspend fun getCategories(): List<CategoryResponse>
 
+    @GET("categories/{id}")
+    suspend fun getCategoryById(@Path("id") id: Long): CategoryResponse
+
+
     // Item
     @GET("items")
     suspend fun getItems(): List<ItemResponse>
@@ -92,17 +97,16 @@ interface ApiService {
     @GET("items/available")
     suspend fun getAvailableItems(): PagedResponse<ItemResponse>
 
-    @GET("items/search")
+    @GET("items/categories/{categoryId}")
     suspend fun getItemsByCategory(
-        @Query("categoryId") categoryId: Long,  // Đổi từ @Path sang @Query
-        @Query("page") page: Int,
-        @Query("size") size: Int
+        @Path("categoryId") categoryId: Long
     ): PagedResponse<ItemResponse>
-    // Image Item
-    @GET("items/{id}/primary-image")
-    suspend fun getItemPrimaryImage(id: Long): String
 
-    @GET("items/{itemId}/images")
-    suspend fun getItemImages(id: Long): List<String>
+    @GET("items/{id}")
+    suspend fun getItemDetail(@Path("id") id: Long): ItemResponse
+
+    @GET("items/{id}/images")
+    suspend fun getItemImages(@Path("id") id: Long): List<String>
+
 
 }

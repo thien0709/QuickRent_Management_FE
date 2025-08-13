@@ -1,6 +1,7 @@
 package com.bxt.ui.state
 
 import com.bxt.data.api.dto.response.CategoryResponse
+import com.bxt.data.api.dto.response.ItemDetail
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.api.dto.response.PagedResponse
@@ -34,11 +35,25 @@ data class UserState(
 
 sealed class CategoryState {
     object Loading : CategoryState()
+    data class Error(val message: String) : CategoryState()
     data class Success(
-        val items: List<ItemResponse>,
-        val isLoadingMore: Boolean = false,
-        val endReached: Boolean = false,
-        val error: String? = null
+        val categories: List<CategoryResponse>,
+        val products: List<ItemResponse> = emptyList(),
+        val selectedCategory: CategoryResponse? = null,
+        // THÊM DÒNG NÀY
+        val isLoadingProducts: Boolean = false
     ) : CategoryState()
-    data class Error(val error: String) : CategoryState()
+}
+
+sealed class LocationState {
+    object Loading : LocationState()
+    data class Success(val location: Pair<Double, Double>, val address: String? = null) : LocationState()
+    data class Error(val message: String, val location: Pair<Double, Double>) : LocationState()
+    data class PermissionRequired(val shouldShowRationale: Boolean) : LocationState()
+    data class GpsDisabled(val isEnabled: Boolean) : LocationState()
+}
+sealed interface ItemState {
+    data object Loading : ItemState
+    data class Error(val message: String?) : ItemState
+    data class Success(val data: ItemDetail) : ItemState
 }

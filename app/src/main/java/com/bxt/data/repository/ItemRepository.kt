@@ -8,7 +8,9 @@ interface ItemRepository {
     suspend fun getAvailableItem(): ApiResult<PagedResponse<ItemResponse>>
     suspend fun getItemsByCategory(
         categoryId: Long,
-        page: Int,
-        pageSize: Int
     ): ApiResult<PagedResponse<ItemResponse>>
+
+    suspend fun getItemDetail(
+        itemId: Long,
+    ): ApiResult<ItemResponse>
 }

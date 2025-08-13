@@ -46,7 +46,6 @@ object ErrorParser {
             val json = errorBody?.string()
             val backendError = gson.fromJson(json, BackendErrorResponse::class.java)
 
-            // Map mã lỗi backend sang kiểu lỗi client
             val type = when (backendError.error) {
                 "INVALID_CREDENTIALS" -> ErrorType.INVALID_CREDENTIALS
                 "PASS_NOT_TRUE" -> ErrorType.INVALID_CREDENTIALS

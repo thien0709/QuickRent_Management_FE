@@ -1,84 +1,138 @@
 package com.bxt.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.bxt.ui.screen.*
-import com.bxt.ui.screen.LoginScreen
-import com.bxt.viewmodel.WelcomeViewModel
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.bxt.ui.screen.ErrorPopupManager
+import com.bxt.ui.components.BottomNavItem
+import com.bxt.ui.components.BottomNavigationBar
+import com.bxt.ui.screen.*
+import com.bxt.viewmodel.WelcomeViewModel
+import kotlinx.coroutines.flow.first
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation() {
-    ErrorPopupManager.ErrorPopup()
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
     val welcomeViewModel: WelcomeViewModel = hiltViewModel()
 
     var startDestination by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        val isFirstTime = welcomeViewModel.dataStoreManager.isFirstTime()
+        val isFirstTime = welcomeViewModel.dataStoreManager.isFirstTime.first()
         startDestination = if (isFirstTime) "welcome" else "home"
-
     }
 
+    val noBottomBarRoutes = listOf("welcome", "login", "register")
+    val hideBottomBar = currentRoute in noBottomBarRoutes ||
+            currentRoute?.startsWith("item/") == true
+
+    // Chỉ render khi đã có startDestination
     if (startDestination != null) {
-        NavHost(
-            navController = navController,
-            startDestination = startDestination!!
-        ) {
-            composable("welcome") {
-                WelcomeScreen(
-                    onCompleteWelcome = {
-                        navController.navigate("home") {
-                            popUpTo("welcome") { inclusive = true }
+        Scaffold(
+            bottomBar = {
+                if (!hideBottomBar) {
+                    BottomNavigationBar(
+                        items = listOf(
+                            BottomNavItem("Trang chủ", Icons.Default.Home, "home"),
+                            BottomNavItem("Tìm kiếm", Icons.Default.Search, "search"),
+                            BottomNavItem("Hồ sơ", Icons.Default.Person, "profile")
+                        ),
+                        currentRoute = currentRoute,
+                        onItemClick = { item ->
+                            navController.navigate(item.route) {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
-
-            composable("login") {
-                LoginScreen(
-                    onLoginSuccess = {
-                        navController.navigate("home") {
-                            popUpTo("login") { inclusive = true }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = startDestination!!,
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                // Auth
+                composable("welcome") {
+                    WelcomeScreen(
+                        onCompleteWelcome = {
+                            navController.navigate("home") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
                         }
-                    },
-                    onSignUpClick = {
-                        navController.navigate("register") {
-                            popUpTo("login") { inclusive = true }
+                    )
+                }
+                composable("login") {
+                    LoginScreen(
+                        onLoginSuccess = {
+                            navController.navigate("home") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        },
+                        onSignUpClick = { navController.navigate("register") },
+                        onForgotPasswordClick = {}
+                    )
+                }
+                composable("register") { RegisterScreen() }
+
+                // Main
+                composable("home") {
+                    HomeScreen(
+                        onCategoryClick = { category ->
+                            navController.navigate("category/${category.id}")
+                        },
+                        onItemClick = { item ->
+                            navController.navigate("item/${item.id}")
+                        },
+                        onAllCategoriesClick = {
+                            navController.navigate("category")
+                        },
+                        onFilterClick = {}
+                    )
+                }
+                composable("profile") { ProfileScreen(navController) }
+                composable("category") {
+                    CategoryScreen(
+                        onBackClick = { navController.navigateUp() },
+                        onProductClick = { productId ->
+                            navController.navigate("item/$productId")
                         }
-                    },
-                    onForgotPasswordClick = {}
-                )
+                    )
+                }
+                composable(
+                    route = "item/{id}",
+                    arguments = listOf(navArgument("id") { type = NavType.LongType })
+                ) { backStackEntry ->
+                    val itemId = backStackEntry.arguments?.getLong("id") ?: error("Missing item id")
+                    ItemScreen(
+                        itemId = itemId,
+                        onClickBack = { navController.popBackStack() },
+                        onClickOwner = { ownerId ->  },
+                        onClickRent = { id -> /* xử lý thuê với id */ }
+
+                    )
+                }
+
             }
-
-            composable("home") {
-                HomeScreen(
-                    onProfileClick = {
-                        navController.navigate("profile")
-                    },
-                    onNotificationClick = {},
-                    onCategoryClick = { category -> navController.navigate("category/${category.id}") },
-                    onItemClick = { item -> navController.navigate("item/${item.id}") },
-                    onFilterClick = { }
-                )
-            }
-
-
-            composable("register") {
-                RegisterScreen()
-            }
-
-            composable("profile") {
-                ProfileScreen(navController)
-            }
-
         }
     }
 }

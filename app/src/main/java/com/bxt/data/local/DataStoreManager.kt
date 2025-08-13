@@ -18,85 +18,108 @@ val Context.dataStore by preferencesDataStore(name = DATASTORE_NAME)
 class DataStoreManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-
     companion object {
+        // Authentication
         val TOKEN_KEY = stringPreferencesKey("auth_token")
         val REFRESH_TOKEN_KEY = stringPreferencesKey("refresh_token")
-        val DARK_MODE_KEY = booleanPreferencesKey("dark_mode")
         val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
-        val IS_FIRST_TIME_KEY = booleanPreferencesKey("is_first_time")
         val USER_ID = longPreferencesKey("user_id")
+
+        // App settings
+        val DARK_MODE_KEY = booleanPreferencesKey("dark_mode")
+        val IS_FIRST_TIME_KEY = booleanPreferencesKey("is_first_time")
+
+        // Location
+        val CURRENT_LAT_KEY = doublePreferencesKey("current_latitude")
+        val CURRENT_LNG_KEY = doublePreferencesKey("current_longitude")
+        val CURRENT_ADDRESS_KEY = stringPreferencesKey("current_address")
+        val PENDING_LAT_KEY = doublePreferencesKey("pending_latitude")
+        val PENDING_LNG_KEY = doublePreferencesKey("pending_longitude")
     }
 
-    // Sử dụng Flow cho userId
-    val userId: Flow<Long?> = context.dataStore.data
-        .map { prefs -> prefs[USER_ID] }
+    // Authentication
+    val accessToken: Flow<String?> = context.dataStore.data.map { it[TOKEN_KEY] }
+    val refreshToken: Flow<String?> = context.dataStore.data.map { it[REFRESH_TOKEN_KEY] }
+    val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { !it[TOKEN_KEY].isNullOrEmpty() }
+    val userId: Flow<Long?> = context.dataStore.data.map { it[USER_ID] }
 
-    // Lấy userId hiện tại (suspend function)
-    suspend fun getUserId(): Long? {
-        return userId.first()
-    }
-
-    suspend fun saveUserId(id: Long) {
-        context.dataStore.edit { prefs ->
-            prefs[USER_ID] = id
+    suspend fun saveAuthData(token: String, refreshToken: String, userId: Long) {
+        context.dataStore.edit {
+            it[TOKEN_KEY] = token
+            it[REFRESH_TOKEN_KEY] = refreshToken
+            it[USER_ID] = userId
+            it[IS_LOGGED_IN_KEY] = true
         }
     }
 
-    suspend fun clearUserId() {
-        context.dataStore.edit { prefs ->
-            prefs.remove(USER_ID)
+    suspend fun clearAuthData() {
+        context.dataStore.edit {
+            it.remove(TOKEN_KEY)
+            it.remove(REFRESH_TOKEN_KEY)
+            it.remove(USER_ID)
+            it[IS_LOGGED_IN_KEY] = false
         }
     }
 
-    // Các hàm tương tự cho token, dark mode, isFirstTime, ...
-    val accessToken: Flow<String?> = context.dataStore.data
-        .map { prefs -> prefs[TOKEN_KEY] }
-
-    suspend fun saveAccessToken(token: String) {
-        context.dataStore.edit { prefs ->
-            prefs[TOKEN_KEY] = token
-            prefs[IS_LOGGED_IN_KEY] = true
-        }
-    }
-
-    val refreshToken: Flow<String?> = context.dataStore.data
-        .map { prefs -> prefs[REFRESH_TOKEN_KEY] }
-
-    suspend fun saveRefreshToken(token: String) {
-        context.dataStore.edit { prefs ->
-            prefs[REFRESH_TOKEN_KEY] = token
-        }
-    }
-
-    val isLoggedIn: Flow<Boolean> = context.dataStore.data
-        .map { prefs -> !prefs[TOKEN_KEY].isNullOrEmpty() }
-
-    val isDarkModeEnabled: Flow<Boolean> = context.dataStore.data
-        .map { prefs -> prefs[DARK_MODE_KEY] ?: false }
+    // App settings
+    val isDarkModeEnabled: Flow<Boolean> = context.dataStore.data.map { it[DARK_MODE_KEY] ?: false }
+    val isFirstTime: Flow<Boolean> = context.dataStore.data.map { it[IS_FIRST_TIME_KEY] ?: true }
 
     suspend fun setDarkMode(enabled: Boolean) {
-        context.dataStore.edit { prefs ->
-            prefs[DARK_MODE_KEY] = enabled
-        }
+        context.dataStore.edit { it[DARK_MODE_KEY] = enabled }
     }
-
-    val isFirstTimeFlow: Flow<Boolean> = context.dataStore.data
-        .map { prefs -> prefs[IS_FIRST_TIME_KEY] ?: true }
-
-    suspend fun isFirstTime(): Boolean = isFirstTimeFlow.first()
 
     suspend fun setFirstTimeCompleted() {
-        context.dataStore.edit { prefs ->
-            prefs[IS_FIRST_TIME_KEY] = false
+        context.dataStore.edit { it[IS_FIRST_TIME_KEY] = false }
+    }
+
+    // Location
+    val currentLocation: Flow<Pair<Double, Double>?> = context.dataStore.data.map { prefs ->
+        prefs[CURRENT_LAT_KEY]?.let { lat ->
+            prefs[CURRENT_LNG_KEY]?.let { lng -> Pair(lat, lng) }
         }
     }
 
-    suspend fun clear() {
-        context.dataStore.edit {
-            it.clear()
-            it[IS_LOGGED_IN_KEY] = false
-            it[IS_FIRST_TIME_KEY] = false
+    val currentAddress: Flow<String?> = context.dataStore.data.map { it[CURRENT_ADDRESS_KEY] }
+
+    val pendingLocation: Flow<Pair<Double, Double>?> = context.dataStore.data.map { prefs ->
+        prefs[PENDING_LAT_KEY]?.let { lat ->
+            prefs[PENDING_LNG_KEY]?.let { lng -> Pair(lat, lng) }
         }
+    }
+
+    val hasPendingLocation: Flow<Boolean> = pendingLocation.map { it != null }
+
+    suspend fun saveCurrentLocation(lat: Double, lng: Double, address: String? = null) {
+        context.dataStore.edit {
+            it[CURRENT_LAT_KEY] = lat
+            it[CURRENT_LNG_KEY] = lng
+            address?.let { addr -> it[CURRENT_ADDRESS_KEY] = addr }
+        }
+    }
+
+    suspend fun savePendingLocation(lat: Double, lng: Double) {
+        context.dataStore.edit {
+            it[PENDING_LAT_KEY] = lat
+            it[PENDING_LNG_KEY] = lng
+        }
+    }
+
+    suspend fun clearPendingLocation() {
+        context.dataStore.edit {
+            it.remove(PENDING_LAT_KEY)
+            it.remove(PENDING_LNG_KEY)
+        }
+    }
+
+    suspend fun getPendingLocation(): Pair<Double, Double>? {
+        val prefs = context.dataStore.data.first()
+        return prefs[PENDING_LAT_KEY]?.let { lat ->
+            prefs[PENDING_LNG_KEY]?.let { lng -> Pair(lat, lng) }
+        }
+    }
+
+    suspend fun clearAll() {
+        context.dataStore.edit { it.clear() }
     }
 }

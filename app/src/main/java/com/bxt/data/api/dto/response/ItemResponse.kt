@@ -8,7 +8,7 @@ data class ItemResponse(
     val title: String?,
     val description: String?,
     val depositAmount: BigDecimal?,
-    val imagePrimary : String,
+    val imagePrimary : String?,
     val rentalPricePerHour: BigDecimal?,
     val conditionStatus: String?,
     val availabilityStatus: String?,

@@ -4,9 +4,13 @@ import android.content.Context
 import com.bxt.data.api.ApiService
 import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.AuthRepository
+import com.bxt.data.repository.CategoryRepository
+import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
 import com.bxt.data.repository.UserRepository
 import com.bxt.data.repository.impl.AuthRepositoryImpl
+import com.bxt.data.repository.impl.CategoryRepositoryImpl
+import com.bxt.data.repository.impl.ItemRepositoryImpl
 import com.bxt.data.repository.impl.LocationRepositoryImpl
 import com.bxt.data.repository.impl.UserRepositoryImpl
 import dagger.Module
@@ -41,4 +45,19 @@ object RepositoryModule {
         return LocationRepositoryImpl(apiService ,context)
     }
 
+    @Singleton
+    @Provides
+    fun provideCategoryRepo(
+        apiService: ApiService,
+    ): CategoryRepository {
+        return CategoryRepositoryImpl(apiService)
+    }
+
+    @Singleton
+    @Provides
+    fun provideItemRepo(
+        apiService: ApiService,
+    ): ItemRepository {
+        return ItemRepositoryImpl(apiService)
+    }
 }

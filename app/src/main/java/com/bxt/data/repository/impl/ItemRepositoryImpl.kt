@@ -18,15 +18,18 @@ class ItemRepositoryImpl @Inject constructor(
 
     override suspend fun getItemsByCategory(
         categoryId: Long,
-        page: Int,
-        pageSize: Int
     ): ApiResult<PagedResponse<ItemResponse>> {
         return ApiCallExecutor.execute {
             apiService.getItemsByCategory(
-                categoryId = categoryId,
-                page = page,
-                size = pageSize
+                categoryId = categoryId
             )
         }
     }
+
+    override suspend fun getItemDetail(itemId: Long): ApiResult<ItemResponse> {
+        return ApiCallExecutor.execute {
+            apiService.getItemDetail(id = itemId)
+        }
+    }
+
 }

@@ -15,6 +15,10 @@ class CategoryRepositoryImpl @Inject constructor(
         return ApiCallExecutor.execute { apiService.getCategories() }
     }
 
+    override suspend fun getCategoryById(categoryId: Long): ApiResult<CategoryResponse> {
+        return ApiCallExecutor.execute { apiService.getCategoryById(categoryId) }
+    }
+
 //    override suspend fun addCategory(category: String): ApiResult<Unit> {
 //        return ApiCallExecutor.execute { apiService.addCategory(category) }
 //    }

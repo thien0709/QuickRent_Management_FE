@@ -28,7 +28,7 @@ class UserViewModel @Inject constructor(
         fetchUserProfile()
     }
 
-    fun fetchUserProfile() {
+    private fun fetchUserProfile() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
@@ -67,7 +67,7 @@ class UserViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            dataStoreManager.clear()
+            dataStoreManager.clearAll()
             _uiState.value = UserState(
                 shouldNavigateToLogin = true
             )

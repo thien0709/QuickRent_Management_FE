@@ -2,6 +2,7 @@ package com.bxt.data.repository.impl
 
 import com.bxt.data.api.ApiCallExecutor
 import com.bxt.data.api.ApiService
+import com.bxt.data.api.dto.response.ItemImageResponse
 import com.bxt.di.ApiResult
 import javax.inject.Inject
 
