@@ -142,7 +142,9 @@ fun AppNavigation() {
                     )
                 }
 
+
             }
+            ErrorPopupManager.ErrorPopup()
         }
     }
 }
