@@ -12,8 +12,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFFF9800),    // Cam
-    onPrimary = Color.Black,        // Chữ trên nền cam
+    primary = Color(0xFFFF9800),    // Cam tươi
+    onPrimary = Color.Black,
     secondary = Color(0xFFFFB74D),  // Cam nhạt
     onSecondary = Color.Black,
     tertiary = Color(0xFFFFCC80),   // Cam pastel
@@ -23,17 +23,19 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = Color.White
 )
 
+
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF9E9E9E),    // Xám trung tính
+    primary = Color(0xFFCC6600),    // Cam đất đậm
     onPrimary = Color.White,
-    secondary = Color(0xFFBDBDBD),  // Xám nhạt
+    secondary = Color(0xFFFFD699),  // Cam pastel
     onSecondary = Color.Black,
-    tertiary = Color(0xFFE0E0E0),   // Xám sáng
-    background = Color(0xFFFFFFFF), // Trắng
+    tertiary = Color(0xFFFFE8C2),   // Be vàng sáng
+    background = Color(0xFFFCFAF5), // Be rất nhạt (gần trắng)
     onBackground = Color.Black,
-    surface = Color(0xFFF5F5F5),    // Trắng ngà
+    surface = Color(0xFFFFE4B5),    // Be đậm hơn cho nền BottomNav
     onSurface = Color.Black
 )
+
 
 @Composable
 fun QuickRent_Management_FETheme(

@@ -1,22 +1,24 @@
 package com.bxt.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 data class BottomNavItem(
     val label: String,
@@ -28,51 +30,54 @@ data class BottomNavItem(
 fun BottomNavigationBar(
     items: List<BottomNavItem>,
     currentRoute: String?,
-    onItemClick: (BottomNavItem) -> Unit
+    onItemClick: (BottomNavItem) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.shadow(8.dp)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp)
+            .navigationBarsPadding()
+            .padding(bottom = 15.dp),
+        contentAlignment = Alignment.BottomCenter
     ) {
-        items.forEach { item ->
-            val isSelected = item.route == currentRoute
-
-            // Animation icon size khi chọn
-            val iconSize by animateDpAsState(
-                targetValue = if (isSelected) 30.dp else 24.dp,
-                label = ""
-            )
-
-            NavigationBarItem(
-                selected = isSelected,
-                onClick = { onItemClick(item) },
-                label = {
-                    Text(
-                        text = item.label,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                icon = {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.label,
-                        modifier = Modifier
-                            .size(iconSize)
-                            .background(
-                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                else MaterialTheme.colorScheme.surface,
-                                shape = CircleShape
-                            )
-                            .padding(6.dp),
-                        tint = if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = MaterialTheme.colorScheme.surface
+        NavigationBar(
+            modifier = Modifier
+                .shadow(8.dp, RoundedCornerShape(24.dp))
+                .height(64.dp),
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
+        ) {
+            items.forEach { item ->
+                val isSelected = item.route == currentRoute
+                val iconTint by animateColorAsState(
+                    if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    animationSpec = tween(300)
                 )
-            )
+
+                NavigationBarItem(
+                    selected = isSelected,
+                    onClick = { onItemClick(item) },
+                    icon = {
+                        Icon(
+                            item.icon,
+                            contentDescription = item.label,
+                            tint = iconTint
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = item.label,
+                            color = iconTint,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = Color.Transparent
+                    )
+                )
+            }
         }
     }
 }

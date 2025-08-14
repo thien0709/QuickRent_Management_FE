@@ -30,9 +30,12 @@ class HomeViewModel @Inject constructor(
     private val _isLoggedIn = MutableStateFlow(false)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
 
-    val isDarkModeEnabled: StateFlow<Boolean> = dataStore.isDarkModeEnabled
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    private val _isDarkModeEnabled = MutableStateFlow(false)
+    val isDarkModeEnabled: StateFlow<Boolean> = _isDarkModeEnabled
 
+    fun setDarkModeEnabled(enabled: Boolean) {
+        _isDarkModeEnabled.value = enabled
+    }
     init {
         observeLoginState()
         fetchHomeData()
@@ -65,9 +68,13 @@ class HomeViewModel @Inject constructor(
             }
 
             if (categories is ApiResult.Success && items is ApiResult.Success) {
-                _homeState.value = HomeState.Success(categories.data, items.data.content)
+                _homeState.value = HomeState.Success(
+                    categories = categories.data ?: emptyList(),
+                    popularItems = items.data?.content ?: emptyList() // ✅ luôn đảm bảo không null
+                )
             }
         }
     }
+
 
 }

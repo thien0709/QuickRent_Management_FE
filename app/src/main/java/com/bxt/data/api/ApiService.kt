@@ -3,6 +3,7 @@ package com.bxt.data.api
 
 import android.graphics.pdf.PdfDocument.Page
 import com.bxt.data.api.dto.request.CategoryRequest
+import com.bxt.data.api.dto.request.ItemRequest
 import com.bxt.data.api.dto.request.LoginRequest
 import com.bxt.data.api.dto.request.RegisterRequest
 import com.bxt.data.api.dto.request.UpdateUserRequest
@@ -15,6 +16,7 @@ import com.bxt.data.api.dto.response.RegisterResponse
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.Field
@@ -93,6 +95,13 @@ interface ApiService {
     // Item
     @GET("items")
     suspend fun getItems(): List<ItemResponse>
+
+    @Multipart
+    @POST("items")
+    suspend fun addItem(
+        @Part("req") reqJson: ItemRequest,
+        @Part images: List<MultipartBody.Part>
+    ): ItemResponse
 
     @GET("items/available")
     suspend fun getAvailableItems(): PagedResponse<ItemResponse>

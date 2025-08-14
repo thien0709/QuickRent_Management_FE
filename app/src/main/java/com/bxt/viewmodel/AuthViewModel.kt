@@ -21,7 +21,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val dataStore: DataStoreManager
+    private val dataStoreManager: DataStoreManager
 ) : ViewModel() {
 
     private val _formState = MutableStateFlow(LoginRequest())
@@ -49,7 +49,7 @@ class AuthViewModel @Inject constructor(
                     is ApiResult.Success -> {
                         val data = result.data
 
-                        dataStore.saveAuthData(data.accessToken,data.refreshToken, data.userId)
+                        dataStoreManager.saveAuthData(data.accessToken,data.refreshToken, data.userId)
                         _loginState.value = LoginState.Success(
                             LoginResponse(data.accessToken,data.username,data.refreshToken, data.role, data.userId)
                         )

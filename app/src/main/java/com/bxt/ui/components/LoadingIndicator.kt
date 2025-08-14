@@ -1,6 +1,8 @@
 package com.bxt.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -16,11 +18,13 @@ fun LoadingIndicator() {
     )
     val progress by animateLottieCompositionAsState(
         composition,
-        iterations = LottieConstants.IterateForever // lặp vô hạn
+        iterations = LottieConstants.IterateForever
     )
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         LottieAnimation(

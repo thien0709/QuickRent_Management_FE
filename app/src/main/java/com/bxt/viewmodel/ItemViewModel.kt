@@ -56,4 +56,16 @@ class ItemViewModel @Inject constructor(
             }
         }
     }
+//    fun addItemToCart(item: ItemResponse) {
+//        viewModelScope.launch {
+//            itemRepository.addItemToCart(item)
+//        }
+//    }
+//
+//    fun removeItemFromCart(item: ItemResponse) {
+//        viewModelScope.launch {
+//            itemRepository.removeItemFromCart(item)
+//        }
+//    }
+
 }

@@ -20,6 +20,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.bxt.R
 import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.ui.components.CategoryCard
@@ -41,6 +47,17 @@ fun HomeScreen(
 ) {
     var searchText by remember { mutableStateOf("") }
     val homeState by viewModel.homeState.collectAsState()
+    val isDarkModeEnabledState = viewModel.isDarkModeEnabled.collectAsState()
+    val isDarkModeEnabled = isDarkModeEnabledState.value
+
+
+    val empty by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.empty)
+    )
+    val progress by animateLottieCompositionAsState(
+        empty,
+        iterations = LottieConstants.IterateForever
+    )
 
     LocationPermissionHandler(
         onPermissionGranted = {
@@ -79,11 +96,18 @@ fun HomeScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F6F0))
-            .systemBarsPadding(),
+            .background(Color(0xFFF8F6F0)),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        item {
+            Switch(
+                checked = isDarkModeEnabled,
+                onCheckedChange = { newValue ->
+                    viewModel.setDarkModeEnabled(newValue)
+                }
+            )
+        }
         item {
             Text(
                 text = "Welcome back!",
@@ -105,7 +129,6 @@ fun HomeScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
             ) {
                 Text(
                     text = "Change Location",
@@ -169,45 +192,76 @@ fun HomeScreen(
             }
         }
 
-        // Categories title
         item {
-            Text(
-                text = "CATEGORIES",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                letterSpacing = 1.2.sp
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "CATEGORIES",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    letterSpacing = 1.2.sp
+                )
+                Text(
+                    text = "View all category",
+                    fontSize = 10.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.clickable {
+                        onAllCategoriesClick()
+                    }
+                )
+
+            }
         }
+
+
 
         // Categories list
         item {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(successHomeState.categories) { category ->
-                    CategoryCard(
-                        category = category,
-                        onClick = { onCategoryClick(category) }
+            if (successHomeState.categories.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LottieAnimation(
+                        composition = empty,
+                        progress = { progress },
+                        modifier = Modifier.size(90.dp)
                     )
+                }
+            } else {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(successHomeState.categories) { category ->
+                        CategoryCard(
+                            category = category,
+                            onClick = { onCategoryClick(category) }
+                        )
+                    }
                 }
             }
         }
 
-        // View all categories button
-        item {
-            Button(
-                onClick = { onAllCategoriesClick() },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
-            ) {
-                Text(
-                    text = "View All Categories",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
+//        // View all categories button
+//        item {
+//            Button(
+//                onClick = { onAllCategoriesClick() },
+//                modifier = Modifier.fillMaxWidth(),
+//                shape = RoundedCornerShape(16.dp),
+//                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
+//            ) {
+//                Text(
+//                    text = "View All Categories",
+//                    color = Color.White,
+//                    fontSize = 16.sp,
+//                    fontWeight = FontWeight.Bold
+//                )
+//            }
+//        }
 
         // Popular today title
         item {
@@ -221,12 +275,28 @@ fun HomeScreen(
         }
 
         // Popular items list
-        items(successHomeState.popularItems) { item ->
-            PopularItemCard(
-                item = item,
-                onClick = { onItemClick(item) }
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+        if( successHomeState.popularItems.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LottieAnimation(
+                        composition = empty,
+                        progress = { progress },
+                        modifier = Modifier.size(90.dp)
+                    )
+                }
+            }
+        }
+        else {
+            items(successHomeState.popularItems) { item ->
+                PopularItemCard(
+                    item = item,
+                    onClick = { onItemClick(item) }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
     }
 }

@@ -57,3 +57,11 @@ sealed interface ItemState {
     data class Error(val message: String?) : ItemState
     data class Success(val data: ItemDetail) : ItemState
 }
+
+sealed interface AddItemState {
+    data object Idle : AddItemState
+    data object Submitting : AddItemState
+    data class Uploading(val uploaded: Int, val total: Int) : AddItemState
+    data class Success(val data: ItemResponse, val warning: String? = null) : AddItemState
+    data class Error(val message: String) : AddItemState
+}

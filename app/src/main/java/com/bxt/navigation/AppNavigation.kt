@@ -4,9 +4,11 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -43,16 +45,16 @@ fun AppNavigation() {
     val hideBottomBar = currentRoute in noBottomBarRoutes ||
             currentRoute?.startsWith("item/") == true
 
-    // Chỉ render khi đã có startDestination
     if (startDestination != null) {
         Scaffold(
             bottomBar = {
                 if (!hideBottomBar) {
                     BottomNavigationBar(
                         items = listOf(
-                            BottomNavItem("Trang chủ", Icons.Default.Home, "home"),
-                            BottomNavItem("Tìm kiếm", Icons.Default.Search, "search"),
-                            BottomNavItem("Hồ sơ", Icons.Default.Person, "profile")
+                            BottomNavItem("Home", Icons.Default.Home, "home"),
+                            BottomNavItem("Take on Rent", Icons.Default.ShoppingCart, "category"),
+                            BottomNavItem("Give on Rent", Icons.Default.AddCircle,"add_item"),
+                            BottomNavItem("Profile", Icons.Default.Person, "profile")
                         ),
                         currentRoute = currentRoute,
                         onItemClick = { item ->
@@ -68,9 +70,9 @@ fun AppNavigation() {
         ) { innerPadding ->
             NavHost(
                 navController = navController,
-                startDestination = startDestination!!
+                startDestination = startDestination!!,
+                Modifier.padding(innerPadding)
             ) {
-                // Auth
                 composable("welcome") {
                     WelcomeScreen(
                         onCompleteWelcome = {
@@ -93,7 +95,7 @@ fun AppNavigation() {
                 }
                 composable("register") { RegisterScreen() }
 
-                // Main
+
                 composable("home") {
                     HomeScreen(
                         onCategoryClick = { category ->
@@ -128,6 +130,15 @@ fun AppNavigation() {
                         onClickOwner = { ownerId ->  },
                         onClickRent = { id -> /* xử lý thuê với id */ }
 
+                    )
+                }
+                composable("add_item") {
+                    AddItemScreen(
+                        onItemAdded = {
+                            navController.navigate("home") {
+                                popUpTo("add_item") { inclusive = true }
+                            }
+                        }
                     )
                 }
 
