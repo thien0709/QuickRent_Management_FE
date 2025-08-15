@@ -6,13 +6,11 @@ import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.di.ApiResult
-import com.bxt.ui.screen.ErrorPopupManager
+import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.state.HomeState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 

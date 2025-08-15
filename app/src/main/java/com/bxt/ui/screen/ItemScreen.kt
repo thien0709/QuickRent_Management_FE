@@ -56,13 +56,14 @@ fun ItemScreen(
                     IconButton(onClick = onClickBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
+
                 }
             )
         }
     ) { padding ->
         when (uiState) {
             is ItemState.Loading -> Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier.fillMaxSize().padding(padding) ,
                 contentAlignment = Alignment.Center
             ) { CircularProgressIndicator() }
 
@@ -90,7 +91,7 @@ fun ItemScreen(
                 val parseIso: (String?) -> String = { s ->
                     if (s.isNullOrBlank()) "—"
                     else runCatching {
-                        OffsetDateTime.parse(s) // để parser tự nhận ISO mặc định
+                        OffsetDateTime.parse(s)
                             .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
                     }.getOrElse { "—" }
 
@@ -102,15 +103,12 @@ fun ItemScreen(
                 Column(
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
-                        .padding(padding)
                         .fillMaxSize()
                 ) {
-                    // --------- ẢNH ----------
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(280.dp)
-                            .background(Color(0xFFF2F2F2))
                     ) {
                         if (images.isNotEmpty()) {
                             HorizontalPager(

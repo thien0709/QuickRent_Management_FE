@@ -1,143 +1,125 @@
 package com.bxt.viewmodel
 
 import android.content.Context
-import android.database.Cursor
 import android.net.Uri
-import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bxt.data.api.dto.request.ItemRequest
+import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.local.DataStoreManager
+import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.di.ApiResult
 import com.bxt.ui.state.AddItemState
+import com.bxt.util.FileUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import java.io.File
+
+// UI state cho danh mục
+sealed interface CategoriesUiState {
+    data object Loading : CategoriesUiState
+    data class Success(val categories: List<CategoryResponse>) : CategoriesUiState
+    data class Error(val message: String) : CategoriesUiState
+}
 
 @HiltViewModel
 class AddItemViewModel @Inject constructor(
     private val itemRepository: ItemRepository,
+    private val categoryRepository: CategoryRepository,
     private val dataStore: DataStoreManager
 ) : ViewModel() {
 
+    // Trạng thái tạo item
     private val _uiState = MutableStateFlow<AddItemState>(AddItemState.Idle)
-    val uiState = _uiState.asStateFlow()
+    val uiState: StateFlow<AddItemState> = _uiState.asStateFlow()
 
+    // User
     private val _userId = MutableStateFlow<Long?>(null)
     val userId: StateFlow<Long?> = _userId.asStateFlow()
 
+    private val _isUserLoading = MutableStateFlow(true)
+    val isUserLoading: StateFlow<Boolean> = _isUserLoading.asStateFlow()
+
+    // Danh mục
+    private val _categoriesState = MutableStateFlow<CategoriesUiState>(CategoriesUiState.Loading)
+    val categoriesState: StateFlow<CategoriesUiState> = _categoriesState.asStateFlow()
+
     init {
-        // Collect userId from DataStore
+        // Lấy userId từ DataStore
         viewModelScope.launch {
             dataStore.userId.collect { id ->
-                _userId.value = id
+                _userId.value = id ?: 0L
+                _isUserLoading.value = false
+            }
+        }
+        // Tải danh mục lần đầu
+        loadCategories()
+    }
+
+    fun loadCategories() {
+        viewModelScope.launch {
+            _categoriesState.value = CategoriesUiState.Loading
+            when (val res = categoryRepository.getCategories()) {
+                is ApiResult.Success -> {
+                    val list = res.data.orEmpty()
+                    _categoriesState.value = CategoriesUiState.Success(list)
+                }
+                is ApiResult.Error -> {
+                    _categoriesState.value = CategoriesUiState.Error(
+                        res.error.message ?: "Không tải được danh mục"
+                    )
+                }
             }
         }
     }
 
     fun addItem(
         context: Context,
-        req: ItemRequest, // req object gốc
+        req: ItemRequest,
         imageUris: List<Uri>
     ) {
         viewModelScope.launch {
-            if (req.title.isBlank()) {
-                _uiState.value = AddItemState.Error("Thiếu tiêu đề")
-                return@launch
-            }
-            _uiState.value = AddItemState.Submitting
+            try {
+                _uiState.value = AddItemState.Submitting
 
-            // 1) KHÔNG CẦN TẠO JSON PART THỦ CÔNG NỮA
-            // Dòng này đã được xóa:
-            // val reqPart = gson.toJson(req).toRequestBody("application/json".toMediaType())
-
-            // 2) Chuẩn bị file -> MultipartBody.Part("images")
-            val tmpFiles = mutableListOf<File>()
-            val imageParts = mutableListOf<MultipartBody.Part>()
-            val total = imageUris.size
-            var prepared = 0
-            val warnings = mutableListOf<String>()
-
-            withContext(Dispatchers.IO) { // Sử dụng Dispatchers.IO chuẩn
-                _uiState.value = AddItemState.Uploading(prepared, total)
-                for (uri in imageUris) {
-                    val f = copyUriToCache(context, uri)
-                    if (f == null) {
-                        warnings += "Không đọc được ảnh: ${safeName(context, uri)}"
-                        prepared += 1
-                        _uiState.value = AddItemState.Uploading(prepared, total)
-                        continue
+                // Chuẩn bị multipart ảnh theo tuần tự để cập nhật tiến độ chính xác
+                val total = imageUris.size
+                val parts = mutableListOf<MultipartBody.Part>()
+                imageUris.forEachIndexed { index, uri ->
+                    val part = withContext(Dispatchers.IO) {
+                        // FileUtils.uriToMultipart trả về MultipartBody.Part?
+                        FileUtils.uriToMultipart(context, uri, "images")
                     }
-                    tmpFiles += f
+                    part?.let { parts.add(it) }
 
-                    val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
-                    val body = f.asRequestBody(mime.toMediaType())
-                    imageParts += MultipartBody.Part.createFormData(
-                        name = "images",
-                        filename = f.name,
-                        body = body
-                    )
-
-                    prepared += 1
-                    _uiState.value = AddItemState.Uploading(prepared, total)
-                }
-            }
-
-            // 3) Gọi repo với đối tượng 'req' gốc
-            when (val res = itemRepository.addItem(req, imageParts)) { // <-- THAY ĐỔI Ở ĐÂY
-                is ApiResult.Success -> {
-                    _uiState.value = AddItemState.Success(
-                        data = res.data,
-                        warning = warnings.takeIf { it.isNotEmpty() }?.joinToString("; ")
+                    // Cập nhật progress chuẩn bị ảnh
+                    _uiState.value = AddItemState.Uploading(
+                        uploaded = index + 1,
+                        total = total
                     )
                 }
-                is ApiResult.Error -> {
-                    _uiState.value = AddItemState.Error(res.error.message ?: "Không thể thêm sản phẩm")
-                }
-            }
 
-            // 4) Dọn file tạm
-            withContext(Dispatchers.IO) { tmpFiles.forEach { runCatching { it.delete() } } }
+                // Gọi API tạo item
+                when (val res = itemRepository.addItem(req, parts)) {
+                    is ApiResult.Success -> {
+                        _uiState.value = AddItemState.Success(res.data)
+                    }
+                    is ApiResult.Error -> {
+                        _uiState.value = AddItemState.Error(
+                            res.error.message ?: "Không thể thêm sản phẩm"
+                        )
+                    }
+                }
+            } catch (t: Throwable) {
+                _uiState.value = AddItemState.Error(t.message ?: "Có lỗi xảy ra")
+            }
         }
     }
-
-    // ============ Helpers (Không thay đổi) ============
-    private fun copyUriToCache(context: Context, uri: Uri): File? = runCatching {
-        val name = queryDisplayName(context, uri) ?: "IMG_${System.currentTimeMillis()}.tmp"
-        val suffix = name.substringAfterLast('.', "tmp")
-        val prefixRaw = name.substringBeforeLast('.', name)
-        val prefix = if (prefixRaw.length >= 3) prefixRaw else "IMG"
-        val tmp = File.createTempFile(prefix, ".$suffix", context.cacheDir)
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            tmp.outputStream().use { output -> input.copyTo(output) }
-        } ?: return null
-        tmp
-    }.getOrNull()
-
-    private fun queryDisplayName(context: Context, uri: Uri): String? {
-        return if (uri.scheme == "content") {
-            var name: String? = null
-            val projection = arrayOf(OpenableColumns.DISPLAY_NAME)
-            val cursor: Cursor? = context.contentResolver.query(uri, projection, null, null, null)
-            cursor?.use {
-                val idx = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (it.moveToFirst() && idx >= 0) name = it.getString(idx)
-            }
-            name
-        } else uri.lastPathSegment
-    }
-
-    private fun safeName(context: Context, uri: Uri): String =
-        queryDisplayName(context, uri) ?: uri.toString()
 }

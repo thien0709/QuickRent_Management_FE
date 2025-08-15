@@ -4,12 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bxt.data.api.dto.request.LoginRequest
 import com.bxt.data.api.dto.response.LoginResponse
-import com.bxt.data.api.dto.response.RegisterResponse
-import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.AuthRepository
 import com.bxt.di.ApiResult
-import com.bxt.ui.screen.ErrorPopupManager
+import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.state.LoginState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

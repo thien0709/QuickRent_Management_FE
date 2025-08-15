@@ -40,8 +40,12 @@ interface ApiService {
     @POST("logout")
     suspend fun logout()
 
+    @Multipart
     @POST("register")
-    suspend fun register(@Body request: LoginRequest): LoginResponse
+    suspend fun register(
+        @Part("request") request: RegisterRequest,
+        @Part avatar: MultipartBody.Part
+    ): RegisterResponse
 
     @GET("refresh-token")
     suspend fun refreshToken(): LoginResponse

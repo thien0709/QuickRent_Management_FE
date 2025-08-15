@@ -3,9 +3,12 @@ package com.bxt.data.repository.impl
 import com.bxt.data.api.ApiCallExecutor
 import com.bxt.data.api.ApiService
 import com.bxt.data.api.dto.request.LoginRequest
+import com.bxt.data.api.dto.request.RegisterRequest
 import com.bxt.data.api.dto.response.LoginResponse
+import com.bxt.data.api.dto.response.RegisterResponse
 import com.bxt.data.repository.AuthRepository
 import com.bxt.di.ApiResult
+import okhttp3.MultipartBody
 import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
@@ -17,9 +20,8 @@ class AuthRepositoryImpl @Inject constructor(
         return ApiCallExecutor.execute { apiService.login(request) }
     }
 
-    override suspend fun register(username: String, password: String): ApiResult<LoginResponse> {
-        val request = LoginRequest(username = username, password = password)
-        return ApiCallExecutor.execute { apiService.register(request) }
+    override suspend fun register(request: RegisterRequest, avatar : MultipartBody.Part): ApiResult<RegisterResponse> {
+        return ApiCallExecutor.execute { apiService.register(request,avatar) }
     }
 
     override suspend fun logout(): ApiResult<Unit> {

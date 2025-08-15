@@ -3,28 +3,39 @@ package com.bxt.ui.screen
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.bxt.data.api.dto.request.ItemRequest
+import com.bxt.data.api.dto.status.AvailabilityStatus
+import com.bxt.data.api.dto.status.ConditionStatus
+import com.bxt.ui.components.LoadingIndicator
 import com.bxt.ui.state.AddItemState
 import com.bxt.viewmodel.AddItemViewModel
+import com.bxt.viewmodel.CategoriesUiState
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import kotlin.math.max
@@ -33,21 +44,35 @@ import kotlin.math.max
 @Composable
 fun AddItemScreen(
     viewModel: AddItemViewModel = hiltViewModel(),
-    onItemAdded: () -> Unit
+    onItemAdded: () -> Unit,
+    onUserNull: () -> Unit
 ) {
     val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
+    // --- Form states ---
     var title by rememberSaveable { mutableStateOf("") }
     var description by rememberSaveable { mutableStateOf("") }
     var deposit by rememberSaveable { mutableStateOf("") }
     var rentalPrice by rememberSaveable { mutableStateOf("") }
-    var conditionStatus by rememberSaveable { mutableStateOf("") }
-    var availabilityStatus by rememberSaveable { mutableStateOf("") }
     var isActive by rememberSaveable { mutableStateOf(true) }
-    var categoryIdText by rememberSaveable { mutableStateOf("") }
 
+    // --- Enum dropdown states ---
+    var conditionExpanded by rememberSaveable { mutableStateOf(false) }
+    var availabilityExpanded by rememberSaveable { mutableStateOf(false) }
+    var selectedCondition by rememberSaveable { mutableStateOf<ConditionStatus?>(null) }
+    var selectedAvailability by rememberSaveable { mutableStateOf<AvailabilityStatus?>(null) }
+    val conditionOptions = remember { ConditionStatus.values().toList() }
+    val availabilityOptions = remember { AvailabilityStatus.values().toList() }
+
+    // --- Category picker states ---
+    var categoryExpanded by rememberSaveable { mutableStateOf(false) }
+    var categorySearch by rememberSaveable { mutableStateOf("") }
+    var selectedCategoryId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var selectedCategoryName by rememberSaveable { mutableStateOf("") }
+
+    // --- Images ---
     var images by rememberSaveable(
         stateSaver = listSaver(
             save = { it.map(Uri::toString) },
@@ -56,25 +81,32 @@ fun AddItemScreen(
     ) { mutableStateOf(emptyList()) }
 
     val uiState by viewModel.uiState.collectAsState()
-
     val userId by viewModel.userId.collectAsState()
-
-    if (userId == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
+    val isLoadingUser by viewModel.isUserLoading.collectAsState()
+    val categoriesState by viewModel.categoriesState.collectAsState()
 
     val pickImagesLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
-    ) { uris -> if (!uris.isNullOrEmpty()) images = images + uris }
+    ) { uris ->
+        if (!uris.isNullOrEmpty()) images = images + uris.take(5 - images.size)
+    }
 
+    // Auth state
+    if (isLoadingUser) {
+        LoadingIndicator()
+        return
+    }
+    if (userId == 0L) {
+        LaunchedEffect(Unit) { onUserNull() }
+        return
+    }
+
+    // React to submit result
     LaunchedEffect(uiState) {
-        when (val s = uiState) {
-            is AddItemState.Error -> snackbarHostState.showSnackbar(s.message)
+        when (val state = uiState) {
+            is AddItemState.Error -> snackbarHostState.showSnackbar(state.message, withDismissAction = true)
             is AddItemState.Success -> {
-                if (!s.warning.isNullOrBlank()) snackbarHostState.showSnackbar(s.warning!!)
+                state.warning?.let { snackbarHostState.showSnackbar(it, withDismissAction = true) }
                 onItemAdded()
             }
             else -> Unit
@@ -83,71 +115,229 @@ fun AddItemScreen(
 
     val isBusy = uiState is AddItemState.Submitting || uiState is AddItemState.Uploading
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Thêm sản phẩm mới") }) },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize()) {
+    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState) }) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
             Column(
-//                modifier = Modifier.padding(16.dp).fillMaxSize(),
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // --- Product info ---
+                Text("Product info", style = MaterialTheme.typography.titleLarge)
+
                 OutlinedTextField(
-                    value = title, onValueChange = { title = it },
-                    label = { Text("Tiêu đề *") }, modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = description, onValueChange = { description = it },
-                    label = { Text("Mô tả") }, modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = deposit, onValueChange = { deposit = it.filter(Char::isDigit) },
-                    label = { Text("Tiền cọc") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = rentalPrice, onValueChange = { rentalPrice = it.filter(Char::isDigit) },
-                    label = { Text("Giá thuê / giờ") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = conditionStatus, onValueChange = { conditionStatus = it },
-                    label = { Text("Tình trạng") }, modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = availabilityStatus, onValueChange = { availabilityStatus = it },
-                    label = { Text("Tình trạng sẵn có") }, modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = categoryIdText,
-                    onValueChange = { categoryIdText = it.filter(Char::isDigit) },
-                    label = { Text("Category ID *") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title *") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3
+                )
+
+                // --- Pricing ---
+                Text("Pricing", style = MaterialTheme.typography.titleLarge)
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = deposit,
+                        onValueChange = { deposit = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                        label = { Text("Deposit") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = rentalPrice,
+                        onValueChange = { rentalPrice = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                        label = { Text("Hourly rental price") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                // --- Status ---
+                Text("Status", style = MaterialTheme.typography.titleLarge)
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Condition
+                    ExposedDropdownMenuBox(
+                        expanded = conditionExpanded,
+                        onExpandedChange = { conditionExpanded = !conditionExpanded },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            readOnly = true,
+                            value = selectedCondition?.label ?: "",
+                            onValueChange = {},
+                            label = { Text("Condition") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = conditionExpanded) }
+                        )
+                        ExposedDropdownMenu(
+                            expanded = conditionExpanded,
+                            onDismissRequest = { conditionExpanded = false }
+                        ) {
+                            conditionOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option.label) },
+                                    onClick = {
+                                        selectedCondition = option
+                                        conditionExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // Availability
+                    ExposedDropdownMenuBox(
+                        expanded = availabilityExpanded,
+                        onExpandedChange = { availabilityExpanded = !availabilityExpanded },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            readOnly = true,
+                            value = selectedAvailability?.label ?: "",
+                            onValueChange = {},
+                            label = { Text("Availability") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = availabilityExpanded) }
+                        )
+                        ExposedDropdownMenu(
+                            expanded = availabilityExpanded,
+                            onDismissRequest = { availabilityExpanded = false }
+                        ) {
+                            availabilityOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option.label) },
+                                    onClick = {
+                                        selectedAvailability = option
+                                        availabilityExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // --- Category ---
+                Text("Category", style = MaterialTheme.typography.titleLarge)
+
+                when (val cs = categoriesState) {
+                    is CategoriesUiState.Loading -> {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(Modifier.size(20.dp))
+                            Text("  Loading categories…", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    is CategoriesUiState.Error -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(cs.message, color = MaterialTheme.colorScheme.error)
+                            Button(onClick = { viewModel.loadCategories() }) { Text("Retry") }
+                        }
+                    }
+                    is CategoriesUiState.Success -> {
+                        val all = cs.categories
+                        val filtered = remember(categorySearch, all) {
+                            if (categorySearch.isBlank()) all
+                            else all.filter { it.name!!.contains(categorySearch, ignoreCase = true) }
+                        }
+
+                        ExposedDropdownMenuBox(
+                            expanded = categoryExpanded,
+                            onExpandedChange = { categoryExpanded = !categoryExpanded },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                readOnly = true,
+                                value = selectedCategoryName,
+                                onValueChange = {},
+                                label = { Text("Select category") },
+                                placeholder = { Text("Pick a category from the list") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) }
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = categoryExpanded,
+                                onDismissRequest = { categoryExpanded = false }
+                            ) {
+                                OutlinedTextField(
+                                    value = categorySearch,
+                                    onValueChange = { categorySearch = it },
+                                    label = { Text("Search categories…") },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp)
+                                )
+
+                                if (filtered.isEmpty()) {
+                                    DropdownMenuItem(text = { Text("No results") }, onClick = { })
+                                } else {
+                                    filtered.forEach { cat ->
+                                        DropdownMenuItem(
+                                            text = { cat.name?.let { Text(it) } },
+                                            onClick = {
+                                                selectedCategoryId = cat.id
+                                                selectedCategoryName = cat.name.toString()
+                                                categoryExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // --- Active switch ---
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Kích hoạt:")
+                    Text("Active", style = MaterialTheme.typography.bodyLarge)
                     Switch(checked = isActive, onCheckedChange = { isActive = it })
                 }
 
+                // --- Images ---
+                Text("Images", style = MaterialTheme.typography.titleLarge)
+
                 if (images.isNotEmpty()) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         items(images) { uri ->
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .clickable(enabled = !isBusy) { images = images - uri }
-                            )
+                            Box(Modifier.size(120.dp)) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(uri)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                )
+                                IconButton(
+                                    onClick = { images = images - uri },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Close, contentDescription = "Remove image", tint = Color.White)
+                                }
+                            }
                         }
                     }
                 }
@@ -155,60 +345,76 @@ fun AddItemScreen(
                 Button(
                     onClick = { pickImagesLauncher.launch("image/*") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    enabled = !isBusy
-                ) { Text("Chọn ảnh") }
-
-                Button(
-                    onClick = {
-                        val categoryId = categoryIdText.toLongOrNull()
-                        if (title.isBlank()) {
-                            scope.launch { snackbarHostState.showSnackbar("Thiếu tiêu đề") }
-                            return@Button
-                        }
-                        if (categoryId == null) {
-                            scope.launch { snackbarHostState.showSnackbar("Thiếu Category ID") }
-                            return@Button
-                        }
-
-                        val req = ItemRequest(
-                            ownerId = userId!!,
-                            categoryId = categoryId,
-                            title = title.trim(),
-                            description = description,
-                            depositAmount = deposit.toBigDecimalOrNull() ?: BigDecimal.ZERO,
-                            rentalPricePerHour = rentalPrice.toBigDecimalOrNull() ?: BigDecimal.ZERO,
-                            conditionStatus = conditionStatus,
-                            availabilityStatus = availabilityStatus,
-                            isActive = isActive
-                        )
-                        viewModel.addItem(context, req, images)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    enabled = !isBusy
+                    enabled = !isBusy && images.size < 5
                 ) {
-                    Text(
-                        when (val s = uiState) {
-                            is AddItemState.Submitting -> "Đang tạo sản phẩm..."
-                            is AddItemState.Uploading -> "Đang chuẩn bị ảnh ${s.uploaded}/${s.total}..."
-                            else -> "Thêm sản phẩm"
-                        }
-                    )
+                    Text("Add images (${images.size}/5)")
                 }
 
+                // --- Submit ---
+                Button(
+                    onClick = {
+                        when {
+                            title.isBlank() ->
+                                scope.launch { snackbarHostState.showSnackbar("Please enter a title", withDismissAction = true) }
+
+                            selectedCategoryId == null ->
+                                scope.launch { snackbarHostState.showSnackbar("Please select a category", withDismissAction = true) }
+
+                            selectedCondition == null ->
+                                scope.launch { snackbarHostState.showSnackbar("Please select a condition", withDismissAction = true) }
+
+                            selectedAvailability == null ->
+                                scope.launch { snackbarHostState.showSnackbar("Please select availability", withDismissAction = true) }
+
+                            images.isEmpty() ->
+                                scope.launch { snackbarHostState.showSnackbar("Please add at least one image", withDismissAction = true) }
+
+                            else -> {
+                                val req = userId?.let {
+                                    ItemRequest(
+                                        ownerId = it,
+                                        categoryId = selectedCategoryId!!,
+                                        title = title.trim(),
+                                        description = description,
+                                        depositAmount = deposit.toBigDecimalOrNull() ?: BigDecimal.ZERO,
+                                        rentalPricePerHour = rentalPrice.toBigDecimalOrNull() ?: BigDecimal.ZERO,
+                                        conditionStatus = selectedCondition!!.name,
+                                        availabilityStatus = selectedAvailability!!.name,
+                                        isActive = isActive
+                                    )
+                                }
+                                if (req != null) viewModel.addItem(context, req, images)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isBusy
+                ) {
+                    when (val state = uiState) {
+                        is AddItemState.Submitting -> Text("Creating item…")
+                        is AddItemState.Uploading -> Text("Uploading images (${state.uploaded}/${state.total})")
+                        else -> Text("Create item")
+                    }
+                }
+
+                // --- Upload progress ---
                 if (uiState is AddItemState.Uploading) {
-                    val u = uiState as AddItemState.Uploading
-                    val progress = if (u.total == 0) 1f else u.uploaded.toFloat() / max(1, u.total).toFloat()
-                    LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(6.dp))
-                    Text("Đã chuẩn bị ảnh ${u.uploaded}/${u.total}", style = MaterialTheme.typography.bodySmall)
+                    val state = uiState as AddItemState.Uploading
+                    val progress = if (state.total == 0) 1f else state.uploaded.toFloat() / max(1, state.total).toFloat()
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                        Text("Uploading: ${state.uploaded}/${state.total} images", style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
 
+            // --- Submit overlay ---
             if (uiState is AddItemState.Submitting) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                Box(
+                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator() }
             }
         }
     }

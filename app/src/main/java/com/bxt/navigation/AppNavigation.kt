@@ -7,7 +7,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
@@ -21,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.bxt.ui.components.BottomNavItem
 import com.bxt.ui.components.BottomNavigationBar
+import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.screen.*
 import com.bxt.viewmodel.WelcomeViewModel
 import kotlinx.coroutines.flow.first
@@ -93,8 +93,17 @@ fun AppNavigation() {
                         onForgotPasswordClick = {}
                     )
                 }
-                composable("register") { RegisterScreen() }
-
+                composable("register") {
+                    RegisterScreen(
+                        onSuccess = {
+                            navController.navigate("login") {
+                                popUpTo("register") { inclusive = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                }
 
                 composable("home") {
                     HomeScreen(
@@ -138,10 +147,14 @@ fun AppNavigation() {
                             navController.navigate("home") {
                                 popUpTo("add_item") { inclusive = true }
                             }
+                        },
+                        onUserNull = {
+                            navController.navigate("login") {
+                                popUpTo("add_item") { inclusive = true }
+                            }
                         }
                     )
                 }
-
 
             }
             ErrorPopupManager.ErrorPopup()

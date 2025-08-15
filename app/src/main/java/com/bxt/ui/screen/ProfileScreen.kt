@@ -31,24 +31,10 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Handle authentication errors
-    LaunchedEffect(uiState.error) {
-        if (uiState.shouldNavigateToLogin) {
-            navController.navigate("login") {
-                popUpTo("profile") { inclusive = true }
-            }
-        }
-    }
-
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Thông tin cá nhân") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
+                title = { Text("Thông tin cá nhân") }
             )
         }
     ) { innerPadding ->

@@ -15,6 +15,13 @@ sealed class LoginState {
     data class Error(val error: String) : LoginState()
 }
 
+sealed class RegisterState {
+    object Idle : RegisterState()
+    object Loading : RegisterState()
+    object Success : RegisterState()
+    data class Error(val error: String) : RegisterState()
+}
+
 sealed class HomeState {
     object Loading : HomeState()
     data class Success(
@@ -40,7 +47,6 @@ sealed class CategoryState {
         val categories: List<CategoryResponse>,
         val products: List<ItemResponse> = emptyList(),
         val selectedCategory: CategoryResponse? = null,
-        // THÊM DÒNG NÀY
         val isLoadingProducts: Boolean = false
     ) : CategoryState()
 }

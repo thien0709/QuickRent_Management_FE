@@ -1,10 +1,7 @@
 package com.bxt.data.api
 
 import com.bxt.di.*
-import com.bxt.ui.screen.ErrorPopupManager
-import retrofit2.HttpException
-import java.io.IOException
-import java.net.SocketTimeoutException
+import com.bxt.ui.components.ErrorPopupManager
 
 object ApiCallExecutor {
     suspend fun <T> execute(

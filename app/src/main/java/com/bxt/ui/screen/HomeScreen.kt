@@ -30,6 +30,7 @@ import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.ui.components.CategoryCard
 import com.bxt.ui.components.LoadingIndicator
+import com.bxt.ui.components.LocationPermissionHandler
 import com.bxt.ui.components.PopularItemCard
 import com.bxt.ui.state.HomeState
 import com.bxt.ui.state.LocationState

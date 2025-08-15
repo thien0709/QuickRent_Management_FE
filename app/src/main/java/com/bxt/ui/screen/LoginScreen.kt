@@ -7,6 +7,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +18,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -32,6 +35,7 @@ fun LoginScreen(
 ) {
     val formState by viewModel.formState.collectAsState()
     val loginState by viewModel.loginState.collectAsState()
+    var passwordVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(loginState) {
         if (loginState is LoginState.Success) {
@@ -58,7 +62,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Chào mừng trở lại!",
+                text = "Welcome back!",
                 style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp)
             )
 
@@ -67,7 +71,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = formState.username,
                 onValueChange = viewModel::onUsernameChanged,
-                label = { Text("Email") },
+                label = { Text("Username ") },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
@@ -79,9 +83,17 @@ fun LoginScreen(
             OutlinedTextField(
                 value = formState.password,
                 onValueChange = viewModel::onPasswordChanged,
-                label = { Text("Mật khẩu") },
+                label = { Text("Password") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                visualTransformation = PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = null
+                        )
+                    }
+                },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
@@ -93,7 +105,7 @@ fun LoginScreen(
                 onClick = onForgotPasswordClick,
                 modifier = Modifier.align(Alignment.End)
             ) {
-                Text("Quên mật khẩu?", color = MaterialTheme.colorScheme.primary)
+                Text("Forgot password?", color = MaterialTheme.colorScheme.primary)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -113,16 +125,21 @@ fun LoginScreen(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Đăng nhập")
+                    Text("Login")
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Row {
-                Text("Chưa có tài khoản?")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+
+                Text("Don't have account?")
                 TextButton(onClick = onSignUpClick) {
-                    Text("Đăng ký ngay", fontWeight = FontWeight.Bold)
+                    Text("Register", fontWeight = FontWeight.Bold)
                 }
             }
         }
