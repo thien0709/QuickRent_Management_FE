@@ -4,10 +4,10 @@ import java.math.BigDecimal
 import java.time.Instant
 
 
-class RentalRequestRequest {
-    private val itemId: Long? = null
-    private val renterId: Long? = null
-    private val rentalStartTime: Instant? = null
-    private val rentalEndTime: Instant? = null
-    private val totalPrice: BigDecimal? = null
-}
+data class RentalRequestRequest (
+     val itemId: Long,
+     val renterId: Long,
+     val rentalStartTime: Instant,
+     val rentalEndTime: Instant,
+     val totalPrice: BigDecimal
+)

@@ -61,7 +61,7 @@ sealed class LocationState {
 sealed interface ItemState {
     data object Loading : ItemState
     data class Error(val message: String?) : ItemState
-    data class Success(val data: ItemDetail) : ItemState
+    data class Success(val data: ItemResponse) : ItemState
 }
 
 sealed interface AddItemState {
@@ -70,4 +70,12 @@ sealed interface AddItemState {
     data class Uploading(val uploaded: Int, val total: Int) : AddItemState
     data class Success(val data: ItemResponse, val warning: String? = null) : AddItemState
     data class Error(val message: String) : AddItemState
+}
+
+
+sealed interface RentalState {
+    data object Idle : RentalState
+    data object Submitting : RentalState
+    data class Success(val id: Long? = null) : RentalState
+    data class Error(val message: String) : RentalState
 }

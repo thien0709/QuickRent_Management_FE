@@ -6,6 +6,7 @@ import com.bxt.data.api.dto.request.CategoryRequest
 import com.bxt.data.api.dto.request.ItemRequest
 import com.bxt.data.api.dto.request.LoginRequest
 import com.bxt.data.api.dto.request.RegisterRequest
+import com.bxt.data.api.dto.request.RentalRequestRequest
 import com.bxt.data.api.dto.request.UpdateUserRequest
 import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemImageResponse
@@ -13,6 +14,7 @@ import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.api.dto.response.PagedResponse
 import com.bxt.data.api.dto.response.RegisterResponse
+import com.bxt.data.api.dto.response.RentalRequestResponse
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
 import okhttp3.MultipartBody
@@ -120,6 +122,9 @@ interface ApiService {
 
     @GET("items/{id}/images")
     suspend fun getItemImages(@Path("id") id: Long): List<String>
+
+    @POST("rental-requests")
+    suspend  fun createRentalRequest(request: RentalRequestRequest) : RentalRequestResponse
 
 
 }

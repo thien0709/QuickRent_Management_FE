@@ -7,11 +7,13 @@ import com.bxt.data.repository.AuthRepository
 import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
+import com.bxt.data.repository.RentalRequestRepository
 import com.bxt.data.repository.UserRepository
 import com.bxt.data.repository.impl.AuthRepositoryImpl
 import com.bxt.data.repository.impl.CategoryRepositoryImpl
 import com.bxt.data.repository.impl.ItemRepositoryImpl
 import com.bxt.data.repository.impl.LocationRepositoryImpl
+import com.bxt.data.repository.impl.RentalRequestRepositoryImpl
 import com.bxt.data.repository.impl.UserRepositoryImpl
 import dagger.Module
 import dagger.Provides
@@ -59,5 +61,12 @@ object RepositoryModule {
         apiService: ApiService,
     ): ItemRepository {
         return ItemRepositoryImpl(apiService)
+    }
+    @Singleton
+    @Provides
+    fun provideRentalRequestRepository(
+        apiService: ApiService
+    ): RentalRequestRepository {
+        return RentalRequestRepositoryImpl(apiService)
     }
 }

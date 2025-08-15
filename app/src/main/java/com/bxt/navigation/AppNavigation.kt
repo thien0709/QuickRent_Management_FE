@@ -133,14 +133,23 @@ fun AppNavigation() {
                     arguments = listOf(navArgument("id") { type = NavType.LongType })
                 ) { backStackEntry ->
                     val itemId = backStackEntry.arguments?.getLong("id") ?: error("Missing item id")
+
                     ItemScreen(
                         itemId = itemId,
                         onClickBack = { navController.popBackStack() },
-                        onClickOwner = { ownerId ->  },
-                        onClickRent = { id -> /* xử lý thuê với id */ }
-
+                        onClickOwner = { ownerId ->
+                            // ví dụ: navController.navigate("owner/$ownerId")
+                        },
+                        onClickRent = { id ->
+                            navController.navigate("rent_item/$id") {
+                                // DÙNG pattern route, KHÔNG dùng "item/$id"
+                                popUpTo("item/{id}") { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
                     )
                 }
+
                 composable("add_item") {
                     AddItemScreen(
                         onItemAdded = {
