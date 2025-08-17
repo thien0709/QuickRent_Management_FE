@@ -140,11 +140,23 @@ fun AppNavigation() {
                         onClickOwner = { ownerId ->
                             // ví dụ: navController.navigate("owner/$ownerId")
                         },
-                        onClickRent = { id ->
-                            navController.navigate("rent_item/$id") {
-                                // DÙNG pattern route, KHÔNG dùng "item/$id"
-                                popUpTo("item/{id}") { inclusive = true }
-                                launchSingleTop = true
+                        onClickRent = { id, price ->
+                            navController.navigate("rent_item/$id/$price")
+                        }
+                    )
+                }
+                composable(
+                    route = "rent_item/{itemId}/{price}",
+                    arguments = listOf(
+                        navArgument("itemId") { type = NavType.LongType },
+                        navArgument("price") { type = NavType.StringType }
+                    )
+                ) {
+                    RentalItemScreen(
+                        onClickBack = { navController.popBackStack() },
+                        onRentalSuccess = {
+                            navController.navigate("home") {
+                                popUpTo("home") { inclusive = true }
                             }
                         }
                     )

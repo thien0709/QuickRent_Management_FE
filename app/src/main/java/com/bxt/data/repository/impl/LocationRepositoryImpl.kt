@@ -6,8 +6,10 @@ import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.LocationManager
 import androidx.core.content.ContextCompat
+import com.bxt.data.api.ApiCallExecutor
 import com.bxt.data.api.ApiService
 import com.bxt.data.repository.LocationRepository
+import com.bxt.di.ApiResult
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -20,6 +22,7 @@ import kotlin.coroutines.resume
 
 class LocationRepositoryImpl(
     private val apiService: ApiService,
+    private val apiCallExecutor: ApiCallExecutor,
     @ApplicationContext private val context: Context
 ) : LocationRepository {
 
@@ -78,22 +81,15 @@ class LocationRepositoryImpl(
         }
     }
 
-    override suspend fun setLocationUser(userId  : Long , lat: Double, lng: Double): Result<Unit> = withContext(Dispatchers.IO) {
-        return@withContext try {
-            val locationMap = mapOf(
-                "lat" to lat,
-                "lng" to lng
-            )
-            val response = apiService.updateLocation(userId,locationMap)
+    // Trong file Repository của bạn
 
-            if (response) {
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("Failed to update location"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    override suspend fun setLocationUser(lat: Double, lng: Double): ApiResult<Unit> {
+        // 1. Chuẩn bị dữ liệu
+        val locationMap = mapOf(
+            "lat" to lat,
+            "lng" to lng
+        )
+        return apiCallExecutor.execute { apiService.updateLocation(locationMap) }
     }
 
 }

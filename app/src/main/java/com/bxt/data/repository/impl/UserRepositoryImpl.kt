@@ -7,44 +7,51 @@ import com.bxt.data.api.dto.response.RegisterResponse
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.data.repository.UserRepository
 import com.bxt.di.ApiResult
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
 import javax.inject.Inject
 
 class UserRepositoryImpl @Inject constructor(
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val apiCallExecutor: ApiCallExecutor
 ) : UserRepository {
 
     override suspend fun getUserInfo(): ApiResult<UserResponse> {
-        return ApiCallExecutor.execute { apiService.getUserInfo() }
+        return apiCallExecutor.execute { apiService.getUserInfo() }
     }
 
     override suspend fun updateUserInfo(
-        userId: Long,
         username: String,
         email: String,
         phone: String,
-        address: String
+        address: String,
+        avatarFile: File?
     ): ApiResult<RegisterResponse> {
         val request = UpdateUserRequest(username, email, phone, address)
-        return ApiCallExecutor.execute { apiService.updateUserInfo(userId, request) }
+        val avatarPart: MultipartBody.Part? = avatarFile?.let { file ->
+            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+            MultipartBody.Part.createFormData("avatar", file.name, requestFile)
+        }
+
+        return apiCallExecutor.execute { apiService.updateUserInfo(request, avatarPart) }
     }
 
     override suspend fun updateUserAvatar(
-        userId: Long,
         avatar: MultipartBody.Part
     ): ApiResult<RegisterResponse> {
-        return ApiCallExecutor.execute { apiService.updateUserAvatar(userId, avatar) }
+        return apiCallExecutor.execute { apiService.updateUserAvatar(avatar) }
     }
 
     override suspend fun updateUserPassword(
-        userId: Long,
         oldPassword: String,
         newPassword: String
     ): ApiResult<UserResponse> {
-        return ApiCallExecutor.execute { apiService.changePassword(userId, oldPassword, newPassword) }
+        return apiCallExecutor.execute { apiService.changePassword(oldPassword, newPassword) }
     }
 
-    override suspend fun deleteUserAccount(userId: Long): ApiResult<Unit> {
-        return ApiCallExecutor.execute { apiService.deleteUserAccount(userId) }
+    override suspend fun deleteUserAccount(): ApiResult<Unit> {
+        return apiCallExecutor.execute { apiService.deleteUserAccount() }
     }
 }

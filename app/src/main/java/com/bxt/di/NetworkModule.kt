@@ -1,6 +1,7 @@
 package com.bxt.di
 
 import com.bxt.data.api.ApiService
+import com.bxt.data.api.AuthInterceptor
 import com.bxt.data.local.DataStoreManager
 import dagger.Module
 import dagger.Provides
@@ -22,26 +23,15 @@ object NetworkModule {
     private const val BASE_URL = "http://10.0.2.2:8080/api/"
     private const val TIMEOUT = 10L
 
+
     @Provides
     @Singleton
-    fun provideOkHttpClient(dataStoreManager: DataStoreManager): OkHttpClient {
+    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
         return OkHttpClient.Builder()
             .connectTimeout(TIMEOUT, TimeUnit.SECONDS)
             .readTimeout(TIMEOUT, TimeUnit.SECONDS)
             .writeTimeout(TIMEOUT, TimeUnit.SECONDS)
-            .addInterceptor { chain ->
-                val request = runBlocking(Dispatchers.IO) {
-                    val token = dataStoreManager.accessToken.first()
-                    chain.request().newBuilder().apply {
-                        if (!token.isNullOrBlank()) {
-                            addHeader("Authorization", "Bearer $token")
-                        }
-                        addHeader("Accept", "application/json")
-                        addHeader("Content-Type", "application/json")
-                    }.build()
-                }
-                chain.proceed(request)
-            }
+            .addInterceptor(authInterceptor)
             .build()
     }
 
@@ -59,5 +49,10 @@ object NetworkModule {
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
+    }
+    @Provides
+    @Singleton
+    fun provideAuthInterceptor(dataStoreManager: DataStoreManager): AuthInterceptor {
+        return AuthInterceptor(dataStoreManager)
     }
 }

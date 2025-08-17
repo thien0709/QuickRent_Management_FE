@@ -1,104 +1,80 @@
 package com.bxt.data.api
 
-
-import android.graphics.pdf.PdfDocument.Page
-import com.bxt.data.api.dto.request.CategoryRequest
 import com.bxt.data.api.dto.request.ItemRequest
 import com.bxt.data.api.dto.request.LoginRequest
+import com.bxt.data.api.dto.request.RefreshTokenRequest
 import com.bxt.data.api.dto.request.RegisterRequest
 import com.bxt.data.api.dto.request.RentalRequestRequest
 import com.bxt.data.api.dto.request.UpdateUserRequest
-import com.bxt.data.api.dto.response.CategoryResponse
-import com.bxt.data.api.dto.response.ItemImageResponse
-import com.bxt.data.api.dto.response.ItemResponse
-import com.bxt.data.api.dto.response.LoginResponse
-import com.bxt.data.api.dto.response.PagedResponse
-import com.bxt.data.api.dto.response.RegisterResponse
-import com.bxt.data.api.dto.response.RentalRequestResponse
-import com.bxt.data.api.dto.response.UserResponse
-import com.bxt.di.ApiResult
+import com.bxt.data.api.dto.response.*
 import okhttp3.MultipartBody
-import okhttp3.RequestBody
-import retrofit2.http.Body
-import retrofit2.http.DELETE
-import retrofit2.http.Field
-import retrofit2.http.FormUrlEncoded
-import retrofit2.http.GET
-import retrofit2.http.Multipart
-import retrofit2.http.PATCH
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Part
-import retrofit2.http.Path
-import retrofit2.http.Query
-
+import retrofit2.http.*
 
 interface ApiService {
 
-    // Authentication
-    @POST("login")
+    // === Authentication ===
+    // Các endpoint này là public, không cần token
+    @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 
-    @POST("logout")
-    suspend fun logout()
-
     @Multipart
-    @POST("register")
+    @POST("auth/register")
     suspend fun register(
         @Part("request") request: RegisterRequest,
         @Part avatar: MultipartBody.Part
     ): RegisterResponse
 
-    @GET("refresh-token")
-    suspend fun refreshToken(): LoginResponse
+    // Sửa lại: Cần gửi refresh token cũ trong body
+    @POST("auth/refresh")
+    suspend fun refreshToken(@Body request: RefreshTokenRequest): LoginResponse
 
-    // User Profile
+    // Endpoint này cần token, Interceptor sẽ tự động thêm vào
+    @POST("auth/logout")
+    suspend fun logout() // Không cần truyền gì cả
+
+    // === User Profile ===
+    // Các endpoint dưới đây đều được bảo vệ. Backend sẽ tự biết user là ai qua token.
+    // Sửa lại: Xóa Path("id")
     @GET("users/profile")
     suspend fun getUserInfo(): UserResponse
 
+    // Sửa lại: Xóa Path("id") và sửa lỗi @Body thành @Part
     @Multipart
-    @PATCH("users/{id}/profile")
+    @PATCH("users/profile")
     suspend fun updateUserInfo(
-        @Path("id") id: Long,
-        @Body registerRequest : UpdateUserRequest
+        @Part("request") request: UpdateUserRequest,
+        @Part avatar: MultipartBody.Part?
     ): RegisterResponse
 
-    @POST("users/{id}/change-password")
+    @POST("users/change-password")
     @FormUrlEncoded
     suspend fun changePassword(
-        @Path("id") id: Long,
         @Field("oldPassword") oldPassword: String,
         @Field("newPassword") newPassword: String
     ): UserResponse
 
+    // Sửa lại: Xóa Path("id")
     @Multipart
-    @PATCH("users/{id}/avatar")
+    @PATCH("users/avatar")
     suspend fun updateUserAvatar(
-        @Path("id") id: Long,
         @Part avatar: MultipartBody.Part
     ): RegisterResponse
 
+    @DELETE("users/account")
+    suspend fun deleteUserAccount(): Unit
 
-    @DELETE("users/{id}")
-    suspend fun deleteUserAccount(
-        @Path("id") id: Long
-    ): String
-
-    @PATCH("users/{id}/location")
+    @PATCH("users/location")
     suspend fun updateLocation(
-        @Path("id") id: Long,
         @Body location: Map<String, Double>
-    ): Boolean
+    ): Unit
 
-    // Category
     @GET("categories")
     suspend fun getCategories(): List<CategoryResponse>
 
     @GET("categories/{id}")
     suspend fun getCategoryById(@Path("id") id: Long): CategoryResponse
 
-
-    // Item
+    // === Item ===
     @GET("items")
     suspend fun getItems(): List<ItemResponse>
 
@@ -115,16 +91,15 @@ interface ApiService {
     @GET("items/categories/{categoryId}")
     suspend fun getItemsByCategory(
         @Path("categoryId") categoryId: Long
-    ): PagedResponse<ItemResponse>
+    ): PagedResponse<ItemResponse> // Có thể là public
 
     @GET("items/{id}")
-    suspend fun getItemDetail(@Path("id") id: Long): ItemResponse
+    suspend fun getItemDetail(@Path("id") id: Long): ItemResponse // Có thể là public
 
     @GET("items/{id}/images")
-    suspend fun getItemImages(@Path("id") id: Long): List<String>
+    suspend fun getItemImages(@Path("id") id: Long): List<String> // Có thể là public
 
+    // === Rental Request (Cần token) ===
     @POST("rental-requests")
-    suspend  fun createRentalRequest(request: RentalRequestRequest) : RentalRequestResponse
-
-
+    suspend fun createRentalRequest(@Body request: RentalRequestRequest): RentalRequestResponse
 }

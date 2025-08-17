@@ -7,9 +7,10 @@ import com.bxt.di.ApiResult
 import javax.inject.Inject
 
 class ItemImageRepository @Inject constructor(
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val apiCallExecutor: ApiCallExecutor
 ) {
     suspend fun getItemImages(itemId: Long): ApiResult<List<String>> {
-        return ApiCallExecutor.execute { apiService.getItemImages(itemId) }
+        return apiCallExecutor.execute { apiService.getItemImages(itemId) }
     }
 }

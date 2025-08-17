@@ -8,8 +8,8 @@ import com.bxt.data.repository.RentalRequestRepository
 import com.bxt.di.ApiResult
 
 class RentalRequestRepositoryImpl(
-    private val apiService: ApiService
-
+    private val apiService: ApiService,
+    private val apiCallExecutor: ApiCallExecutor
 ) : RentalRequestRepository {
 
 
@@ -23,7 +23,7 @@ class RentalRequestRepositoryImpl(
     }
 
     override suspend fun createRentalRequest(request: RentalRequestRequest): ApiResult<RentalRequestResponse> {
-        return ApiCallExecutor .execute {
+        return apiCallExecutor.execute {
             apiService.createRentalRequest(request)
         }
     }

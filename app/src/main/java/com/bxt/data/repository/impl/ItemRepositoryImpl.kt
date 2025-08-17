@@ -12,26 +12,27 @@ import okhttp3.RequestBody
 import javax.inject.Inject
 
 class ItemRepositoryImpl @Inject constructor(
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val apiCallExecutor: ApiCallExecutor
 ) : ItemRepository {
 
     override suspend fun addItem(
         reqPart: ItemRequest,
         imageParts: List<MultipartBody.Part>
     ): ApiResult<ItemResponse> {
-        return ApiCallExecutor.execute {
+        return apiCallExecutor.execute {
             apiService.addItem(reqJson = reqPart, images = imageParts)
         }
     }
 
     override suspend fun getAvailableItem(): ApiResult<PagedResponse<ItemResponse>> {
-        return ApiCallExecutor.execute { apiService.getAvailableItems() }
+        return apiCallExecutor.execute { apiService.getAvailableItems() }
     }
 
     override suspend fun getItemsByCategory(
         categoryId: Long,
     ): ApiResult<PagedResponse<ItemResponse>> {
-        return ApiCallExecutor.execute {
+        return apiCallExecutor.execute {
             apiService.getItemsByCategory(
                 categoryId = categoryId
             )
@@ -39,7 +40,7 @@ class ItemRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getItemDetail(itemId: Long): ApiResult<ItemResponse> {
-        return ApiCallExecutor.execute {
+        return apiCallExecutor.execute {
             apiService.getItemDetail(id = itemId)
         }
     }
