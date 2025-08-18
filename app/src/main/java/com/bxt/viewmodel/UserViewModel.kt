@@ -23,7 +23,6 @@ class UserViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(UserState())
     val uiState: StateFlow<UserState> = _uiState.asStateFlow()
 
-
     init {
         fetchUserProfile()
     }
@@ -37,10 +36,10 @@ class UserViewModel @Inject constructor(
             try {
                 val token = dataStoreManager.accessToken.first()
                 if (token.isNullOrEmpty()) {
+                    // SỬA ĐỔI: Chỉ đặt cờ điều hướng, không gán lỗi.
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        shouldNavigateToLogin = true,
-                        error = "Phiên đăng nhập hết hạn"
+                        shouldNavigateToLogin = true
                     )
                     return@launch
                 }
@@ -52,13 +51,17 @@ class UserViewModel @Inject constructor(
                     error = null
                 )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Lỗi khi tải thông tin: ${e.message ?: "Không xác định"}"
-                )
+                // Xử lý lỗi 401 (Unauthorized) để điều hướng về login
                 if (e.message?.contains("401") == true) {
                     _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
                         shouldNavigateToLogin = true
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Lỗi khi tải thông tin: ${e.message ?: "Không xác định"}"
                     )
                 }
             }
@@ -73,5 +76,9 @@ class UserViewModel @Inject constructor(
             )
         }
     }
-}
 
+    // HÀM MỚI: Reset lại cờ sau khi đã điều hướng thành công
+    fun onNavigationHandled() {
+        _uiState.value = _uiState.value.copy(shouldNavigateToLogin = false)
+    }
+}

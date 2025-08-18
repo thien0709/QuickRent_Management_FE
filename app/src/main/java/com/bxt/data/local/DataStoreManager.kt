@@ -52,6 +52,12 @@ class DataStoreManager @Inject constructor(
         }
     }
 
+    suspend fun saveAccessToken(token: String) {
+        context.dataStore.edit {
+            it[TOKEN_KEY] = token
+        }
+    }
+
     suspend fun clearAuthData() {
         context.dataStore.edit {
             it.remove(TOKEN_KEY)

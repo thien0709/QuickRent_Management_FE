@@ -41,9 +41,17 @@ fun AppNavigation() {
         startDestination = if (isFirstTime) "welcome" else "home"
     }
 
-    val noBottomBarRoutes = listOf("welcome", "login", "register")
-    val hideBottomBar = currentRoute in noBottomBarRoutes ||
-            currentRoute?.startsWith("item/") == true
+    val routesToHideBottomBar = listOf(
+        "welcome",
+        "login",
+        "register",
+        "item/",
+        "rent_item/"
+    )
+
+    val hideBottomBar = routesToHideBottomBar.any { routePrefix ->
+        currentRoute?.startsWith(routePrefix) == true
+    }
 
     if (startDestination != null) {
         Scaffold(

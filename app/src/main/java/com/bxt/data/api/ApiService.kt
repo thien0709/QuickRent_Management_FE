@@ -14,31 +14,25 @@ interface ApiService {
 
     // === Authentication ===
     // Các endpoint này là public, không cần token
-    @POST("auth/login")
+    @POST("login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 
     @Multipart
-    @POST("auth/register")
+    @POST("register")
     suspend fun register(
         @Part("request") request: RegisterRequest,
         @Part avatar: MultipartBody.Part
     ): RegisterResponse
 
-    // Sửa lại: Cần gửi refresh token cũ trong body
-    @POST("auth/refresh")
+    @POST("refresh")
     suspend fun refreshToken(@Body request: RefreshTokenRequest): LoginResponse
 
-    // Endpoint này cần token, Interceptor sẽ tự động thêm vào
-    @POST("auth/logout")
-    suspend fun logout() // Không cần truyền gì cả
+    @POST("logout")
+    suspend fun logout()
 
-    // === User Profile ===
-    // Các endpoint dưới đây đều được bảo vệ. Backend sẽ tự biết user là ai qua token.
-    // Sửa lại: Xóa Path("id")
     @GET("users/profile")
     suspend fun getUserInfo(): UserResponse
 
-    // Sửa lại: Xóa Path("id") và sửa lỗi @Body thành @Part
     @Multipart
     @PATCH("users/profile")
     suspend fun updateUserInfo(

@@ -6,23 +6,32 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
 import javax.inject.Inject
-
 class AuthInterceptor @Inject constructor(
-    private val dataStoreManager: DataStoreManager
+    private val dataStore: DataStoreManager
 ) : Interceptor {
 
+    private val whiteList = listOf(
+        "login",
+        "register",
+        "refresh"
+    )
+
     override fun intercept(chain: Interceptor.Chain): Response {
-        val originalRequest = chain.request()
-        val accessToken = runBlocking {
-            dataStoreManager.accessToken.first()
-        }
-        val requestBuilder = originalRequest.newBuilder()
-        if (!accessToken.isNullOrBlank()) {
-            requestBuilder.addHeader("Authorization", "Bearer $accessToken")
+        val req = chain.request()
+        val path = req.url.encodedPath
+
+        if (whiteList.any { path.endsWith(it) }) {
+            return chain.proceed(req)
         }
 
-        val newRequest = requestBuilder.build()
-
-         return chain.proceed(newRequest)
+        val token = runBlocking { dataStore.accessToken.first() }
+        val newReq = if (!token.isNullOrBlank()) {
+            req.newBuilder()
+                .addHeader("Authorization", "Bearer $token")
+                .build()
+        } else {
+            req
+        }
+        return chain.proceed(newReq)
     }
 }

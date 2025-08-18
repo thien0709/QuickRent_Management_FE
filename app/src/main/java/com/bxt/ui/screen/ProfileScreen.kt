@@ -31,6 +31,21 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    // THÊM MỚI: Logic lắng nghe và tự động điều hướng
+    LaunchedEffect(uiState.shouldNavigateToLogin) {
+        if (uiState.shouldNavigateToLogin) {
+            navController.navigate("login") {
+                // Xóa các màn hình trước đó khỏi backstack để người dùng không quay lại được
+                popUpTo(navController.graph.startDestinationId) {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
+            // Reset lại cờ để tránh điều hướng lặp lại
+            viewModel.onNavigationHandled()
+        }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -56,14 +71,10 @@ fun ProfileScreen(
                     user = uiState.user!!,
                     onLogout = {
                         viewModel.logout()
-                        navController.navigate("login") {
-                            popUpTo("profile") { inclusive = true }
-                        }
+                        // Việc điều hướng sẽ do LaunchedEffect ở trên xử lý
                     },
                     editProfile = {
-                        navController.navigate("edit_profile") {
-                            popUpTo("profile") { inclusive = true }
-                        }
+                        navController.navigate("edit_profile")
                     }
                 )
             }
@@ -105,7 +116,7 @@ private fun ProfileContent(
                 .clip(CircleShape),
             contentScale = ContentScale.Crop
 
-            )
+        )
         Card(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -115,6 +126,8 @@ private fun ProfileContent(
             ) {
                 ProfileItem("Tên người dùng", userData?.username)
                 ProfileItem("Email", userData?.email)
+                ProfileItem("Họ và tên", userData?.fullName)
+                ProfileItem("Số điện thoại", userData?.phoneNumber)
             }
         }
 
@@ -132,12 +145,8 @@ private fun ProfileContent(
         Button(
             onClick = editProfile,
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            )
         ) {
-            Text("Chỉnh sửa")
+            Text("Chỉnh sửa thông tin")
         }
     }
 }
@@ -152,7 +161,7 @@ private fun ProfileItem(label: String, value: String?) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = value ?: "Chưa cập nhật",
+            text = if (value.isNullOrBlank()) "Chưa cập nhật" else value,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium
         )
