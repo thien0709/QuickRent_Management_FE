@@ -7,9 +7,9 @@ enum class ErrorType {
 }
 
 data class ErrorResponse(
-    val message: String,          // Message thân thiện, lấy từ errors.xml
+    val message: String,
     val canRetry: Boolean,
     val type: ErrorType,
-    val code: Int? = null,        // HTTP status code (ví dụ: 404, 500)
-    val errorCode: String? = null // **Thêm trường này** để chứa mã lỗi từ BE (ví dụ: "ITEM_NOT_FOUND")
+    val code: Int? = null,
+    val errorCode: String? = null
 )

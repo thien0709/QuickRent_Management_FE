@@ -9,12 +9,9 @@ import com.bxt.di.ApiResult
 import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.state.HomeState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -25,27 +22,20 @@ class HomeViewModel @Inject constructor(
 
     private val _homeState = MutableStateFlow<HomeState>(HomeState.Loading)
     val homeState: StateFlow<HomeState> = _homeState
-    private val _isLoggedIn = MutableStateFlow(false)
-    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
 
-    private val _isDarkModeEnabled = MutableStateFlow(false)
-    val isDarkModeEnabled: StateFlow<Boolean> = _isDarkModeEnabled
+    val isDarkModeEnabled: StateFlow<Boolean> =
+        dataStore.isDarkModeEnabled.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
 
     fun setDarkModeEnabled(enabled: Boolean) {
-        _isDarkModeEnabled.value = enabled
+        viewModelScope.launch { dataStore.setDarkMode(enabled) }
     }
+
     init {
-        observeLoginState()
         fetchHomeData()
-    }
-
-
-    private fun observeLoginState() {
-        viewModelScope.launch {
-            dataStore.isLoggedIn.collect { loggedIn ->
-                _isLoggedIn.value = loggedIn
-            }
-        }
     }
 
     private fun fetchHomeData() {
@@ -68,11 +58,9 @@ class HomeViewModel @Inject constructor(
             if (categories is ApiResult.Success && items is ApiResult.Success) {
                 _homeState.value = HomeState.Success(
                     categories = categories.data ?: emptyList(),
-                    popularItems = items.data?.content ?: emptyList() // ✅ luôn đảm bảo không null
+                    popularItems = items.data?.content ?: emptyList()
                 )
             }
         }
     }
-
-
 }

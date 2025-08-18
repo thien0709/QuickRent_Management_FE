@@ -84,7 +84,7 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF8F6F0)),
+                .background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center
         ) {
             LoadingIndicator()
@@ -97,32 +97,36 @@ fun HomeScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F6F0)),
+            .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Switch(
-                checked = isDarkModeEnabled,
-                onCheckedChange = { newValue ->
-                    viewModel.setDarkModeEnabled(newValue)
-                }
-            )
-        }
-        item {
-            Text(
-                text = "Welcome back!",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween, // CHANGED
+                verticalAlignment = Alignment.CenterVertically    // CHANGED
+            ) {
+                Text(
+                    text = "Welcome back!",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground // CHANGED
+                )
+                Switch(
+                    checked = isDarkModeEnabled,
+                    onCheckedChange = { newValue ->
+                        viewModel.setDarkModeEnabled(newValue)
+                    }
+                )
+            }
         }
 
         item {
             Text(
                 text = "Delivery to: $deliveryText",
                 fontSize = 16.sp,
-                color = Color.DarkGray
+                color = MaterialTheme.colorScheme.onBackground
             )
             Button(
                 onClick = {
@@ -133,7 +137,6 @@ fun HomeScreen(
             ) {
                 Text(
                     text = "Change Location",
-                    color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -154,7 +157,7 @@ fun HomeScreen(
                         Icon(
                             Icons.Default.Search,
                             contentDescription = "Search",
-                            tint = Color(0xFF999999)
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     },
                     modifier = Modifier
@@ -162,9 +165,10 @@ fun HomeScreen(
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = Color.Transparent
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,  // CHANGED
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface, // CHANGED
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent
                     ),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
                 )
@@ -176,7 +180,9 @@ fun HomeScreen(
                         .size(56.dp)
                         .clickable { onFilterClick() },
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Box(
@@ -186,7 +192,7 @@ fun HomeScreen(
                         Icon(
                             Icons.Default.Search,
                             contentDescription = "Filter",
-                            tint = Color.Black
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -205,13 +211,13 @@ fun HomeScreen(
                     text = "CATEGORIES",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onBackground,
                     letterSpacing = 1.2.sp
                 )
                 Text(
                     text = "View all category",
                     fontSize = 10.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.clickable {
                         onAllCategoriesClick()
                     }
@@ -247,30 +253,13 @@ fun HomeScreen(
             }
         }
 
-//        // View all categories button
-//        item {
-//            Button(
-//                onClick = { onAllCategoriesClick() },
-//                modifier = Modifier.fillMaxWidth(),
-//                shape = RoundedCornerShape(16.dp),
-//                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
-//            ) {
-//                Text(
-//                    text = "View All Categories",
-//                    color = Color.White,
-//                    fontSize = 16.sp,
-//                    fontWeight = FontWeight.Bold
-//                )
-//            }
-//        }
-
         // Popular today title
         item {
             Text(
                 text = "POPULAR TODAY",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onBackground,
                 letterSpacing = 1.2.sp
             )
         }

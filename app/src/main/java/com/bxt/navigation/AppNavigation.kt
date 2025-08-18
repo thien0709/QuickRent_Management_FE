@@ -25,7 +25,6 @@ import com.bxt.ui.screen.*
 import com.bxt.viewmodel.WelcomeViewModel
 import kotlinx.coroutines.flow.first
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()

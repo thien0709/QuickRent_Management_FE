@@ -25,7 +25,6 @@ import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Locale
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemScreen(
