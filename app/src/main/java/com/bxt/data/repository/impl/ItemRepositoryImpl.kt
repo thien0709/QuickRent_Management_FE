@@ -45,4 +45,22 @@ class ItemRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getItemsByUser(): ApiResult<PagedResponse<ItemResponse>> {
+        return apiCallExecutor.execute {
+            apiService.getItemsByUser()
+        }
+    }
+
+    override suspend fun updateItem(
+        itemId: Long,
+        reqPart: ItemRequest,
+        imageParts: List<MultipartBody.Part>
+    ): ApiResult<ItemResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun deleteItem(itemId: Long): ApiResult<Unit> {
+        TODO("Not yet implemented")
+    }
+
 }

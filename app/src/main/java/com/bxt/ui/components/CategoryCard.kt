@@ -32,20 +32,20 @@ fun CategoryCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             AsyncImage(
                 model = category.imageUrl,
                 contentDescription = "Category Image",
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(40.dp),
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = category.name ?: "Category",
-                fontSize = 14.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )

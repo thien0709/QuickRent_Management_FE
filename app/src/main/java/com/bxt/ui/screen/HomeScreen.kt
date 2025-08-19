@@ -104,14 +104,14 @@ fun HomeScreen(
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween, // CHANGED
-                verticalAlignment = Alignment.CenterVertically    // CHANGED
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Welcome back!",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground // CHANGED
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Switch(
                     checked = isDarkModeEnabled,
@@ -143,7 +143,6 @@ fun HomeScreen(
             }
         }
 
-        // Search + Filter
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -165,8 +164,8 @@ fun HomeScreen(
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,  // CHANGED
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface, // CHANGED
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         focusedBorderColor = Color.Transparent,
                         unfocusedBorderColor = Color.Transparent
                     ),
@@ -228,7 +227,6 @@ fun HomeScreen(
 
 
 
-        // Categories list
         item {
             if (successHomeState.categories.isEmpty()) {
                 Box(
@@ -253,7 +251,6 @@ fun HomeScreen(
             }
         }
 
-        // Popular today title
         item {
             Text(
                 text = "POPULAR TODAY",
@@ -264,7 +261,6 @@ fun HomeScreen(
             )
         }
 
-        // Popular items list
         if( successHomeState.popularItems.isEmpty()) {
             item {
                 Box(

@@ -1,12 +1,12 @@
 package com.bxt.ui.state
 
 import com.bxt.data.api.dto.response.CategoryResponse
-import com.bxt.data.api.dto.response.ItemDetail
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.LoginResponse
-import com.bxt.data.api.dto.response.PagedResponse
+import com.bxt.data.api.dto.response.RentalRequestResponse
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
+import com.bxt.di.ErrorResponse
 
 sealed class LoginState {
     object Idle : LoginState()
@@ -72,10 +72,15 @@ sealed interface AddItemState {
     data class Error(val message: String) : AddItemState
 }
 
-
 sealed interface RentalState {
     data object Idle : RentalState
     data object Submitting : RentalState
     data class Success(val id: Long? = null) : RentalState
     data class Error(val message: String) : RentalState
+}
+
+sealed interface RentalRequestsState {
+    data object Loading : RentalRequestsState
+    data class Success(val data: List<RentalRequestResponse>) : RentalRequestsState
+    data class Error(val message: ErrorResponse) : RentalRequestsState
 }

@@ -38,7 +38,6 @@ import com.bxt.di.ApiResult
 import com.bxt.ui.components.LoadingIndicator
 import com.bxt.viewmodel.UserViewModel
 
-/* ===================== ProfileScreen — NO SCAFFOLD ===================== */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,37 +84,25 @@ fun ProfileScreen(
             }
         }
 
-        // Speed-dial FAB (không cần Scaffold)
         ExpandableFab(
             expanded = menuOpen,
             onMainClick = { menuOpen = !menuOpen },
             onDismiss = { menuOpen = false },
             actions = listOf(
                 SpeedAction(
-                    label = "Profile",
-                    icon = { AvatarDot(url = (uiState.user as? ApiResult.Success)?.data?.avatarUrl) },
-                    onClick = { navController.navigate("profile_detail") }
-                ),
-                SpeedAction(
-                    label = "Task Center",
-                    icon = { Icon(Icons.Filled.DateRange, contentDescription = null) },
-                    onClick = { navController.navigate("task_center") }
-                ),
-                SpeedAction(
-                    label = "Creator Center",
-                    icon = { Icon(Icons.Filled.GridView, contentDescription = null) },
-                    onClick = { navController.navigate("creator_center") }
-                ),
-                SpeedAction(
                     label = "Notification",
                     icon = { NotificationBell(badge = 1) },
                     onClick = { navController.navigate("notifications") }
                 ),
                 SpeedAction(
-                    label = "Post",
+                    label = "Transport Service",
+                    icon = { Icon(Icons.Filled.GridView, contentDescription = null) },
+                    onClick = { navController.navigate("creator_center") }
+                ),
+                SpeedAction(
+                    label = "Rental Service",
                     icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
-                    accent = true,
-                    onClick = { navController.navigate("create_post") }
+                    onClick = { navController.navigate("rental_service") }
                 ),
             )
         )
@@ -152,7 +139,7 @@ private fun ExpandableFab(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 100.dp, end = 24.dp), // tránh đè bottom bar
+                .padding(bottom = 20.dp, end = 24.dp),
             contentAlignment = Alignment.BottomEnd
         ) {
             Column(
@@ -199,14 +186,6 @@ private fun ExpandableFab(
                                 ) { a.icon() }
                             }
                         }
-
-                        FilledIconButton(
-                            onClick = onDismiss,
-                            shape = CircleShape,
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
-                            )
-                        ) { Icon(Icons.Filled.Close, contentDescription = "Đóng") }
                     }
                 }
 
@@ -222,19 +201,6 @@ private fun ExpandableFab(
     }
 }
 
-@Composable
-private fun AvatarDot(url: String?) {
-    if (!url.isNullOrBlank()) {
-        AsyncImage(
-            model = url,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.size(24.dp).clip(CircleShape)
-        )
-    } else {
-        Icon(Icons.Filled.Person, contentDescription = null)
-    }
-}
 
 @Composable
 private fun NotificationBell(badge: Int) {
@@ -259,7 +225,6 @@ private fun NotificationBell(badge: Int) {
     }
 }
 
-/* ===================== Nội dung hồ sơ & trạng thái lỗi ===================== */
 
 @Composable
 private fun ProfileContent(

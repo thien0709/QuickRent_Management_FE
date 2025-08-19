@@ -23,4 +23,19 @@ interface ItemRepository {
     suspend fun getItemDetail(
         itemId: Long,
     ): ApiResult<ItemResponse>
+
+    suspend fun getItemsByUser(
+    ): ApiResult<PagedResponse<ItemResponse>>
+
+    suspend fun updateItem(
+        itemId: Long,
+        reqPart: ItemRequest,
+        imageParts: List<MultipartBody.Part>
+    ): ApiResult<ItemResponse>
+
+    suspend fun deleteItem(
+        itemId: Long,
+    ): ApiResult<Unit>
+
+
 }

@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.DeliveryDining
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Textsms
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -23,6 +25,7 @@ import com.bxt.ui.components.BottomNavItem
 import com.bxt.ui.components.BottomNavigationBar
 import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.screen.*
+import com.bxt.viewmodel.RentalServiceViewModel
 import com.bxt.viewmodel.WelcomeViewModel
 import kotlinx.coroutines.flow.first
 
@@ -60,8 +63,9 @@ fun AppNavigation() {
                     BottomNavigationBar(
                         items = listOf(
                             BottomNavItem("Home", Icons.Default.Home, "home"),
-                            BottomNavItem("Take on Rent", Icons.Default.ShoppingCart, "category"),
-                            BottomNavItem("Give on Rent", Icons.Default.AddCircle,"add_item"),
+                            BottomNavItem("Rental", Icons.Default.ShoppingCart, "category"),
+                            BottomNavItem("Transport", Icons.Default.DeliveryDining, "transport"),
+                            BottomNavItem("Chat", Icons.Default.Textsms, "chat"),
                             BottomNavItem("Profile", Icons.Default.Person, "profile")
                         ),
                         currentRoute = currentRoute,
@@ -188,6 +192,13 @@ fun AppNavigation() {
                         }
                     )
                 }
+                composable("rental_service") {
+                    RentalServiceScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onRentalClick = { id -> navController.navigate("rental_detail/$id") }
+                    )
+                }
+
 
             }
             ErrorPopupManager.ErrorPopup()

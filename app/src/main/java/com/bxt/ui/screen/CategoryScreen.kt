@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,6 +19,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberImagePainter
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.bxt.R
 import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.ui.components.CategoryCard
@@ -28,15 +35,24 @@ import com.bxt.viewmodel.CategoryViewModel
 
 @Composable
 fun CategoryScreen(
+    categoryId: Long? = null,
     onBackClick : () -> Unit,
     onProductClick: (Long) -> Unit,
     viewModel: CategoryViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(Unit) {
-        viewModel.loadInitialData()
+    LaunchedEffect(categoryId) {
+        if (categoryId != null) {
+            // Nếu có categoryId, load data cho category cụ thể
+            viewModel.loadCategoryData(categoryId)
+        } else {
+            // Nếu không có categoryId, load tất cả categories
+            viewModel.loadInitialData()
+        }
     }
 
+
     val state = viewModel.state.collectAsState().value
+
 
     when (val categoryState = state) {
         is CategoryState.Loading -> {
@@ -67,8 +83,16 @@ fun CategoryContent(
     onCategoryClick: (CategoryResponse) -> Unit,
     onProductClick: (Long) -> Unit
 ) {
+    val empty by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.empty)
+    )
+    val progress by animateLottieCompositionAsState(
+        empty,
+        iterations = LottieConstants.IterateForever
+    )
+
     Row(modifier = Modifier.fillMaxSize()) {
-        // LazyColumn cho danh mục
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxHeight()
@@ -81,15 +105,16 @@ fun CategoryContent(
                     category = category,
                     onClick = { onCategoryClick(category) }
                 )
+                Spacer(modifier = Modifier.height(8.dp))
             }
+
         }
 
-        // Cột chứa sản phẩm
         Column(
             modifier = Modifier
                 .fillMaxHeight()
                 .weight(2f)
-                .padding(16.dp)
+                .padding(10.dp)
                 .background(Color.White)
                 .clip(MaterialTheme.shapes.medium)
                 .padding(8.dp),
@@ -103,12 +128,6 @@ fun CategoryContent(
                         style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
                     )
                 } else {
-                    Text(
-                        text = "Sản phẩm của: ${category.name}",
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
                     if (isLoadingProducts) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -117,11 +136,16 @@ fun CategoryContent(
                             LoadingIndicator()
                         }
                     } else if (products.isEmpty()) {
-                        Text(
-                            text = "Không có sản phẩm nào trong danh mục này.",
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            LottieAnimation(
+                                composition = empty,
+                                progress = { progress },
+                                modifier = Modifier.size(90.dp)
+                            )
+                        }
                     } else {
                         LazyColumn(
                             contentPadding = PaddingValues(vertical = 8.dp),
