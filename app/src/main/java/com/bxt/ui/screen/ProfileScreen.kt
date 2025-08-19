@@ -1,31 +1,15 @@
+// screen/ProfileScreen.kt (tối ưu)
 package com.bxt.ui.screen
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -35,9 +19,10 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
+import com.bxt.ui.components.ExpandableFab
 import com.bxt.ui.components.LoadingIndicator
+import com.bxt.util.FabActions
 import com.bxt.viewmodel.UserViewModel
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +31,6 @@ fun ProfileScreen(
     viewModel: UserViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var menuOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.shouldNavigateToLogin) {
         if (uiState.shouldNavigateToLogin) {
@@ -58,199 +42,39 @@ fun ProfileScreen(
         }
     }
 
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
-    ) {
-        Column(Modifier.fillMaxSize()) {
-
-             when {
-                uiState.isLoading -> Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) { LoadingIndicator() }
-
-                uiState.user != null -> ProfileContent(
-                    user = uiState.user!!,
-                    onLogout = { viewModel.logout() },
-                    editProfile = { navController.navigate("edit_profile") }
-                )
-
-                uiState.error != null -> ErrorState(errorMessage = uiState.error!!)
-            }
-        }
-
-        ExpandableFab(
-            expanded = menuOpen,
-            onMainClick = { menuOpen = !menuOpen },
-            onDismiss = { menuOpen = false },
-            actions = listOf(
-                SpeedAction(
-                    label = "Notification",
-                    icon = { NotificationBell(badge = 1) },
-                    onClick = { navController.navigate("notifications") }
-                ),
-                SpeedAction(
-                    label = "Transport Service",
-                    icon = { Icon(Icons.Filled.GridView, contentDescription = null) },
-                    onClick = { navController.navigate("creator_center") }
-                ),
-                SpeedAction(
-                    label = "Rental Service",
-                    icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
-                    onClick = { navController.navigate("rental_service") }
-                ),
+    Box(Modifier.fillMaxSize().nestedScroll(TopAppBarDefaults.pinnedScrollBehavior().nestedScrollConnection)) {
+        when {
+            uiState.isLoading -> LoadingIndicator()
+            uiState.user != null -> ProfileContent(
+                user = uiState.user!!,
+                onLogout = viewModel::logout,
+                editProfile = { navController.navigate("edit_profile") }
             )
-        )
-    }
-}
-data class SpeedAction(
-    val label: String,
-    val icon: @Composable () -> Unit,
-    val onClick: () -> Unit,
-    val accent: Boolean = false
-)
-
-@Composable
-private fun ExpandableFab(
-    expanded: Boolean,
-    onMainClick: () -> Unit,
-    onDismiss: () -> Unit,
-    actions: List<SpeedAction>
-) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        AnimatedVisibility(
-            visible = expanded,
-            enter = fadeIn(tween(150)),
-            exit = fadeOut(tween(150))
-        ) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.45f))
-                    .clickable(onClick = onDismiss)
-            )
+            uiState.error != null -> ErrorState(uiState.error!!)
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 20.dp, end = 24.dp),
-            contentAlignment = Alignment.BottomEnd
-        ) {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                AnimatedVisibility(
-                    visible = expanded,
-                    enter = fadeIn() + slideInVertically(
-                        tween(180, easing = FastOutSlowInEasing),
-                        initialOffsetY = { it / 2 }
-                    ),
-                    exit = fadeOut() + slideOutVertically(
-                        tween(140),
-                        targetOffsetY = { it / 2 }
-                    )
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        actions.forEach { a ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                                    tonalElevation = 2.dp
-                                ) {
-                                    Text(
-                                        text = a.label,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                                Spacer(Modifier.width(10.dp))
-                                FilledIconButton(
-                                    onClick = { onDismiss(); a.onClick() },
-                                    shape = CircleShape,
-                                    colors = if (a.accent)
-                                        IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = MaterialTheme.colorScheme.secondary
-                                        )
-                                    else IconButtonDefaults.filledIconButtonColors()
-                                ) { a.icon() }
-                            }
-                        }
-                    }
-                }
-
-                val rotation by animateFloatAsState(
-                    targetValue = if (expanded) 45f else 0f,
-                    animationSpec = tween(180, easing = FastOutSlowInEasing)
-                )
-                FloatingActionButton(onClick = onMainClick) {
-                    Icon(Icons.Filled.Add, contentDescription = "Mở menu", modifier = Modifier.rotate(rotation))
-                }
-            }
-        }
+        ExpandableFab(actions = FabActions.profile(navController))
     }
 }
-
-
-@Composable
-private fun NotificationBell(badge: Int) {
-    Box(contentAlignment = Alignment.TopEnd) {
-        Icon(Icons.Filled.Notifications, contentDescription = null)
-        if (badge > 0) {
-            Box(
-                Modifier
-                    .offset(x = 6.dp, y = (-6).dp)
-                    .size(16.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.error),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = if (badge > 9) "9+" else badge.toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White
-                )
-            }
-        }
-    }
-}
-
 
 @Composable
 private fun ProfileContent(
-    modifier: Modifier = Modifier,
     user: ApiResult<UserResponse>,
     onLogout: () -> Unit,
     editProfile: () -> Unit
 ) {
     val userData = (user as? ApiResult.Success)?.data
-    val avatarUrl = userData?.avatarUrl
-        ?: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
+    val avatarUrl = userData?.avatarUrl ?: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         AsyncImage(
             model = avatarUrl,
-            contentDescription = "Profile",
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape),
+            contentDescription = null,
+            modifier = Modifier.size(120.dp).clip(CircleShape),
             contentScale = ContentScale.Crop
         )
 
@@ -272,38 +96,25 @@ private fun ProfileContent(
             )
         ) { Text("Đăng xuất") }
 
-        Button(
-            onClick = editProfile,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Chỉnh sửa thông tin") }
+        Button(onClick = editProfile, modifier = Modifier.fillMaxWidth()) {
+            Text("Chỉnh sửa thông tin")
+        }
     }
 }
 
 @Composable
 private fun ProfileItem(label: String, value: String?) {
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = if (value.isNullOrBlank()) "Chưa cập nhật" else value,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium
-        )
-    }
+    Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(
+        text = value?.takeIf { it.isNotBlank() } ?: "Chưa cập nhật",
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = FontWeight.Medium
+    )
 }
 
 @Composable
-private fun ErrorState(
-    modifier: Modifier = Modifier,
-    errorMessage: String
-) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
+private fun ErrorState(errorMessage: String) {
+    Box(Modifier.fillMaxSize(), Alignment.Center) {
         Text(
             text = errorMessage,
             style = MaterialTheme.typography.bodyLarge,
