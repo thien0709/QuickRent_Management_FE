@@ -24,7 +24,7 @@ class TokenAuthenticator @Inject constructor(
 
         val client = OkHttpClient()
         val refreshRequest = Request.Builder()
-            .url("${baseUrl}api/refresh-token")
+            .url("${baseUrl}refresh-token")
             .header("Authorization", "Bearer $refreshToken")
             .post(RequestBody.create(null, byteArrayOf()))
             .build()

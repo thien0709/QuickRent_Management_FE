@@ -36,7 +36,6 @@ class UserViewModel @Inject constructor(
             try {
                 val token = dataStoreManager.accessToken.first()
                 if (token.isNullOrEmpty()) {
-                    // SỬA ĐỔI: Chỉ đặt cờ điều hướng, không gán lỗi.
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         shouldNavigateToLogin = true
@@ -51,13 +50,14 @@ class UserViewModel @Inject constructor(
                     error = null
                 )
             } catch (e: Exception) {
-                // Xử lý lỗi 401 (Unauthorized) để điều hướng về login
                 if (e.message?.contains("401") == true) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
                         shouldNavigateToLogin = true
                     )
+                    logout()
+
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,

@@ -115,7 +115,8 @@ fun AddItemScreen(
 
     val isBusy = uiState is AddItemState.Submitting || uiState is AddItemState.Uploading
 
-    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState) }) { padding ->
+    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        contentWindowInsets = WindowInsets(0)) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             Column(
                 modifier = Modifier

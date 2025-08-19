@@ -48,6 +48,7 @@ fun ItemScreen(
                 navigationIcon = { IconButton(onClick = onClickBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back") } }
             )
         },
+        contentWindowInsets = WindowInsets(0)
     ) { padding ->
         when (val state = uiState) {
             is ItemState.Loading -> Box(

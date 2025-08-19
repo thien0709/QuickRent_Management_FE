@@ -2,6 +2,7 @@ package com.bxt.navigation
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
@@ -78,7 +79,9 @@ fun AppNavigation() {
             NavHost(
                 navController = navController,
                 startDestination = startDestination!!,
-                Modifier.padding(innerPadding)
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding)
             ) {
                 composable("welcome") {
                     WelcomeScreen(
@@ -126,7 +129,9 @@ fun AppNavigation() {
                         onFilterClick = {}
                     )
                 }
-                composable("profile") { ProfileScreen(navController) }
+                composable("profile") {
+                    ProfileScreen(navController)
+                }
                 composable("category") {
                     CategoryScreen(
                         onBackClick = { navController.navigateUp() },
