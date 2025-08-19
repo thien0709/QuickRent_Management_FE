@@ -6,17 +6,12 @@ import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.di.ApiResult
-import com.bxt.ui.screen.ErrorPopupManager
+import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.state.HomeState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -27,24 +22,20 @@ class HomeViewModel @Inject constructor(
 
     private val _homeState = MutableStateFlow<HomeState>(HomeState.Loading)
     val homeState: StateFlow<HomeState> = _homeState
-    private val _isLoggedIn = MutableStateFlow(false)
-    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
 
-    val isDarkModeEnabled: StateFlow<Boolean> = dataStore.isDarkModeEnabled
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val isDarkModeEnabled: StateFlow<Boolean> =
+        dataStore.isDarkModeEnabled.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
 
-    init {
-        observeLoginState()
-        fetchHomeData()
+    fun setDarkModeEnabled(enabled: Boolean) {
+        viewModelScope.launch { dataStore.setDarkMode(enabled) }
     }
 
-
-    private fun observeLoginState() {
-        viewModelScope.launch {
-            dataStore.isLoggedIn.collect { loggedIn ->
-                _isLoggedIn.value = loggedIn
-            }
-        }
+    init {
+        fetchHomeData()
     }
 
     private fun fetchHomeData() {
@@ -53,19 +44,23 @@ class HomeViewModel @Inject constructor(
             val items = itemRepository.getAvailableItem()
 
             (categories as? ApiResult.Error)?.let {
+                _homeState.value = HomeState.Error(it.error.message ?: "Lỗi khi tải danh mục.")
                 ErrorPopupManager.showError(it.error.message, false)
                 return@launch
             }
 
             (items as? ApiResult.Error)?.let {
+                _homeState.value = HomeState.Error(it.error.message ?: "Lỗi khi tải sản phẩm.")
                 ErrorPopupManager.showError(it.error.message, false)
                 return@launch
             }
 
             if (categories is ApiResult.Success && items is ApiResult.Success) {
-                _homeState.value = HomeState.Success(categories.data, items.data.content)
+                _homeState.value = HomeState.Success(
+                    categories = categories.data ?: emptyList(),
+                    popularItems = items.data?.content ?: emptyList()
+                )
             }
         }
     }
-
 }

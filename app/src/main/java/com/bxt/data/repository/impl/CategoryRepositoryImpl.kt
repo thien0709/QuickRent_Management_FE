@@ -8,21 +8,22 @@ import com.bxt.di.ApiResult
 import javax.inject.Inject
 
 class CategoryRepositoryImpl @Inject constructor(
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val apiCallExecutor: ApiCallExecutor
 ) : CategoryRepository {
 
     override suspend fun getCategories(): ApiResult<List<CategoryResponse>> {
-        return ApiCallExecutor.execute { apiService.getCategories() }
+        return apiCallExecutor.execute { apiService.getCategories() }
     }
 
     override suspend fun getCategoryById(categoryId: Long): ApiResult<CategoryResponse> {
-        return ApiCallExecutor.execute { apiService.getCategoryById(categoryId) }
+        return apiCallExecutor.execute { apiService.getCategoryById(categoryId) }
     }
 
 //    override suspend fun addCategory(category: String): ApiResult<Unit> {
-//        return ApiCallExecutor.execute { apiService.addCategory(category) }
+//        return apiCallExecutor.execute { apiService.addCategory(category) }
 //    }
 //
 //    override suspend fun updateCategory(oldCategory: String, newCategory: String): ApiResult<Unit> {
-//        return ApiCallExecutor.execute { apiService.updateCategory(oldCategory, newCategory) }
+//        return apiCallExecutor.execute { apiService.updateCategory(oldCategory, newCategory) }
     }

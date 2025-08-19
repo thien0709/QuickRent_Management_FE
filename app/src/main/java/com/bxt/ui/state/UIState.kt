@@ -15,6 +15,13 @@ sealed class LoginState {
     data class Error(val error: String) : LoginState()
 }
 
+sealed class RegisterState {
+    object Idle : RegisterState()
+    object Loading : RegisterState()
+    object Success : RegisterState()
+    data class Error(val error: String) : RegisterState()
+}
+
 sealed class HomeState {
     object Loading : HomeState()
     data class Success(
@@ -40,7 +47,6 @@ sealed class CategoryState {
         val categories: List<CategoryResponse>,
         val products: List<ItemResponse> = emptyList(),
         val selectedCategory: CategoryResponse? = null,
-        // THÊM DÒNG NÀY
         val isLoadingProducts: Boolean = false
     ) : CategoryState()
 }
@@ -55,5 +61,21 @@ sealed class LocationState {
 sealed interface ItemState {
     data object Loading : ItemState
     data class Error(val message: String?) : ItemState
-    data class Success(val data: ItemDetail) : ItemState
+    data class Success(val data: ItemResponse) : ItemState
+}
+
+sealed interface AddItemState {
+    data object Idle : AddItemState
+    data object Submitting : AddItemState
+    data class Uploading(val uploaded: Int, val total: Int) : AddItemState
+    data class Success(val data: ItemResponse, val warning: String? = null) : AddItemState
+    data class Error(val message: String) : AddItemState
+}
+
+
+sealed interface RentalState {
+    data object Idle : RentalState
+    data object Submitting : RentalState
+    data class Success(val id: Long? = null) : RentalState
+    data class Error(val message: String) : RentalState
 }

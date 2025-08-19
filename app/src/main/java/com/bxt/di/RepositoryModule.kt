@@ -1,18 +1,16 @@
 package com.bxt.di
 
 import android.content.Context
+import com.bxt.data.api.ApiCallExecutor // Import lớp mới
 import com.bxt.data.api.ApiService
 import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.AuthRepository
 import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
+import com.bxt.data.repository.RentalRequestRepository
 import com.bxt.data.repository.UserRepository
-import com.bxt.data.repository.impl.AuthRepositoryImpl
-import com.bxt.data.repository.impl.CategoryRepositoryImpl
-import com.bxt.data.repository.impl.ItemRepositoryImpl
-import com.bxt.data.repository.impl.LocationRepositoryImpl
-import com.bxt.data.repository.impl.UserRepositoryImpl
+import com.bxt.data.repository.impl.* // Import tất cả các implementation
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,38 +24,57 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideAuthRepo(apiService: ApiService): AuthRepository {
-        return AuthRepositoryImpl(apiService)
+    fun provideAuthRepo(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor,
+        dataStoreManager: DataStoreManager
+    ): AuthRepository {
+        return AuthRepositoryImpl(apiService, apiCallExecutor, dataStoreManager)
     }
 
     @Singleton
     @Provides
-    fun provideUserRepo(apiService: ApiService): UserRepository {
-        return UserRepositoryImpl(apiService)
+    fun provideUserRepo(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): UserRepository {
+        return UserRepositoryImpl(apiService, apiCallExecutor)
     }
 
     @Singleton
     @Provides
     fun provideLocationRepo(
         apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor,
         @ApplicationContext context: Context
     ): LocationRepository {
-        return LocationRepositoryImpl(apiService ,context)
+        return LocationRepositoryImpl(apiService, apiCallExecutor, context)
     }
 
     @Singleton
     @Provides
     fun provideCategoryRepo(
         apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
     ): CategoryRepository {
-        return CategoryRepositoryImpl(apiService)
+        return CategoryRepositoryImpl(apiService, apiCallExecutor)
     }
 
     @Singleton
     @Provides
     fun provideItemRepo(
         apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
     ): ItemRepository {
-        return ItemRepositoryImpl(apiService)
+        return ItemRepositoryImpl(apiService, apiCallExecutor)
+    }
+
+    @Singleton
+    @Provides
+    fun provideRentalRequestRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): RentalRequestRepository {
+        return RentalRequestRepositoryImpl(apiService, apiCallExecutor)
     }
 }

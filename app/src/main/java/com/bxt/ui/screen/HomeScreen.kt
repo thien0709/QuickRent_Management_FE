@@ -20,10 +20,17 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.bxt.R
 import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.ui.components.CategoryCard
 import com.bxt.ui.components.LoadingIndicator
+import com.bxt.ui.components.LocationPermissionHandler
 import com.bxt.ui.components.PopularItemCard
 import com.bxt.ui.state.HomeState
 import com.bxt.ui.state.LocationState
@@ -41,6 +48,17 @@ fun HomeScreen(
 ) {
     var searchText by remember { mutableStateOf("") }
     val homeState by viewModel.homeState.collectAsState()
+    val isDarkModeEnabledState = viewModel.isDarkModeEnabled.collectAsState()
+    val isDarkModeEnabled = isDarkModeEnabledState.value
+
+
+    val empty by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.empty)
+    )
+    val progress by animateLottieCompositionAsState(
+        empty,
+        iterations = LottieConstants.IterateForever
+    )
 
     LocationPermissionHandler(
         onPermissionGranted = {
@@ -66,7 +84,7 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF8F6F0)),
+                .background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center
         ) {
             LoadingIndicator()
@@ -79,28 +97,50 @@ fun HomeScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F6F0))
-            .systemBarsPadding(),
+            .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Welcome text
         item {
-            Text(
-                text = "Welcome back!",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween, // CHANGED
+                verticalAlignment = Alignment.CenterVertically    // CHANGED
+            ) {
+                Text(
+                    text = "Welcome back!",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground // CHANGED
+                )
+                Switch(
+                    checked = isDarkModeEnabled,
+                    onCheckedChange = { newValue ->
+                        viewModel.setDarkModeEnabled(newValue)
+                    }
+                )
+            }
         }
 
-        // Delivery info
         item {
             Text(
                 text = "Delivery to: $deliveryText",
                 fontSize = 16.sp,
-                color = Color.DarkGray
+                color = MaterialTheme.colorScheme.onBackground
             )
+            Button(
+                onClick = {
+                    locationViewModel.fetchCurrentLocation()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Text(
+                    text = "Change Location",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         // Search + Filter
@@ -117,7 +157,7 @@ fun HomeScreen(
                         Icon(
                             Icons.Default.Search,
                             contentDescription = "Search",
-                            tint = Color(0xFF999999)
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     },
                     modifier = Modifier
@@ -125,9 +165,10 @@ fun HomeScreen(
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = Color.Transparent
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,  // CHANGED
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface, // CHANGED
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent
                     ),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
                 )
@@ -139,7 +180,9 @@ fun HomeScreen(
                         .size(56.dp)
                         .clickable { onFilterClick() },
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Box(
@@ -149,50 +192,64 @@ fun HomeScreen(
                         Icon(
                             Icons.Default.Search,
                             contentDescription = "Filter",
-                            tint = Color.Black
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
             }
         }
 
-        // Categories title
         item {
-            Text(
-                text = "CATEGORIES",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                letterSpacing = 1.2.sp
-            )
-        }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "CATEGORIES",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    letterSpacing = 1.2.sp
+                )
+                Text(
+                    text = "View all category",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    modifier = Modifier.clickable {
+                        onAllCategoriesClick()
+                    }
+                )
 
-        // Categories list
-        item {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(successHomeState.categories) { category ->
-                    CategoryCard(
-                        category = category,
-                        onClick = { onCategoryClick(category) }
-                    )
-                }
             }
         }
 
-        // View all categories button
+
+
+        // Categories list
         item {
-            Button(
-                onClick = { onAllCategoriesClick() },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
-            ) {
-                Text(
-                    text = "View All Categories",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            if (successHomeState.categories.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LottieAnimation(
+                        composition = empty,
+                        progress = { progress },
+                        modifier = Modifier.size(90.dp)
+                    )
+                }
+            } else {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(successHomeState.categories) { category ->
+                        CategoryCard(
+                            category = category,
+                            onClick = { onCategoryClick(category) }
+                        )
+                    }
+                }
             }
         }
 
@@ -202,18 +259,34 @@ fun HomeScreen(
                 text = "POPULAR TODAY",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onBackground,
                 letterSpacing = 1.2.sp
             )
         }
 
         // Popular items list
-        items(successHomeState.popularItems) { item ->
-            PopularItemCard(
-                item = item,
-                onClick = { onItemClick(item) }
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+        if( successHomeState.popularItems.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LottieAnimation(
+                        composition = empty,
+                        progress = { progress },
+                        modifier = Modifier.size(90.dp)
+                    )
+                }
+            }
+        }
+        else {
+            items(successHomeState.popularItems) { item ->
+                PopularItemCard(
+                    item = item,
+                    onClick = { onItemClick(item) }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
     }
 }

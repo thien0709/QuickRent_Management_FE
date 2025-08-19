@@ -27,7 +27,6 @@ class CategoryViewModel @Inject constructor(
     val state: StateFlow<CategoryState> = _state.asStateFlow()
 
     fun loadInitialData() {
-        // Giữ nguyên hàm này, nó hoạt động đúng cho việc tải danh sách category ban đầu
         if (state.value !is CategoryState.Loading) return
 
         viewModelScope.launch {
@@ -42,18 +41,13 @@ class CategoryViewModel @Inject constructor(
         }
     }
 
-    // SỬA LẠI HOÀN TOÀN HÀM NÀY
     fun onCategorySelected(category: CategoryResponse) {
         val currentState = _state.value
-        // Chỉ thực hiện khi state hiện tại là Success
         if (currentState is CategoryState.Success) {
-            val categoryId = category.id ?: return // Nếu category không có id, không làm gì cả
+            val categoryId = category.id ?: return
 
             viewModelScope.launch {
-                // Cập nhật state NGAY LẬP TỨC để UI phản hồi
-                // Ta chọn category mới và xóa danh sách sản phẩm cũ đi
                 _state.update {
-                    // Dùng 'it' để đảm bảo thao tác trên state mới nhất
                     (it as CategoryState.Success).copy(
                         selectedCategory = category,
                         products = emptyList()
@@ -71,13 +65,9 @@ class CategoryViewModel @Inject constructor(
                         }
                     }
                     is ApiResult.Error -> {
-                        // Nếu có lỗi khi tải sản phẩm, ta vẫn giữ category đã chọn
-                        // nhưng có thể hiển thị thông báo lỗi riêng cho phần sản phẩm.
-                        // Ở đây ta tạm thời chỉ log lỗi và giữ sản phẩm rỗng.
-                        // Bạn có thể thêm một trường errorProducts vào State để xử lý tốt hơn.
                         _state.update {
                             (it as CategoryState.Success).copy(
-                                products = emptyList() // Giữ danh sách trống
+                                products = emptyList()
                             )
                         }
                     }

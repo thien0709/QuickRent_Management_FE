@@ -38,7 +38,7 @@ class LocationViewModel @Inject constructor(
                 Triple(userId, pendingLocation, isLoggedIn)
             }.collect { (userId, pendingLocation, isLoggedIn) ->
                 if (isLoggedIn && userId != null && pendingLocation != null) {
-                    uploadLocationToServer(userId, pendingLocation.first, pendingLocation.second)
+                    uploadLocationToServer(pendingLocation.first, pendingLocation.second)
                 }
             }
         }
@@ -84,11 +84,11 @@ class LocationViewModel @Inject constructor(
         }
     }
 
-    private suspend fun uploadLocationToServer(userId: Long, lat: Double, lng: Double) {
+    private suspend fun uploadLocationToServer(lat: Double, lng: Double) {
         if (_isUploading.value) return
         _isUploading.value = true
         try {
-            locationRepository.setLocationUser(userId, lat, lng)
+            locationRepository.setLocationUser( lat, lng)
             dataStoreManager.clearPendingLocation()
             fetchAddress(lat, lng)
         } catch (e: Exception) {
@@ -106,7 +106,7 @@ class LocationViewModel @Inject constructor(
             val userId = dataStoreManager.userId.firstOrNull()
             val pendingLocation = dataStoreManager.pendingLocation.firstOrNull()
             if (userId != null && pendingLocation != null) {
-                uploadLocationToServer(userId, pendingLocation.first, pendingLocation.second)
+                uploadLocationToServer(pendingLocation.first, pendingLocation.second)
             }
         }
     }

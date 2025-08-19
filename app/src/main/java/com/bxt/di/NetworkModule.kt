@@ -1,7 +1,12 @@
 package com.bxt.di
 
 import com.bxt.data.api.ApiService
+import com.bxt.data.api.AuthInterceptor
+import com.bxt.data.api.TokenAuthenticator
 import com.bxt.data.local.DataStoreManager
+import com.bxt.ui.components.InstantAdapter
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -12,7 +17,9 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.time.Instant
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -22,36 +29,38 @@ object NetworkModule {
     private const val BASE_URL = "http://10.0.2.2:8080/api/"
     private const val TIMEOUT = 10L
 
+
     @Provides
     @Singleton
-    fun provideOkHttpClient(dataStoreManager: DataStoreManager): OkHttpClient {
+    @Named("BaseUrl")
+    fun provideBaseUrl(): String = "http://10.0.2.2:8080/"
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(authInterceptor: AuthInterceptor, tokenAuthenticator: TokenAuthenticator): OkHttpClient {
         return OkHttpClient.Builder()
             .connectTimeout(TIMEOUT, TimeUnit.SECONDS)
             .readTimeout(TIMEOUT, TimeUnit.SECONDS)
             .writeTimeout(TIMEOUT, TimeUnit.SECONDS)
-            .addInterceptor { chain ->
-                val request = runBlocking(Dispatchers.IO) {
-                    val token = dataStoreManager.accessToken.first()
-                    chain.request().newBuilder().apply {
-                        if (!token.isNullOrBlank()) {
-                            addHeader("Authorization", "Bearer $token")
-                        }
-                        addHeader("Accept", "application/json")
-                        addHeader("Content-Type", "application/json")
-                    }.build()
-                }
-                chain.proceed(request)
-            }
+            .addInterceptor(authInterceptor)
+            .authenticator(tokenAuthenticator)
             .build()
+    }
+    @Provides
+    @Singleton
+    fun provideGson(): Gson {
+        return GsonBuilder()
+            .registerTypeAdapter(Instant::class.java, InstantAdapter())
+            .create()
     }
 
     @Provides
     @Singleton
-    fun provideRetrofit(client: OkHttpClient): Retrofit {
+    fun provideRetrofit(client: OkHttpClient, gson: Gson): Retrofit {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
@@ -59,5 +68,10 @@ object NetworkModule {
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
+    }
+    @Provides
+    @Singleton
+    fun provideAuthInterceptor(dataStoreManager: DataStoreManager): AuthInterceptor {
+        return AuthInterceptor(dataStoreManager)
     }
 }

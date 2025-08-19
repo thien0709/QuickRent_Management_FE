@@ -1,83 +1,99 @@
 package com.bxt.di
 
+import android.content.Context
+import com.bxt.R // Hãy đảm bảo bạn đã import R từ đúng package của project
 import com.google.gson.Gson
+import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.ResponseBody
 import retrofit2.HttpException
 import java.io.IOException
 import java.net.SocketTimeoutException
-object ErrorParser {
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class ErrorParser @Inject constructor(
+     @ApplicationContext private val context: Context
+) {
     private val gson = Gson()
 
-    data class BackendErrorResponse(
-        val timestamp: String?,
-        val status: Int?,
-        val error: String?,
-        val message: String?,
-        val path: String?
+    private data class BackendErrorResponse(
+        val errorCode: String?,
+        val message: String?
     )
 
-    fun parseException(e: Exception): ErrorResponse {
-        return when (e) {
-            is HttpException -> {
-                val errorBody = e.response()?.errorBody()
-                parseHttpError(errorBody, e.code())
-            }
-            is SocketTimeoutException -> ErrorResponse(
-                message = "Kết nối quá thời gian chờ. Vui lòng thử lại.",
-                canRetry = true,
-                type = ErrorType.TIMEOUT
-            )
-            is IOException -> ErrorResponse(
-                message = "Không có kết nối mạng. Vui lòng kiểm tra lại.",
-                canRetry = true,
-                type = ErrorType.NETWORK
-            )
-            else -> ErrorResponse(
-                message = e.localizedMessage ?: "Lỗi không xác định",
-                canRetry = false,
-                type = ErrorType.UNKNOWN
-            )
+    fun parseException(exception: Exception): ErrorResponse {
+        return when (exception) {
+            is HttpException -> parseHttpError(exception.response()?.errorBody(), exception.code())
+            is SocketTimeoutException -> createFinalError(R.string.error_timeout, ErrorType.TIMEOUT, canRetry = true)
+            is IOException -> createFinalError(R.string.error_network, ErrorType.NETWORK, canRetry = true)
+            else -> createFinalError(R.string.error_unknown, ErrorType.UNKNOWN, canRetry = false)
         }
     }
 
-
     private fun parseHttpError(errorBody: ResponseBody?, httpStatusCode: Int): ErrorResponse {
         return try {
-            val json = errorBody?.string()
-            val backendError = gson.fromJson(json, BackendErrorResponse::class.java)
+            val backendError = gson.fromJson(errorBody?.string(), BackendErrorResponse::class.java)
+            val errorCode = backendError.errorCode
 
-            val type = when (backendError.error) {
-                "INVALID_CREDENTIALS" -> ErrorType.INVALID_CREDENTIALS
-                "PASS_NOT_TRUE" -> ErrorType.INVALID_CREDENTIALS
-                "INSUFFICIENT_PERMISSIONS" -> ErrorType.FORBIDDEN
-                "ACCOUNT_BLOCKED" -> ErrorType.FORBIDDEN
-                "USER_NOT_FOUND" -> ErrorType.NOT_FOUND
-                "ITEM_NOT_FOUND" -> ErrorType.NOT_FOUND
-                "USERNAME_EXISTED" -> ErrorType.CONFLICT
-                "EMAIL_EXISTED" -> ErrorType.CONFLICT
-                "TOKEN_GENERATION_ERROR" -> ErrorType.UNAUTHORIZED
-                "TOKEN_VALIDATION_ERROR" -> ErrorType.UNAUTHORIZED
-                else -> when (httpStatusCode) {
-                    401 -> ErrorType.UNAUTHORIZED
-                    403 -> ErrorType.FORBIDDEN
-                    in 500..599 -> ErrorType.SERVER
-                    else -> ErrorType.UNKNOWN
-                }
-            }
+            val (stringResId, errorType) = mapErrorCodeToAppError(errorCode)
+                ?: mapHttpStatusCodeToAppError(httpStatusCode)
 
-            ErrorResponse(
-                message = backendError.message ?: "Lỗi máy chủ",
-                canRetry = httpStatusCode in 500..599,
-                type = type,
-                code = backendError.status ?: httpStatusCode
-            )
-        } catch (ex: Exception) {
-            ErrorResponse(
-                message = "Lỗi máy chủ",
-                canRetry = httpStatusCode in 500..599,
-                type = if (httpStatusCode in 500..599) ErrorType.SERVER else ErrorType.UNKNOWN,
-                code = httpStatusCode
-            )
+            val canRetry = httpStatusCode in 500..599
+
+            createFinalError(stringResId, errorType, httpStatusCode, errorCode, canRetry)
+
+        } catch (e: Exception) {
+            val (stringResId, errorType) = mapHttpStatusCodeToAppError(httpStatusCode)
+            val canRetry = httpStatusCode in 500..599
+            createFinalError(stringResId, errorType, httpStatusCode, canRetry = canRetry)
         }
+    }
+
+    private fun mapErrorCodeToAppError(errorCode: String?): Pair<Int, ErrorType>? {
+        return when (errorCode) {
+            "BAD_REQUEST_001" -> R.string.error_bad_request to ErrorType.BAD_REQUEST
+            "AUTH_001" -> R.string.error_invalid_credentials to ErrorType.INVALID_CREDENTIALS
+            "AUTH_004" -> R.string.error_session_expired to ErrorType.SESSION_EXPIRED
+            "AUTH_002" -> R.string.error_account_blocked to ErrorType.FORBIDDEN
+            "AUTH_003" -> R.string.error_forbidden to ErrorType.FORBIDDEN
+            "NOT_FOUND_001" -> R.string.error_user_not_found to ErrorType.NOT_FOUND
+            "NOT_FOUND_002" -> R.string.error_item_not_found to ErrorType.NOT_FOUND
+            "CONFLICT_001" -> R.string.error_username_existed to ErrorType.CONFLICT
+            "CONFLICT_002" -> R.string.error_email_existed to ErrorType.CONFLICT
+
+            "SERVER_001", "SERVER_002", "SERVER_003" -> R.string.error_server to ErrorType.SERVER
+            "SERVER_999" -> R.string.error_unknown to ErrorType.UNKNOWN
+
+            else -> null // Trả về null nếu không có errorCode nào khớp
+        }
+    }
+
+    private fun mapHttpStatusCodeToAppError(httpStatusCode: Int): Pair<Int, ErrorType> {
+        return when (httpStatusCode) {
+            400 -> R.string.error_bad_request to ErrorType.BAD_REQUEST
+            401 -> R.string.error_session_expired to ErrorType.UNAUTHORIZED
+            403 -> R.string.error_forbidden to ErrorType.FORBIDDEN
+            404 -> R.string.error_item_not_found to ErrorType.NOT_FOUND
+            409 -> R.string.error_conflict to ErrorType.CONFLICT
+            in 500..599 -> R.string.error_server to ErrorType.SERVER
+            else -> R.string.error_unknown to ErrorType.UNKNOWN
+        }
+    }
+
+    private fun createFinalError(
+        stringResId: Int,
+        type: ErrorType,
+        httpCode: Int? = null,
+        errorCode: String? = null,
+        canRetry: Boolean = false
+    ): ErrorResponse {
+        return ErrorResponse(
+            message = context.getString(stringResId),
+            canRetry = canRetry,
+            type = type,
+            code = httpCode,
+            errorCode = errorCode
+        )
     }
 }

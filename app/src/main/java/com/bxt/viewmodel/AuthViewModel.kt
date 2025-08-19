@@ -4,12 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bxt.data.api.dto.request.LoginRequest
 import com.bxt.data.api.dto.response.LoginResponse
-import com.bxt.data.api.dto.response.RegisterResponse
-import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.AuthRepository
 import com.bxt.di.ApiResult
-import com.bxt.ui.screen.ErrorPopupManager
+import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.state.LoginState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val dataStore: DataStoreManager
+    private val dataStoreManager: DataStoreManager
 ) : ViewModel() {
 
     private val _formState = MutableStateFlow(LoginRequest())
@@ -49,7 +47,7 @@ class AuthViewModel @Inject constructor(
                     is ApiResult.Success -> {
                         val data = result.data
 
-                        dataStore.saveAuthData(data.accessToken,data.refreshToken, data.userId)
+                        dataStoreManager.saveAuthData(data.accessToken,data.refreshToken, data.userId)
                         _loginState.value = LoginState.Success(
                             LoginResponse(data.accessToken,data.username,data.refreshToken, data.role, data.userId)
                         )

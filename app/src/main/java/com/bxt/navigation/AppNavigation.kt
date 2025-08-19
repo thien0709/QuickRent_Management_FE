@@ -2,11 +2,13 @@ package com.bxt.navigation
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -19,11 +21,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.bxt.ui.components.BottomNavItem
 import com.bxt.ui.components.BottomNavigationBar
+import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.screen.*
 import com.bxt.viewmodel.WelcomeViewModel
 import kotlinx.coroutines.flow.first
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -39,20 +41,28 @@ fun AppNavigation() {
         startDestination = if (isFirstTime) "welcome" else "home"
     }
 
-    val noBottomBarRoutes = listOf("welcome", "login", "register")
-    val hideBottomBar = currentRoute in noBottomBarRoutes ||
-            currentRoute?.startsWith("item/") == true
+    val routesToHideBottomBar = listOf(
+        "welcome",
+        "login",
+        "register",
+        "item/",
+        "rent_item/"
+    )
 
-    // Chỉ render khi đã có startDestination
+    val hideBottomBar = routesToHideBottomBar.any { routePrefix ->
+        currentRoute?.startsWith(routePrefix) == true
+    }
+
     if (startDestination != null) {
         Scaffold(
             bottomBar = {
                 if (!hideBottomBar) {
                     BottomNavigationBar(
                         items = listOf(
-                            BottomNavItem("Trang chủ", Icons.Default.Home, "home"),
-                            BottomNavItem("Tìm kiếm", Icons.Default.Search, "search"),
-                            BottomNavItem("Hồ sơ", Icons.Default.Person, "profile")
+                            BottomNavItem("Home", Icons.Default.Home, "home"),
+                            BottomNavItem("Take on Rent", Icons.Default.ShoppingCart, "category"),
+                            BottomNavItem("Give on Rent", Icons.Default.AddCircle,"add_item"),
+                            BottomNavItem("Profile", Icons.Default.Person, "profile")
                         ),
                         currentRoute = currentRoute,
                         onItemClick = { item ->
@@ -69,9 +79,10 @@ fun AppNavigation() {
             NavHost(
                 navController = navController,
                 startDestination = startDestination!!,
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding)
             ) {
-                // Auth
                 composable("welcome") {
                     WelcomeScreen(
                         onCompleteWelcome = {
@@ -92,9 +103,18 @@ fun AppNavigation() {
                         onForgotPasswordClick = {}
                     )
                 }
-                composable("register") { RegisterScreen() }
+                composable("register") {
+                    RegisterScreen(
+                        onSuccess = {
+                            navController.navigate("login") {
+                                popUpTo("register") { inclusive = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                }
 
-                // Main
                 composable("home") {
                     HomeScreen(
                         onCategoryClick = { category ->
@@ -109,7 +129,9 @@ fun AppNavigation() {
                         onFilterClick = {}
                     )
                 }
-                composable("profile") { ProfileScreen(navController) }
+                composable("profile") {
+                    ProfileScreen(navController)
+                }
                 composable("category") {
                     CategoryScreen(
                         onBackClick = { navController.navigateUp() },
@@ -123,16 +145,52 @@ fun AppNavigation() {
                     arguments = listOf(navArgument("id") { type = NavType.LongType })
                 ) { backStackEntry ->
                     val itemId = backStackEntry.arguments?.getLong("id") ?: error("Missing item id")
+
                     ItemScreen(
                         itemId = itemId,
                         onClickBack = { navController.popBackStack() },
-                        onClickOwner = { ownerId ->  },
-                        onClickRent = { id -> /* xử lý thuê với id */ }
+                        onClickOwner = { ownerId ->
+                            // ví dụ: navController.navigate("owner/$ownerId")
+                        },
+                        onClickRent = { id, price ->
+                            navController.navigate("rent_item/$id/$price")
+                        }
+                    )
+                }
+                composable(
+                    route = "rent_item/{itemId}/{price}",
+                    arguments = listOf(
+                        navArgument("itemId") { type = NavType.LongType },
+                        navArgument("price") { type = NavType.StringType }
+                    )
+                ) {
+                    RentalItemScreen(
+                        onClickBack = { navController.popBackStack() },
+                        onRentalSuccess = {
+                            navController.navigate("home") {
+                                popUpTo("home") { inclusive = true }
+                            }
+                        }
+                    )
+                }
 
+                composable("add_item") {
+                    AddItemScreen(
+                        onItemAdded = {
+                            navController.navigate("home") {
+                                popUpTo("add_item") { inclusive = true }
+                            }
+                        },
+                        onUserNull = {
+                            navController.navigate("login") {
+                                popUpTo("add_item") { inclusive = true }
+                            }
+                        }
                     )
                 }
 
             }
+            ErrorPopupManager.ErrorPopup()
         }
     }
 }

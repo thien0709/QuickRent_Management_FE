@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_unknown">Đã có lỗi không mong muốn xảy ra. Vui lòng thử lại sau.</string>
+    <string name="error_network">Không có kết nối mạng. Vui lòng kiểm tra lại.</string>
+    <string name="error_timeout">Kết nối quá thời gian chờ. Vui lòng thử lại.</string>
+    <string name="error_server">Hệ thống máy chủ đang gặp sự cố. Vui lòng thử lại sau.</string>
+
+    <string name="error_bad_request">Yêu cầu không hợp lệ hoặc thiếu thông tin.</string>
+    <string name="error_invalid_credentials">Tên đăng nhập hoặc mật khẩu không chính xác.</string>
+    <string name="error_session_expired">Token không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.</string>
+    <string name="error_account_blocked">Tài khoản của bạn đã bị khóa.</string>
+    <string name="error_forbidden">Bạn không có quyền thực hiện hành động này.</string>
+    <string name="error_user_not_found">Không tìm thấy người dùng được yêu cầu.</string>
+    <string name="error_item_not_found">Không tìm thấy sản phẩm hoặc tài nguyên được yêu cầu.</string>
+    <string name="error_username_existed">Tên đăng nhập này đã được sử dụng.</string>
+    <string name="error_email_existed">Email này đã được sử dụng.</string>
+    <string name="error_conflict">Dữ liệu bạn gửi bị xung đột với hệ thống.</string>
+
+</resources>

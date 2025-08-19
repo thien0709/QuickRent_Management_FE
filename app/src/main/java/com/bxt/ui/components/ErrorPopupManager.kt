@@ -1,4 +1,4 @@
-package com.bxt.ui.screen
+package com.bxt.ui.components
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
