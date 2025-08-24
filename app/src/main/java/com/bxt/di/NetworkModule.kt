@@ -4,16 +4,13 @@ import com.bxt.data.api.ApiService
 import com.bxt.data.api.AuthInterceptor
 import com.bxt.data.api.TokenAuthenticator
 import com.bxt.data.local.DataStoreManager
-import com.bxt.ui.components.InstantAdapter
+import com.bxt.util.InstantParser
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -50,7 +47,7 @@ object NetworkModule {
     @Singleton
     fun provideGson(): Gson {
         return GsonBuilder()
-            .registerTypeAdapter(Instant::class.java, InstantAdapter())
+            .registerTypeAdapter(Instant::class.java, InstantParser())
             .create()
     }
 

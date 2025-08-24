@@ -3,6 +3,7 @@ package com.bxt.data.repository.impl
 import com.bxt.data.api.ApiCallExecutor
 import com.bxt.data.api.ApiService
 import com.bxt.data.api.dto.request.ItemRequest
+import com.bxt.data.api.dto.response.ItemDetail
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.PagedResponse
 import com.bxt.data.repository.ItemRepository
@@ -39,11 +40,15 @@ class ItemRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getItemDetail(itemId: Long): ApiResult<ItemResponse> {
-        return apiCallExecutor.execute {
-            apiService.getItemDetail(id = itemId)
-        }
+
+    override suspend fun getItemInfo(itemId: Long): ApiResult<ItemResponse> {
+        return apiCallExecutor.execute { apiService.getItemDetail(id = itemId) }
     }
+
+    override suspend fun getItemImages(itemId: Long): ApiResult<List<String>> {
+        return apiCallExecutor.execute { apiService.getItemImages(id = itemId) }
+    }
+
 
     override suspend fun getItemsByUser(): ApiResult<PagedResponse<ItemResponse>> {
         return apiCallExecutor.execute {

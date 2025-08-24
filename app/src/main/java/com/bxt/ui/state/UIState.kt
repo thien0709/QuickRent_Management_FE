@@ -1,6 +1,7 @@
 package com.bxt.ui.state
 
 import com.bxt.data.api.dto.response.CategoryResponse
+import com.bxt.data.api.dto.response.ItemDetail
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.api.dto.response.RentalRequestResponse
@@ -64,7 +65,7 @@ sealed class LocationState {
 sealed interface ItemState {
     data object Loading : ItemState
     data class Error(val message: String?) : ItemState
-    data class Success(val data: ItemResponse) : ItemState
+    data class Success(val data: ItemDetail) : ItemState
 }
 
 sealed interface AddItemState {

@@ -26,7 +26,6 @@ class RentalServiceViewModel @Inject constructor(
     private val _state = MutableStateFlow<RentalRequestsState>(RentalRequestsState.Loading)
     val state: StateFlow<RentalRequestsState> = _state.asStateFlow()
 
-    // Cache cho ảnh và địa chỉ - Giữ nguyên
     private val _thumbs = MutableStateFlow<Map<Long, String?>>(emptyMap())
     val thumbs: StateFlow<Map<Long, String?>> = _thumbs.asStateFlow()
 
@@ -42,7 +41,6 @@ class RentalServiceViewModel @Inject constructor(
             is ApiResult.Success -> {
                 val data = res.data
                 _state.value = RentalRequestsState.Success(data)
-                // Sau khi có danh sách, tải dữ liệu phụ
                 loadAdditionalData(data)
             }
             is ApiResult.Error -> _state.value = RentalRequestsState.Error(res.error)
@@ -51,14 +49,11 @@ class RentalServiceViewModel @Inject constructor(
 
     private fun loadAdditionalData(requests: List<RentalRequestResponse>) {
         requests.forEach { req ->
-            // Tải ảnh thumbnail nếu chưa có trong cache
             req.itemId?.let { id ->
                 if (!_thumbs.value.containsKey(id)) {
                     loadThumb(id)
                 }
             }
-            // Tải địa chỉ nếu chưa có trong cache
-            // Sử dụng req.id làm key cho địa chỉ là hợp lý
             req.id?.let { id ->
                 if (!_addresses.value.containsKey(id)) {
                     resolveAddress(req)
@@ -68,17 +63,15 @@ class RentalServiceViewModel @Inject constructor(
     }
 
     private fun loadThumb(itemId: Long) = viewModelScope.launch {
-        when (val res = itemRepo.getItemDetail(itemId)) {
-            is ApiResult.Success -> {
-                _thumbs.update { currentMap ->
-                    currentMap + (itemId to res.data.imagePrimary)
-                }
-            }
-            is ApiResult.Error -> {
-                _thumbs.update { currentMap ->
-                    currentMap + (itemId to null) // Ghi nhận lỗi để không thử lại
-                }
-            }
+        // Bước 1: Dùng 'when' để chỉ lấy ra giá trị imageUrl
+        val imageUrl = when (val res = itemRepo.getItemInfo(itemId)) {
+            is ApiResult.Success -> res.data.imagePrimary
+            is ApiResult.Error -> null // Nếu lỗi, kết quả là null
+        }
+
+        // Bước 2: Cập nhật bản đồ chỉ một lần duy nhất với kết quả đã có
+        _thumbs.update { currentMap ->
+            currentMap + (itemId to imageUrl)
         }
     }
 

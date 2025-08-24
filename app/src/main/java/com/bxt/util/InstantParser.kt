@@ -1,10 +1,10 @@
-package com.bxt.ui.components
+package com.bxt.util
 
 import com.google.gson.*
 import java.lang.reflect.Type
 import java.time.Instant
 
-class InstantAdapter : JsonSerializer<Instant>, JsonDeserializer<Instant> {
+class InstantParser : JsonSerializer<Instant>, JsonDeserializer<Instant> {
     override fun serialize(src: Instant?, typeOfSrc: Type?, context: JsonSerializationContext?): JsonElement {
         return JsonPrimitive(src?.toString())
     }

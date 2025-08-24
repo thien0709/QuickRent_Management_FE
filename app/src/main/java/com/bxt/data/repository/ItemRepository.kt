@@ -1,6 +1,7 @@
 package com.bxt.data.repository
 
 import com.bxt.data.api.dto.request.ItemRequest
+import com.bxt.data.api.dto.response.ItemDetail
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.PagedResponse
 import com.bxt.di.ApiResult
@@ -20,9 +21,10 @@ interface ItemRepository {
         categoryId: Long,
     ): ApiResult<PagedResponse<ItemResponse>>
 
-    suspend fun getItemDetail(
-        itemId: Long,
-    ): ApiResult<ItemResponse>
+
+    suspend fun getItemInfo(itemId: Long): ApiResult<ItemResponse>
+    suspend fun getItemImages(itemId: Long): ApiResult<List<String>>
+
 
     suspend fun getItemsByUser(
     ): ApiResult<PagedResponse<ItemResponse>>
