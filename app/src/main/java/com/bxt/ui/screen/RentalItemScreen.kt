@@ -2,7 +2,6 @@ package com.bxt.ui.screen
 
 import android.location.Geocoder
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,12 +11,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bxt.ui.components.PickDateTime
 import com.bxt.ui.state.RentalState
+import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.RentalItemViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -41,26 +39,26 @@ fun RentalItemScreen(
     onRentalSuccess: () -> Unit,
     viewModel: RentalItemViewModel = hiltViewModel()
 ) {
+    val d = LocalDimens.current
     val context = LocalContext.current
     val rentalState by viewModel.rentalState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val geocoder = remember(context) { Geocoder(context) }
 
-    // Screen State
+    // Form state
     var startAt by remember { mutableStateOf<OffsetDateTime?>(null) }
     var endAt by remember { mutableStateOf<OffsetDateTime?>(null) }
     var address by remember { mutableStateOf("") }
 
-    // Map State
+    // Map state (HCM default)
     val hcmCity = LatLng(10.762622, 106.660172)
-    // Sửa lỗi: Dùng rememberMarkerState để quản lý trạng thái của Marker
     val markerState = rememberMarkerState(position = hcmCity)
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(hcmCity, 12f)
     }
 
-    // Hàm tìm địa chỉ từ LatLng
+    // Reverse geocoding
     fun getAddressFromLatLng(latLng: LatLng) {
         scope.launch {
             try {
@@ -70,43 +68,44 @@ fun RentalItemScreen(
                     }
                 } else {
                     @Suppress("DEPRECATION")
-                    val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
-                    address = addresses?.firstOrNull()?.getAddressLine(0) ?: "Không tìm thấy địa chỉ"
+                    val addrs = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
+                    address = addrs?.firstOrNull()?.getAddressLine(0) ?: "Không tìm thấy địa chỉ"
                 }
-            } catch (e: IOException) {
+            } catch (_: IOException) {
                 address = "Lỗi khi lấy địa chỉ"
             }
         }
     }
 
-    // Sửa lỗi: Dùng LaunchedEffect để theo dõi trạng thái kéo-thả
+    // Lấy địa chỉ khi kết thúc kéo marker
     LaunchedEffect(markerState.dragState) {
         if (markerState.dragState == DragState.END) {
             getAddressFromLatLng(markerState.position)
         }
     }
 
-    // Cập nhật vị trí camera khi marker di chuyển
+    // Cập nhật camera khi marker thay đổi
     LaunchedEffect(markerState.position) {
         cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(markerState.position, 15f))
     }
 
     // Formatters
     val dtFmt = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm") }
-    val moneyFmt = remember { NumberFormat.getCurrencyInstance(Locale("vi", "VN")).apply { maximumFractionDigits = 0 } }
+    val moneyFmt = remember {
+        NumberFormat.getCurrencyInstance(Locale("vi", "VN")).apply { maximumFractionDigits = 0 }
+    }
     fun money(v: BigDecimal?): String = if (v == null) "—" else moneyFmt.format(v)
 
-    // Calculation logic
+    // Tính tiền
     fun chargeableHours(s: OffsetDateTime, e: OffsetDateTime): Long {
         val mins = Duration.between(s, e).toMinutes().coerceAtLeast(0)
         return max(1L, ceil(mins / 60.0).toLong())
     }
-
     val canCalculate = startAt != null && endAt != null && endAt!!.isAfter(startAt)
     val hours = if (canCalculate) chargeableHours(startAt!!, endAt!!) else 0L
     val total = if (canCalculate) viewModel.pricePerHour.multiply(BigDecimal.valueOf(hours)) else BigDecimal.ZERO
 
-    // Handle rental state changes
+    // Handle state
     LaunchedEffect(rentalState) {
         when (val state = rentalState) {
             is RentalState.Error -> {
@@ -124,8 +123,12 @@ fun RentalItemScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Tạo yêu cầu thuê") },
-                navigationIcon = { IconButton(onClick = onClickBack) { Icon(Icons.Default.ArrowBack, "Back") } }
+                title = { Text("Tạo yêu cầu thuê", style = MaterialTheme.typography.titleSmall) },
+                navigationIcon = {
+                    IconButton(onClick = onClickBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -134,11 +137,12 @@ fun RentalItemScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = d.pagePadding)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(d.sectionGap)
         ) {
-            Text("Chọn thời gian thuê", style = MaterialTheme.typography.titleLarge)
+            // Thời gian
+            Text("Chọn thời gian thuê", style = MaterialTheme.typography.titleSmall)
 
             OutlinedButton(
                 onClick = {
@@ -149,34 +153,50 @@ fun RentalItemScreen(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Bắt đầu: " + (startAt?.format(dtFmt) ?: "Chọn thời gian")) }
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(
+                    "Bắt đầu: " + (startAt?.format(dtFmt) ?: "Chọn thời gian"),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
 
             OutlinedButton(
                 onClick = { PickDateTime(context, endAt) { picked -> endAt = picked } },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = startAt != null
-            ) { Text("Kết thúc: " + (endAt?.format(dtFmt) ?: "Chọn thời gian")) }
+                enabled = startAt != null,
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(
+                    "Kết thúc: " + (endAt?.format(dtFmt) ?: "Chọn thời gian"),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
 
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            Divider()
 
-            Text("Chọn địa chỉ giao hàng", style = MaterialTheme.typography.titleLarge)
+            // Địa chỉ
+            Text("Chọn địa chỉ giao hàng", style = MaterialTheme.typography.titleSmall)
 
             OutlinedTextField(
                 value = address,
                 onValueChange = { address = it },
-                label = { Text("Địa chỉ nhận hàng (ví dụ: 123 Nguyễn Văn Cừ, P4, Q5)") },
-                modifier = Modifier.fillMaxWidth()
+                label = { Text("Địa chỉ nhận hàng (ví dụ: 123 Nguyễn Văn Cừ, P4, Q5)", style = MaterialTheme.typography.labelSmall) },
+                textStyle = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = d.fieldMinHeight),
+                shape = MaterialTheme.shapes.medium
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             Text("Hoặc chọn trên bản đồ:", style = MaterialTheme.typography.bodySmall)
 
+            val mapHeight = d.imageSize * 3.2f
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(300.dp)
+                    .height(mapHeight)
             ) {
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
@@ -186,7 +206,6 @@ fun RentalItemScreen(
                         getAddressFromLatLng(latLng)
                     }
                 ) {
-                    // Sửa lỗi: Xóa tham số onDragEnd và chỉ cần truyền state
                     Marker(
                         state = markerState,
                         title = "Vị trí giao hàng",
@@ -196,20 +215,20 @@ fun RentalItemScreen(
                 }
             }
 
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            Divider()
 
-            // Summary
+            // Tóm tắt
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Giá mỗi giờ")
-                Text(money(viewModel.pricePerHour), fontWeight = FontWeight.SemiBold)
+                Text("Giá mỗi giờ", style = MaterialTheme.typography.bodySmall)
+                Text(money(viewModel.pricePerHour), style = MaterialTheme.typography.bodySmall)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Số giờ tính phí")
-                Text(if (canCalculate) "$hours giờ" else "—", fontWeight = FontWeight.SemiBold)
+                Text("Số giờ tính phí", style = MaterialTheme.typography.bodySmall)
+                Text(if (canCalculate) "$hours giờ" else "—", style = MaterialTheme.typography.bodySmall)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Tổng tiền", style = MaterialTheme.typography.titleMedium)
-                Text(money(total), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Text("Tổng tiền", style = MaterialTheme.typography.titleSmall)
+                Text(money(total), style = MaterialTheme.typography.titleSmall)
             }
 
             val canSubmit = canCalculate && address.isNotBlank() && rentalState !is RentalState.Submitting
@@ -226,8 +245,13 @@ fun RentalItemScreen(
                     )
                 },
                 enabled = canSubmit,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
-            ) { Text("Xác nhận thuê") }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(d.buttonHeight),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text("Xác nhận thuê", style = MaterialTheme.typography.bodySmall)
+            }
 
             if (rentalState is RentalState.Submitting) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())

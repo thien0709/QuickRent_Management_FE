@@ -2,7 +2,6 @@ package com.bxt.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -14,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bxt.data.api.dto.response.TransportServiceResponse
+import com.bxt.ui.theme.LocalDimens
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.time.Instant
@@ -27,61 +27,68 @@ fun TransportServiceCard(
     onDelete: (Long) -> Unit,
     onClick: () -> Unit
 ) {
+    val d = LocalDimens.current
     val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale("vi", "VN")) }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(d.pagePadding),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(d.rowGap)
         ) {
-            // Optional: Add an icon here, e.g., Icon(Icons.Default.LocalShipping, null)
+            // (giữ nguyên không icon để không đổi layout)
 
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // In a real app, you would resolve these lat/lng to addresses
                 Text(
-                    text = "Chuyến đi #${service.id}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    text = "Chuyến đi #${service.id ?: "—"}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+
                 Text(
-                    // Fallback to description if addresses are not available
                     text = service.description ?: "Chưa có mô tả",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+
+                Spacer(modifier = Modifier.height(d.rowGap))
+
                 Text(
                     text = "Khởi hành: ${formatInstant(service.departTime)}",
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.labelSmall
                 )
+
                 Text(
                     text = "Giá vé: ${formatCurrency(service.deliveryFee, currencyFormat)}",
-                    style = MaterialTheme.typography.bodyMedium.copy(
+                    style = MaterialTheme.typography.bodySmall.copy(
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
                     )
                 )
             }
-            IconButton(onClick = { service.id?.let { onDelete(it) } }) {
+
+            IconButton(
+                onClick = { service.id?.let(onDelete) },
+                enabled = service.id != null
+            ) {
                 Icon(
-                    Icons.Default.Delete,
+                    imageVector = Icons.Filled.Delete,
                     contentDescription = "Xóa dịch vụ",
                     tint = MaterialTheme.colorScheme.error
                 )
@@ -90,14 +97,11 @@ fun TransportServiceCard(
     }
 }
 
-private fun formatInstant(instant: Instant?): String {
-    if (instant == null) return "N/A"
-    val formatter = DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy")
-        .withZone(ZoneId.systemDefault())
-    return formatter.format(instant)
-}
+private val timeFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy").withZone(ZoneId.systemDefault())
 
-private fun formatCurrency(amount: BigDecimal?, formatter: NumberFormat): String {
-    if (amount == null) return "N/A"
-    return formatter.format(amount)
-}
+private fun formatInstant(instant: Instant?): String =
+    instant?.let { timeFormatter.format(it) } ?: "N/A"
+
+private fun formatCurrency(amount: BigDecimal?, formatter: NumberFormat): String =
+    amount?.let { formatter.format(it) } ?: "N/A"

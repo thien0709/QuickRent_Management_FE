@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
@@ -25,12 +24,11 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.airbnb.lottie.LottieComposition
 import com.airbnb.lottie.compose.*
@@ -43,6 +41,7 @@ import com.bxt.ui.components.LocationPermissionHandler
 import com.bxt.ui.components.PopularItemCard
 import com.bxt.ui.state.HomeState
 import com.bxt.ui.state.LocationState
+import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.HomeViewModel
 import com.bxt.viewmodel.LocationViewModel
 
@@ -56,6 +55,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     locationViewModel: LocationViewModel = hiltViewModel()
 ) {
+    val d = LocalDimens.current
     var searchText by remember { mutableStateOf("") }
 
     val homeState by viewModel.homeState.collectAsState()
@@ -67,7 +67,7 @@ fun HomeScreen(
     val empty by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.empty))
     val progress by animateLottieCompositionAsState(empty, iterations = LottieConstants.IterateForever)
 
-    // Quyền vị trí (giữ logic cũ)
+    // Quyền vị trí
     LocationPermissionHandler(
         onPermissionGranted = { locationViewModel.fetchCurrentLocation() },
         onPermissionDenied = {}
@@ -92,13 +92,13 @@ fun HomeScreen(
     }
     val success = homeState as HomeState.Success
 
-    // --- Pull-down refresh (AndroidX) ---
+    // Pull-down refresh
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
         onRefresh = { viewModel.refresh() }
     )
 
-    // --- Pull-up to load-more (chỉ khi chạm đáy rồi kéo thêm) ---
+    // Chạm đáy rồi kéo thêm để load-more
     val listState = rememberLazyListState()
     val pullUpConnection = rememberPullUpToLoadMore(
         listState = listState,
@@ -119,10 +119,10 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(d.pagePadding),
+            verticalArrangement = Arrangement.spacedBy(d.sectionGap)
         ) {
-            // ====== GIỮ NGUYÊN LAYOUT/GIAO DIỆN BÊN DƯỚI ======
+            // ====== GIỮ NGUYÊN LAYOUT GẦN NHƯ CŨ ======
 
             item {
                 Row(
@@ -132,8 +132,7 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = "Welcome back!",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Switch(
@@ -146,15 +145,18 @@ fun HomeScreen(
             item {
                 Text(
                     text = "Delivery to: $deliveryText",
-                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Button(
                     onClick = { locationViewModel.fetchCurrentLocation() },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Text("Change Location", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Change Location",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
 
@@ -166,7 +168,7 @@ fun HomeScreen(
                     OutlinedTextField(
                         value = searchText,
                         onValueChange = { searchText = it },
-                        placeholder = { Text("Search", color = Color(0xFF999999)) },
+                        placeholder = { Text("Search", style = MaterialTheme.typography.bodySmall, color = Color(0xFF999999)) },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Search,
@@ -174,22 +176,27 @@ fun HomeScreen(
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )
                         },
-                        modifier = Modifier.weight(1f).height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        shape = MaterialTheme.shapes.medium,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.surface,
                             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                             focusedBorderColor = Color.Transparent,
                             unfocusedBorderColor = Color.Transparent
                         ),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        textStyle = MaterialTheme.typography.bodySmall
                     )
 
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(d.rowGap))
 
                     Card(
-                        modifier = Modifier.size(56.dp).clickable { onFilterClick() },
-                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .size(56.dp) // giữ 56dp như cũ
+                            .clickable { onFilterClick() },
+                        shape = MaterialTheme.shapes.medium,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
@@ -208,20 +215,18 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .padding(horizontal = d.rowGap, vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "CATEGORIES",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        letterSpacing = 1.2.sp
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "View all category",
-                        fontSize = 10.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         modifier = Modifier.clickable { onAllCategoriesClick() }
                     )
@@ -232,7 +237,7 @@ fun HomeScreen(
                 if (success.categories.isEmpty()) {
                     EmptyLottie(empty, progress)
                 } else {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(d.sectionGap)) {
                         items(success.categories) { category ->
                             CategoryCard(category = category, onClick = { onCategoryClick(category) })
                         }
@@ -243,10 +248,8 @@ fun HomeScreen(
             item {
                 Text(
                     text = "POPULAR TODAY",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    letterSpacing = 1.2.sp
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
 
@@ -255,7 +258,7 @@ fun HomeScreen(
             } else {
                 items(success.popularItems /* , key = { it.id } nếu có id */) { it ->
                     PopularItemCard(item = it, onClick = { onItemClick(it) })
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(d.rowGap))
                 }
             }
 
@@ -263,7 +266,9 @@ fun HomeScreen(
             item {
                 if (isLoadingMore) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = d.rowGap),
                         horizontalArrangement = Arrangement.Center
                     ) { CircularProgressIndicator() }
                 }
@@ -278,7 +283,7 @@ fun HomeScreen(
     }
 }
 
-/* ---------- Helpers (tối giản & tách bạch) ---------- */
+/* ---------- Helpers ---------- */
 
 @Composable
 private fun rememberPullUpToLoadMore(

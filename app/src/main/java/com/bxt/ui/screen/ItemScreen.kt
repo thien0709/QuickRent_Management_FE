@@ -2,7 +2,6 @@ package com.bxt.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -10,8 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -19,6 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bxt.data.api.dto.response.ItemDetail
 import com.bxt.ui.components.ImagePager
 import com.bxt.ui.state.ItemState
+import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.ItemViewModel
 import java.math.BigDecimal
 import java.text.NumberFormat
@@ -33,16 +31,14 @@ fun ItemScreen(
     onClickRent: (itemId: Long, price: String) -> Unit,
     viewModel: ItemViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(itemId) {
-        viewModel.load(itemId)
-    }
-
+    LaunchedEffect(itemId) { viewModel.load(itemId) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val d = LocalDimens.current
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Chi tiết sản phẩm") },
+                title = { Text("Chi tiết sản phẩm", style = MaterialTheme.typography.titleSmall) },
                 navigationIcon = {
                     IconButton(onClick = onClickBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Quay lại")
@@ -55,10 +51,7 @@ fun ItemScreen(
         Box(modifier = Modifier.padding(padding)) {
             when (val state = uiState) {
                 is ItemState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
                 }
@@ -69,9 +62,10 @@ fun ItemScreen(
                     )
                 }
                 is ItemState.Success -> {
-                    if (state.data.item != null) {
+                    val detail = state.data
+                    if (detail.item != null) {
                         ItemDetailContent(
-                            itemDetail = state.data,
+                            itemDetail = detail,
                             onClickOwner = onClickOwner,
                             onClickRent = { price -> onClickRent(itemId, price) }
                         )
@@ -93,15 +87,14 @@ private fun ItemDetailContent(
     onClickOwner: (ownerId: Long) -> Unit,
     onClickRent: (price: String) -> Unit
 ) {
+    val d = LocalDimens.current
     val item = requireNotNull(itemDetail.item)
 
     val photos: List<String> = remember(itemDetail) {
         buildList {
             item.imagePrimary?.takeIf { it.isNotBlank() }?.let { add(it) }
-            itemDetail.images.forEach { imageUrl ->
-                if (imageUrl.isNotBlank() && imageUrl != item.imagePrimary) {
-                    add(imageUrl)
-                }
+            itemDetail.images.forEach { url ->
+                if (url.isNotBlank() && url != item.imagePrimary) add(url)
             }
         }
     }
@@ -116,72 +109,76 @@ private fun ItemDetailContent(
             contentDescription = item.title ?: "Hình ảnh sản phẩm"
         )
 
-        Column(Modifier.padding(16.dp)) {
+        Column(Modifier.padding(d.pagePadding)) {
+            // Title
             Text(
                 text = item.title.orEmpty(),
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.headlineSmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(d.rowGap))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFEFF6FF)) {
+            // Chips trạng thái
+            Row(horizontalArrangement = Arrangement.spacedBy(d.rowGap)) {
+                AssistChipBox(
+                    text = "Tình trạng: ${item.conditionStatus.orEmpty().ifBlank { "—" }}",
+                )
+                AssistChipBox(
+                    text = "Trạng thái: ${item.availabilityStatus.orEmpty().ifBlank { "—" }}",
+                )
+            }
+
+            Spacer(Modifier.height(d.sectionGap))
+
+            // Card giá
+            Card(
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(d.pagePadding)) {
                     Text(
-                        text = "Tình trạng: ${item.conditionStatus.orEmpty().ifBlank { "—" }}",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        fontWeight = FontWeight.SemiBold
+                        "Giá & Đặt cọc",
+                        style = MaterialTheme.typography.titleSmall
                     )
-                }
-                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFEFF6FF)) {
-                    Text(
-                        text = "Trạng thái: ${item.availabilityStatus.orEmpty().ifBlank { "—" }}",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Spacer(Modifier.height(d.rowGap))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Giá theo giờ", style = MaterialTheme.typography.bodySmall)
+                        Text(money(item.rentalPricePerHour), style = MaterialTheme.typography.bodySmall)
+                    }
+                    Spacer(Modifier.height((d.rowGap - 2.dp).coerceAtLeast(2.dp)))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Tiền đặt cọc", style = MaterialTheme.typography.bodySmall)
+                        Text(money(item.depositAmount), style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(d.sectionGap))
 
-            Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Giá & Đặt cọc", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(8.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Giá theo giờ")
-                        Text(money(item.rentalPricePerHour))
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Tiền đặt cọc")
-                        Text(money(item.depositAmount))
-                    }
-                }
-            }
+            // Mô tả
+            Text(
+                text = item.description.orEmpty(),
+                style = MaterialTheme.typography.bodySmall
+            )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(d.sectionGap + 4.dp))
 
-            Text(text = item.description.orEmpty(), style = MaterialTheme.typography.bodyMedium)
-
-            Spacer(Modifier.height(24.dp))
-
+            // Actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(d.rowGap)
             ) {
                 OutlinedButton(
-                    onClick = {
-                        item.ownerId?.let { onClickOwner(it) }
-                    },
+                    onClick = { item.ownerId?.let(onClickOwner) },
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .height(d.buttonHeight),
+                    shape = MaterialTheme.shapes.medium,
                     enabled = item.ownerId != null
                 ) {
-                    Text("Chat ngay")
+                    Text("Chat ngay", style = MaterialTheme.typography.bodySmall)
                 }
 
                 Button(
@@ -191,11 +188,11 @@ private fun ItemDetailContent(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .height(d.buttonHeight),
+                    shape = MaterialTheme.shapes.medium,
                     enabled = item.rentalPricePerHour != null
                 ) {
-                    Text("Thuê ngay")
+                    Text("Thuê ngay", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -203,27 +200,37 @@ private fun ItemDetailContent(
 }
 
 @Composable
-private fun ErrorStateContent(message: String, onRetry: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+private fun AssistChipBox(text: String) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.secondaryContainer
     ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
+private fun ErrorStateContent(message: String, onRetry: () -> Unit) {
+    val d = LocalDimens.current
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(message, style = MaterialTheme.typography.bodyLarge)
-            Spacer(Modifier.height(12.dp))
-            Button(onClick = onRetry) {
-                Text("Thử lại")
+            Text(message, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(d.rowGap))
+            Button(onClick = onRetry, shape = MaterialTheme.shapes.medium) {
+                Text("Thử lại", style = MaterialTheme.typography.bodySmall)
             }
         }
     }
 }
 
-@Composable
 private fun money(value: BigDecimal?): String {
-    val moneyFmt = remember {
-        NumberFormat.getCurrencyInstance(Locale("vi", "VN")).apply {
-            maximumFractionDigits = 0
-        }
+    val fmt = NumberFormat.getCurrencyInstance(Locale("vi", "VN")).apply {
+        maximumFractionDigits = 0
     }
-    return if (value == null) "—" else runCatching { moneyFmt.format(value) }.getOrDefault("—")
+    return if (value == null) "—" else runCatching { fmt.format(value) }.getOrDefault("—")
 }

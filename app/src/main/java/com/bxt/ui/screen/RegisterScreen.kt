@@ -8,8 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -25,10 +23,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
-import com.bxt.ui.components.CustomSnackbar
-import com.bxt.ui.components.CustomSnackbarHost
 import com.bxt.ui.state.RegisterState
+import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.RegisterViewModel
 
 @Composable
@@ -36,6 +34,9 @@ fun RegisterScreen(
     onSuccess: () -> Unit,
     viewModel: RegisterViewModel = hiltViewModel()
 ) {
+    val d = LocalDimens.current
+    val context = LocalContext.current
+
     var passwordVisible by remember { mutableStateOf(false) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -43,8 +44,6 @@ fun RegisterScreen(
     ) { uri: Uri? ->
         viewModel.onAvatarChanged(uri)
     }
-
-    val context = LocalContext.current
 
     val uiState = viewModel.uiState
     LaunchedEffect(uiState) {
@@ -57,23 +56,23 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = d.pagePadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = "Đăng ký tài khoản",
-            style = MaterialTheme.typography.headlineMedium
+            style = MaterialTheme.typography.headlineSmall
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(d.sectionGap + 8.dp))
 
-
+        // Avatar
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(d.imageSize * 1.1f)
                 .clip(CircleShape)
-                .background(Color.LightGray)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .clickable(enabled = !viewModel.isLoading) {
                     imagePickerLauncher.launch("image/*")
                 },
@@ -81,103 +80,121 @@ fun RegisterScreen(
         ) {
             val currentAvatar = viewModel.avatarUri
             if (currentAvatar != null) {
-                Image(
-                    painter = rememberAsyncImagePainter(currentAvatar),
+                AsyncImage(
+                    model = currentAvatar,
                     contentDescription = "Avatar",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
             } else {
-                Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color.White)
+                Icon(Icons.Default.CameraAlt, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(d.rowGap))
 
-        // Nút Thay đổi / Xoá ảnh (trước khi submit)
+        // Nút Thay đổi / Xoá ảnh
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedButton(
                 onClick = { imagePickerLauncher.launch("image/*") },
-                enabled = !viewModel.isLoading
+                enabled = !viewModel.isLoading,
+                shape = MaterialTheme.shapes.medium
             ) {
                 Icon(Icons.Default.Edit, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Thay đổi avatar")
+                Text("Thay đổi avatar", style = MaterialTheme.typography.bodySmall)
             }
 
             if (viewModel.avatarUri != null) {
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(d.rowGap))
                 TextButton(
                     onClick = { viewModel.onAvatarChanged(null) },
                     enabled = !viewModel.isLoading
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null)
                     Spacer(Modifier.width(4.dp))
-                    Text("Xoá ảnh")
+                    Text("Xoá ảnh", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(d.sectionGap))
 
         // Username
         OutlinedTextField(
             value = viewModel.username,
             onValueChange = viewModel::onUsernameChanged,
-            label = { Text("Tên đăng nhập") },
+            label = { Text("Tên đăng nhập", style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
             singleLine = true,
             enabled = !viewModel.isLoading,
-            modifier = Modifier.fillMaxWidth()
+            textStyle = MaterialTheme.typography.bodySmall,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = d.fieldMinHeight),
+            shape = MaterialTheme.shapes.medium
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(d.rowGap))
 
         // Email
         OutlinedTextField(
             value = viewModel.email,
             onValueChange = viewModel::onEmailChanged,
-            label = { Text("Email") },
+            label = { Text("Email", style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Email),
             enabled = !viewModel.isLoading,
-            modifier = Modifier.fillMaxWidth()
+            textStyle = MaterialTheme.typography.bodySmall,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = d.fieldMinHeight),
+            shape = MaterialTheme.shapes.medium
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(d.rowGap))
 
         // Full name
         OutlinedTextField(
             value = viewModel.fullName,
             onValueChange = viewModel::onFullNameChanged,
-            label = { Text("Họ và tên") },
+            label = { Text("Họ và tên", style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null) },
             singleLine = true,
             enabled = !viewModel.isLoading,
-            modifier = Modifier.fillMaxWidth()
+            textStyle = MaterialTheme.typography.bodySmall,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = d.fieldMinHeight),
+            shape = MaterialTheme.shapes.medium
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(d.rowGap))
 
+        // Phone
         OutlinedTextField(
             value = viewModel.phoneNumber,
             onValueChange = viewModel::onPhoneNumberChanged,
-            label = { Text("Số điện thoại") },
+            label = { Text("Số điện thoại", style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Phone),
             enabled = !viewModel.isLoading,
-            modifier = Modifier.fillMaxWidth()
+            textStyle = MaterialTheme.typography.bodySmall,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = d.fieldMinHeight),
+            shape = MaterialTheme.shapes.medium
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(d.rowGap))
 
         // Password
         OutlinedTextField(
             value = viewModel.password,
             onValueChange = viewModel::onPasswordChanged,
-            label = { Text("Mật khẩu") },
+            label = { Text("Mật khẩu", style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -189,16 +206,20 @@ fun RegisterScreen(
             },
             singleLine = true,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Password),
             enabled = !viewModel.isLoading,
-            modifier = Modifier.fillMaxWidth()
+            textStyle = MaterialTheme.typography.bodySmall,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = d.fieldMinHeight),
+            shape = MaterialTheme.shapes.medium
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(d.sectionGap))
 
         viewModel.errorMessage?.let { msg ->
-            Text(msg, color = MaterialTheme.colorScheme.error)
-            Spacer(Modifier.height(8.dp))
+            Text(msg, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(d.rowGap / 2))
         }
 
         Button(
@@ -206,13 +227,13 @@ fun RegisterScreen(
             enabled = !viewModel.isLoading && viewModel.avatarUri != null,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(10.dp)
+                .height(d.buttonHeight),
+            shape = MaterialTheme.shapes.medium
         ) {
             if (viewModel.isLoading || uiState is RegisterState.Loading) {
-                CircularProgressIndicator(strokeWidth = 2.dp)
+                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(d.progressSmall))
             } else {
-                Text("Đăng ký")
+                Text("Đăng ký", style = MaterialTheme.typography.bodySmall)
             }
         }
     }

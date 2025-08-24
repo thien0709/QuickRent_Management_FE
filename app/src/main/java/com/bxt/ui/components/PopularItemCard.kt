@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -18,7 +19,6 @@ import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Locale
 
-// Hàm format tiền tệ (bạn có thể đặt ở file riêng)
 fun formatVnd(amount: BigDecimal?): String {
     if (amount == null) return "N/A"
     val formatter = NumberFormat.getInstance(Locale("vi", "VN"))
@@ -42,7 +42,8 @@ fun PopularItemCard(
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(12.dp) // ⬅️ khoảng cách đều giữa ảnh và nội dung
         ) {
             AsyncImage(
                 model = item.imagePrimary,
@@ -53,25 +54,18 @@ fun PopularItemCard(
                 contentScale = ContentScale.Crop
             )
 
-            Spacer(modifier = Modifier.width(12.dp))
-
             Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = item.title ?: "No Title",
-                    fontSize = 16.sp, // ✨ Font nhỏ hơn
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2 // Giới hạn 2 dòng cho tiêu đề
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-
-//                Text(
-//                    text = item. ?: "N/A", // <-- SỬA LỖI Ở ĐÂY
-//                    fontSize = 12.sp, // ✨ Font nhỏ hơn
-//                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-//                )
-
 
                 Text(
                     text = "Thuê: ${formatVnd(item.rentalPricePerHour)} / giờ",

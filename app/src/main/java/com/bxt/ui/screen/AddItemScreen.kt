@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -34,6 +33,7 @@ import com.bxt.data.api.dto.status.AvailabilityStatus
 import com.bxt.data.api.dto.status.ConditionStatus
 import com.bxt.ui.components.LoadingIndicator
 import com.bxt.ui.state.AddItemState
+import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.AddItemViewModel
 import com.bxt.viewmodel.CategoriesUiState
 import kotlinx.coroutines.launch
@@ -47,6 +47,7 @@ fun AddItemScreen(
     onItemAdded: () -> Unit,
     onUserNull: () -> Unit
 ) {
+    val d = LocalDimens.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -88,7 +89,7 @@ fun AddItemScreen(
     val pickImagesLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
-        if (!uris.isNullOrEmpty()) images = images + uris.take(5 - images.size)
+        if (!uris.isNullOrEmpty()) images = images + uris.take(3 - images.size)
     }
 
     // Auth state
@@ -115,58 +116,79 @@ fun AddItemScreen(
 
     val isBusy = uiState is AddItemState.Submitting || uiState is AddItemState.Uploading
 
-    Scaffold(snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        contentWindowInsets = WindowInsets(0)) { padding ->
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        contentWindowInsets = WindowInsets(0)
+    ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             Column(
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
+                    .padding(d.pagePadding)
                     .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(d.sectionGap)
             ) {
                 // --- Product info ---
-                Text("Product info", style = MaterialTheme.typography.titleLarge)
+                Text("Product info", style = MaterialTheme.typography.titleSmall)
 
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title *") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Title *", style = MaterialTheme.typography.labelSmall) },
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = d.fieldMinHeight)
                 )
 
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
+                    label = { Text("Description", style = MaterialTheme.typography.labelSmall) },
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    minLines = 2,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = d.fieldMinHeight * 1.6f)
                 )
 
                 // --- Pricing ---
-                Text("Pricing", style = MaterialTheme.typography.titleLarge)
+                Text("Pricing", style = MaterialTheme.typography.titleSmall)
 
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(d.rowGap)) {
                     OutlinedTextField(
                         value = deposit,
                         onValueChange = { deposit = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                        label = { Text("Deposit") },
+                        label = { Text("Deposit", style = MaterialTheme.typography.labelSmall) },
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = d.fieldMinHeight)
                     )
                     OutlinedTextField(
                         value = rentalPrice,
                         onValueChange = { rentalPrice = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                        label = { Text("Hourly rental price") },
+                        label = { Text("Hourly rental price", style = MaterialTheme.typography.labelSmall) },
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = d.fieldMinHeight)
                     )
                 }
 
                 // --- Status ---
-                Text("Status", style = MaterialTheme.typography.titleLarge)
+                Text("Status", style = MaterialTheme.typography.titleSmall)
 
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(d.rowGap)) {
                     // Condition
                     ExposedDropdownMenuBox(
                         expanded = conditionExpanded,
@@ -174,12 +196,17 @@ fun AddItemScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         OutlinedTextField(
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            readOnly = true,
                             value = selectedCondition?.label ?: "",
                             onValueChange = {},
-                            label = { Text("Condition") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = conditionExpanded) }
+                            readOnly = true,
+                            label = { Text("Condition", style = MaterialTheme.typography.labelSmall) },
+                            textStyle = MaterialTheme.typography.bodySmall,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = conditionExpanded) },
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                                .heightIn(min = d.fieldMinHeight)
                         )
                         ExposedDropdownMenu(
                             expanded = conditionExpanded,
@@ -187,7 +214,7 @@ fun AddItemScreen(
                         ) {
                             conditionOptions.forEach { option ->
                                 DropdownMenuItem(
-                                    text = { Text(option.label) },
+                                    text = { Text(option.label, style = MaterialTheme.typography.bodySmall) },
                                     onClick = {
                                         selectedCondition = option
                                         conditionExpanded = false
@@ -204,12 +231,17 @@ fun AddItemScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         OutlinedTextField(
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            readOnly = true,
                             value = selectedAvailability?.label ?: "",
                             onValueChange = {},
-                            label = { Text("Availability") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = availabilityExpanded) }
+                            readOnly = true,
+                            label = { Text("Availability", style = MaterialTheme.typography.labelSmall) },
+                            textStyle = MaterialTheme.typography.bodySmall,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = availabilityExpanded) },
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                                .heightIn(min = d.fieldMinHeight)
                         )
                         ExposedDropdownMenu(
                             expanded = availabilityExpanded,
@@ -217,7 +249,7 @@ fun AddItemScreen(
                         ) {
                             availabilityOptions.forEach { option ->
                                 DropdownMenuItem(
-                                    text = { Text(option.label) },
+                                    text = { Text(option.label, style = MaterialTheme.typography.bodySmall) },
                                     onClick = {
                                         selectedAvailability = option
                                         availabilityExpanded = false
@@ -229,13 +261,14 @@ fun AddItemScreen(
                 }
 
                 // --- Category ---
-                Text("Category", style = MaterialTheme.typography.titleLarge)
+                Text("Category", style = MaterialTheme.typography.titleSmall)
 
                 when (val cs = categoriesState) {
                     is CategoriesUiState.Loading -> {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(Modifier.size(20.dp))
-                            Text("  Loading categories…", style = MaterialTheme.typography.bodyMedium)
+                            CircularProgressIndicator(Modifier.size(d.progressSmall), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(6.dp))
+                            Text("Loading categories…", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                     is CategoriesUiState.Error -> {
@@ -244,8 +277,12 @@ fun AddItemScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(cs.message, color = MaterialTheme.colorScheme.error)
-                            Button(onClick = { viewModel.loadCategories() }) { Text("Retry") }
+                            Text(cs.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                            OutlinedButton(
+                                onClick = { viewModel.loadCategories() },
+                                modifier = Modifier.height(d.smallButtonHeight),
+                                shape = MaterialTheme.shapes.medium
+                            ) { Text("Retry", style = MaterialTheme.typography.bodySmall) }
                         }
                     }
                     is CategoriesUiState.Success -> {
@@ -261,13 +298,18 @@ fun AddItemScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             OutlinedTextField(
-                                modifier = Modifier.menuAnchor().fillMaxWidth(),
-                                readOnly = true,
                                 value = selectedCategoryName,
                                 onValueChange = {},
-                                label = { Text("Select category") },
-                                placeholder = { Text("Pick a category from the list") },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) }
+                                readOnly = true,
+                                label = { Text("Select category", style = MaterialTheme.typography.labelSmall) },
+                                textStyle = MaterialTheme.typography.bodySmall,
+                                placeholder = { Text("Pick a category from the list", style = MaterialTheme.typography.bodySmall) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth()
+                                    .heightIn(min = d.fieldMinHeight)
                             )
 
                             ExposedDropdownMenu(
@@ -277,21 +319,24 @@ fun AddItemScreen(
                                 OutlinedTextField(
                                     value = categorySearch,
                                     onValueChange = { categorySearch = it },
-                                    label = { Text("Search categories…") },
+                                    label = { Text("Search categories…", style = MaterialTheme.typography.labelSmall) },
+                                    textStyle = MaterialTheme.typography.bodySmall,
+                                    shape = MaterialTheme.shapes.medium,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(8.dp)
+                                        .padding(d.rowGap)
+                                        .heightIn(min = d.fieldMinHeight)
                                 )
 
                                 if (filtered.isEmpty()) {
-                                    DropdownMenuItem(text = { Text("No results") }, onClick = { })
+                                    DropdownMenuItem(text = { Text("No results", style = MaterialTheme.typography.bodySmall) }, onClick = { })
                                 } else {
                                     filtered.forEach { cat ->
                                         DropdownMenuItem(
-                                            text = { cat.name?.let { Text(it) } },
+                                            text = { Text(cat.name ?: "", style = MaterialTheme.typography.bodySmall) },
                                             onClick = {
                                                 selectedCategoryId = cat.id
-                                                selectedCategoryName = cat.name.toString()
+                                                selectedCategoryName = cat.name.orEmpty()
                                                 categoryExpanded = false
                                             }
                                         )
@@ -308,17 +353,17 @@ fun AddItemScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Active", style = MaterialTheme.typography.bodyLarge)
+                    Text("Active", style = MaterialTheme.typography.bodySmall)
                     Switch(checked = isActive, onCheckedChange = { isActive = it })
                 }
 
                 // --- Images ---
-                Text("Images", style = MaterialTheme.typography.titleLarge)
+                Text("Images", style = MaterialTheme.typography.titleSmall)
 
                 if (images.isNotEmpty()) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(d.rowGap), modifier = Modifier.fillMaxWidth()) {
                         items(images) { uri ->
-                            Box(Modifier.size(120.dp)) {
+                            Box(Modifier.size(d.imageSize)) {
                                 AsyncImage(
                                     model = ImageRequest.Builder(LocalContext.current)
                                         .data(uri)
@@ -327,14 +372,15 @@ fun AddItemScreen(
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
-                                        .size(120.dp)
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .size(d.imageSize)
+                                        .clip(MaterialTheme.shapes.medium)
                                 )
                                 IconButton(
                                     onClick = { images = images - uri },
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
-                                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                        .background(Color.Black.copy(alpha = 0.45f), CircleShape)
+                                        .size(d.iconSmall)
                                 ) {
                                     Icon(imageVector = Icons.Default.Close, contentDescription = "Remove image", tint = Color.White)
                                 }
@@ -343,12 +389,15 @@ fun AddItemScreen(
                     }
                 }
 
-                Button(
+                OutlinedButton(
                     onClick = { pickImagesLauncher.launch("image/*") },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isBusy && images.size < 5
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(d.smallButtonHeight),
+                    enabled = !isBusy && images.size < 3,
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Text("Add images (${images.size}/5)")
+                    Text("Add images (${images.size}/3)", style = MaterialTheme.typography.bodySmall)
                 }
 
                 // --- Submit ---
@@ -357,19 +406,14 @@ fun AddItemScreen(
                         when {
                             title.isBlank() ->
                                 scope.launch { snackbarHostState.showSnackbar("Please enter a title", withDismissAction = true) }
-
                             selectedCategoryId == null ->
                                 scope.launch { snackbarHostState.showSnackbar("Please select a category", withDismissAction = true) }
-
                             selectedCondition == null ->
                                 scope.launch { snackbarHostState.showSnackbar("Please select a condition", withDismissAction = true) }
-
                             selectedAvailability == null ->
                                 scope.launch { snackbarHostState.showSnackbar("Please select availability", withDismissAction = true) }
-
                             images.isEmpty() ->
                                 scope.launch { snackbarHostState.showSnackbar("Please add at least one image", withDismissAction = true) }
-
                             else -> {
                                 val req = userId?.let {
                                     ItemRequest(
@@ -388,13 +432,16 @@ fun AddItemScreen(
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isBusy
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(d.buttonHeight),
+                    enabled = !isBusy,
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     when (val state = uiState) {
-                        is AddItemState.Submitting -> Text("Creating item…")
-                        is AddItemState.Uploading -> Text("Uploading images (${state.uploaded}/${state.total})")
-                        else -> Text("Create item")
+                        is AddItemState.Submitting -> Text("Creating item…", style = MaterialTheme.typography.bodySmall)
+                        is AddItemState.Uploading -> Text("Uploading images (${state.uploaded}/${state.total})", style = MaterialTheme.typography.bodySmall)
+                        else -> Text("Create item", style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
@@ -415,7 +462,7 @@ fun AddItemScreen(
                 Box(
                     modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
                     contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator() }
+                ) { CircularProgressIndicator(modifier = Modifier.size(d.progressSmall + 10.dp), strokeWidth = 2.dp) }
             }
         }
     }

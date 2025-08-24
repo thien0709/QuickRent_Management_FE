@@ -4,16 +4,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bxt.di.ErrorResponse
 import com.bxt.ui.components.LoadingIndicator
 import com.bxt.ui.components.RentalRequestCard
 import com.bxt.ui.state.RentalRequestsState
+import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.RentalServiceViewModel
 
 @Composable
@@ -22,9 +23,10 @@ fun RentalServiceScreen(
     onRentalClick: (Long?) -> Unit,
     viewModel: RentalServiceViewModel = hiltViewModel()
 ) {
+    val d = LocalDimens.current
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
-    // THAY ĐỔI: Lắng nghe cả 3 State
+    // Lắng nghe state + supplemental maps
     val state by viewModel.state.collectAsState()
     val thumbs by viewModel.thumbs.collectAsState()
     val addresses by viewModel.addresses.collectAsState()
@@ -34,9 +36,29 @@ fun RentalServiceScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTab) {
-            Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Owner") })
-            Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Renter") })
+
+        // Tabs
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.primary,
+            indicator = { positions ->
+                TabRowDefaults.Indicator(
+                    modifier = Modifier.tabIndicatorOffset(positions[selectedTab]),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        ) {
+            Tab(
+                selected = selectedTab == 0,
+                onClick = { selectedTab = 0 },
+                text = { Text("Owner", style = MaterialTheme.typography.bodySmall) }
+            )
+            Tab(
+                selected = selectedTab == 1,
+                onClick = { selectedTab = 1 },
+                text = { Text("Renter", style = MaterialTheme.typography.bodySmall) }
+            )
         }
 
         when (val s = state) {
@@ -58,19 +80,18 @@ fun RentalServiceScreen(
                 val data = s.data
                 if (data.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Chưa có yêu cầu")
+                        Text("Chưa có yêu cầu", style = MaterialTheme.typography.bodySmall)
                     }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        contentPadding = PaddingValues(d.pagePadding),
+                        verticalArrangement = Arrangement.spacedBy(d.rowGap)
                     ) {
                         items(
                             items = data,
                             key = { it.id ?: it.hashCode().toLong() }
                         ) { req ->
-                            // THAY ĐỔI: Lấy thumbnail và địa chỉ từ các map đã collect
                             val thumbnailUrl = thumbs[req.itemId]
                             val address = addresses[req.id]
 
@@ -103,17 +124,36 @@ private fun ErrorPane(
     onRetry: () -> Unit,
     onBack: () -> Unit
 ) {
+    val d = LocalDimens.current
     Column(
-        Modifier.fillMaxSize().padding(16.dp),
+        Modifier
+            .fillMaxSize()
+            .padding(d.pagePadding),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.spacedBy(d.rowGap),
     ) {
-        Text(error.message, color = MaterialTheme.colorScheme.error)
-        Spacer(Modifier.height(12.dp))
+        Text(
+            error.message,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall
+        )
+
         if (error.canRetry) {
-            Button(onClick = onRetry) { Text("Thử lại") }
-            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = onRetry,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(d.buttonHeight),
+                shape = MaterialTheme.shapes.medium
+            ) { Text("Thử lại", style = MaterialTheme.typography.bodySmall) }
         }
-        OutlinedButton(onClick = onBack) { Text("Quay lại") }
+
+        OutlinedButton(
+            onClick = onBack,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(d.buttonHeight),
+            shape = MaterialTheme.shapes.medium
+        ) { Text("Quay lại", style = MaterialTheme.typography.bodySmall) }
     }
 }
