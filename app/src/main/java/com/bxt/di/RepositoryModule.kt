@@ -77,4 +77,13 @@ object RepositoryModule {
     ): RentalRequestRepository {
         return RentalRequestRepositoryImpl(apiService, apiCallExecutor)
     }
+
+    @Singleton
+    @Provides
+    fun provideTransportServiceRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): com.bxt.data.repository.TransportServiceRepository {
+        return TransportServiceRepositoryImpl(apiService, apiCallExecutor)
+    }
 }

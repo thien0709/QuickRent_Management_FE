@@ -45,10 +45,16 @@ object FabActions {
         FabAction("Thuê xe", { Icon(Icons.Default.Edit, null) }) { nav.navigate("rental") }
     )
 
-    fun category(nav: NavController) = listOf(
-        FabAction("Tìm kiếm", { Icon(Icons.Default.Search, null) }) { nav.navigate("search") },
-        FabAction("Lọc", { Icon(Icons.Default.FilterList, null) }) { nav.navigate("filter") },
-        FabAction("Yêu thích", { Icon(Icons.Default.Favorite, null) }) { nav.navigate("favorites") }
+    fun rental(nav: NavController) = listOf(
+        FabAction("Add item ", { Icon(Icons.Default.Add, null) }) { nav.navigate("add_item") },
+        FabAction("See request", { Icon(Icons.Default.Assignment, null) }) { nav.navigate("rental_service") },
+        FabAction("See transaction", { Icon(Icons.Default.Receipt, null) }) { nav.navigate("transactions_rental") },
+    )
+
+    fun transport(nav: NavController) = listOf(
+        FabAction("Add item ", { Icon(Icons.Default.Add, null) }) { nav.navigate("add_transport_service") },
+        FabAction("See request", { Icon(Icons.Default.Assignment, null) }) { nav.navigate("transport_service") },
+        FabAction("See transaction", { Icon(Icons.Default.Receipt, null) }) { nav.navigate("transactions_transport") },
     )
 
     fun home(nav: NavController) = listOf(
@@ -56,4 +62,5 @@ object FabActions {
         FabAction("Thông báo", { NotificationIcon(3) }) { nav.navigate("notifications") },
         FabAction("Hỗ trợ", { Icon(Icons.Default.Help, null) }) { nav.navigate("support") }
     )
+
 }

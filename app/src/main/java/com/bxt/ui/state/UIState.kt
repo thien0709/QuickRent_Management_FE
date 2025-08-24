@@ -4,9 +4,12 @@ import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.api.dto.response.RentalRequestResponse
+import com.bxt.data.api.dto.response.TransportServiceResponse
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
 import com.bxt.di.ErrorResponse
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.libraries.places.api.model.AutocompletePrediction
 
 sealed class LoginState {
     object Idle : LoginState()
@@ -84,3 +87,22 @@ sealed interface RentalRequestsState {
     data class Success(val data: List<RentalRequestResponse>) : RentalRequestsState
     data class Error(val message: ErrorResponse) : RentalRequestsState
 }
+
+sealed interface TransportServiceListState {
+    data object Loading : TransportServiceListState
+    data class Success(val services: List<TransportServiceResponse>) : TransportServiceListState
+    data class Error(val message: String) : TransportServiceListState
+}
+
+sealed interface AddTransportServiceState {
+    data object Idle : AddTransportServiceState // Trạng thái ban đầu
+    data object Submitting : AddTransportServiceState // Đang gửi yêu cầu
+    data class Success(val message: String) : AddTransportServiceState // Thành công
+    data class Error(val message: String) : AddTransportServiceState // Thất bại
+}
+
+data class LocationPickerState(
+    val searchQuery: String = "",
+    val predictions: List<AutocompletePrediction> = emptyList(),
+    val selectedLocation: LatLng? = null
+)

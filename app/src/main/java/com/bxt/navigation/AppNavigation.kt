@@ -26,6 +26,7 @@ import com.bxt.ui.components.BottomNavigationBar
 import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.screen.*
 import com.bxt.viewmodel.RentalServiceViewModel
+import com.bxt.viewmodel.TransportServiceViewModel
 import com.bxt.viewmodel.WelcomeViewModel
 import kotlinx.coroutines.flow.first
 
@@ -64,7 +65,7 @@ fun AppNavigation() {
                         items = listOf(
                             BottomNavItem("Home", Icons.Default.Home, "home"),
                             BottomNavItem("Rental", Icons.Default.ShoppingCart, "category"),
-                            BottomNavItem("Transport", Icons.Default.DeliveryDining, "transport"),
+                            BottomNavItem("Transport", Icons.Default.DeliveryDining, "transport_service"),
                             BottomNavItem("Chat", Icons.Default.Textsms, "chat"),
                             BottomNavItem("Profile", Icons.Default.Person, "profile")
                         ),
@@ -138,6 +139,7 @@ fun AppNavigation() {
                 }
                 composable("category") {
                     CategoryScreen(
+                        navController = navController,
                         onBackClick = { navController.navigateUp() },
                         onProductClick = { productId ->
                             navController.navigate("item/$productId")
@@ -199,7 +201,32 @@ fun AppNavigation() {
                     )
                 }
 
+                composable("transactions") {
+//                    TransactionsScreen(
+//                        onBackClick = { navController.popBackStack() }
+//                    )
+                }
 
+                composable("transport_service") {
+                    val viewModel: TransportServiceViewModel = hiltViewModel()
+                    TransportServiceScreen(
+                        navController = navController,
+                        viewModel = hiltViewModel(),
+
+                    )
+                }
+
+//                composable("add_transport_service") {
+//                    AddTransportServiceScreen(
+//                        onBackClick = {
+//                            navController.popBackStack()
+//                        },
+//                        onCreated = { newServiceId -> // The callback might receive the new item's ID
+//                            // After creation, also navigate back
+//                            navController.popBackStack()
+//                        }
+//                    )
+//                }
             }
             ErrorPopupManager.ErrorPopup()
         }

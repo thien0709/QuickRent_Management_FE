@@ -5,6 +5,7 @@ import com.bxt.data.api.dto.request.LoginRequest
 import com.bxt.data.api.dto.request.RefreshTokenRequest
 import com.bxt.data.api.dto.request.RegisterRequest
 import com.bxt.data.api.dto.request.RentalRequestRequest
+import com.bxt.data.api.dto.request.TransportServiceRequest
 import com.bxt.data.api.dto.request.UpdateUserRequest
 import com.bxt.data.api.dto.response.*
 import com.bxt.di.ApiResult
@@ -13,8 +14,7 @@ import retrofit2.http.*
 
 interface ApiService {
 
-    // === Authentication ===
-    // Các endpoint này là public, không cần token
+    // User Authentication
     @POST("login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 
@@ -48,7 +48,6 @@ interface ApiService {
         @Field("newPassword") newPassword: String
     ): UserResponse
 
-    // Sửa lại: Xóa Path("id")
     @Multipart
     @PATCH("users/avatar")
     suspend fun updateUserAvatar(
@@ -63,13 +62,14 @@ interface ApiService {
         @Body location: Map<String, Double>
     ): Unit
 
+    // Category
     @GET("categories")
     suspend fun getCategories(): List<CategoryResponse>
 
     @GET("categories/{id}")
     suspend fun getCategoryById(@Path("id") id: Long): CategoryResponse
 
-    // === Item ===
+    // Items
     @GET("items")
     suspend fun getItems(): List<ItemResponse>
 
@@ -79,7 +79,6 @@ interface ApiService {
         @Part("req") reqJson: ItemRequest,
         @Part images: List<MultipartBody.Part>
     ): ItemResponse
-
 
     @GET("items/available")
     suspend fun getAvailableItems(): PagedResponse<ItemResponse>
@@ -98,6 +97,7 @@ interface ApiService {
     @GET("items/{id}/images")
     suspend fun getItemImages(@Path("id") id: Long): List<String>
 
+    // Rental Services
     @POST("rental-requests")
     suspend fun createRentalRequest(@Body request: RentalRequestRequest): RentalRequestResponse
 
@@ -113,5 +113,35 @@ interface ApiService {
     @PATCH("rental-requests/{id}")
     suspend fun updateRequestStatus(requestId: Long, newStatus: String) : RentalRequestResponse
 
+    // Transport Services
+    @GET("transport-services")
+    suspend fun getTransportServices(): List<TransportServiceResponse>
+
+    @GET("transport-services/owner")
+    suspend fun getTransportServicesByOwner(): List<TransportServiceResponse>
+
+    @GET("transport-services/renter")
+    suspend fun getTransportServicesByRenter(): List<TransportServiceResponse>
+
+    @GET("transport-services/{id}")
+    suspend fun getTransportServiceById(@Path("id") id: Long): TransportServiceResponse
+
+    @POST("transport-services")
+    suspend fun createTransportService(@Body request: TransportServiceRequest): TransportServiceResponse
+
+    @PATCH("transport-services/{id}")
+    suspend fun updateTransportService(
+        @Path("id") id: Long,
+        @Body request: TransportServiceRequest
+    ): TransportServiceResponse
+
+    @DELETE("transport-services/{id}")
+    suspend fun deleteTransportService(id: Long)
+
+    @PATCH("transport-services/{id}/status")
+    suspend fun updateServiceStatus(
+        @Path("id") serviceId: Long,
+        @Body newStatus: String
+    ): TransportServiceResponse
 
 }

@@ -115,6 +115,10 @@ dependencies {
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-messaging")
 
+    //Mapbox
+    implementation("com.mapbox.maps:android:11.14.2")
+    implementation("com.mapbox.extension:maps-compose:11.14.2")
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

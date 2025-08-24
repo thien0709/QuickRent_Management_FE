@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import coil.compose.rememberImagePainter
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -28,31 +29,29 @@ import com.bxt.R
 import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.ui.components.CategoryCard
+import com.bxt.ui.components.ExpandableFab
 import com.bxt.ui.components.LoadingIndicator
 import com.bxt.ui.components.PopularItemCard
 import com.bxt.ui.state.CategoryState
+import com.bxt.util.FabActions
 import com.bxt.viewmodel.CategoryViewModel
 
 @Composable
 fun CategoryScreen(
     categoryId: Long? = null,
+    navController: NavController,
     onBackClick : () -> Unit,
     onProductClick: (Long) -> Unit,
     viewModel: CategoryViewModel = hiltViewModel()
 ) {
     LaunchedEffect(categoryId) {
         if (categoryId != null) {
-            // Nếu có categoryId, load data cho category cụ thể
             viewModel.loadCategoryData(categoryId)
         } else {
-            // Nếu không có categoryId, load tất cả categories
             viewModel.loadInitialData()
         }
     }
-
-
     val state = viewModel.state.collectAsState().value
-
 
     when (val categoryState = state) {
         is CategoryState.Loading -> {
@@ -72,6 +71,7 @@ fun CategoryScreen(
             )
         }
     }
+    ExpandableFab(actions = FabActions.rental(navController))
 }
 
 @Composable
