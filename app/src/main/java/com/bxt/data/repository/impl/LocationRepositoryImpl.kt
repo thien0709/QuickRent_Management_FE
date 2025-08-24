@@ -81,7 +81,6 @@ class LocationRepositoryImpl(
         }
     }
 
-    // Trong file Repository của bạn
 
     override suspend fun setLocationUser(lat: Double, lng: Double): ApiResult<Unit> {
         // 1. Chuẩn bị dữ liệu

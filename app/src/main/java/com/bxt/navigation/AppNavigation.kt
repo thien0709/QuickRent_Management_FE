@@ -216,17 +216,18 @@ fun AppNavigation() {
                     )
                 }
 
-//                composable("add_transport_service") {
-//                    AddTransportServiceScreen(
-//                        onBackClick = {
-//                            navController.popBackStack()
-//                        },
-//                        onCreated = { newServiceId -> // The callback might receive the new item's ID
-//                            // After creation, also navigate back
-//                            navController.popBackStack()
-//                        }
-//                    )
-//                }
+                composable("add_transport_service") {
+                    AddTransportScreen(
+                        onSubmit = {
+                            // Khi thành công, quay lại màn hình trước đó
+                            navController.popBackStack()
+                        },
+                        onBack = {
+                            // Khi nhấn nút back, cũng quay lại màn hình trước đó
+                            navController.popBackStack()
+                        }
+                    )
+                }
             }
             ErrorPopupManager.ErrorPopup()
         }

@@ -33,9 +33,9 @@ import com.bxt.data.api.dto.status.AvailabilityStatus
 import com.bxt.data.api.dto.status.ConditionStatus
 import com.bxt.ui.components.LoadingIndicator
 import com.bxt.ui.state.AddItemState
+import com.bxt.ui.state.CategoriesUiState
 import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.AddItemViewModel
-import com.bxt.viewmodel.CategoriesUiState
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import kotlin.math.max

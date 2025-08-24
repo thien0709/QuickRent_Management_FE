@@ -113,3 +113,10 @@ data class LocationPickerState(
     val predictions: List<AutocompletePrediction> = emptyList(),
     val selectedLocation: LatLng? = null
 )
+
+
+sealed interface CategoriesUiState {
+    data object Loading : CategoriesUiState
+    data class Success(val categories: List<CategoryResponse>) : CategoriesUiState
+    data class Error(val message: String) : CategoriesUiState
+}

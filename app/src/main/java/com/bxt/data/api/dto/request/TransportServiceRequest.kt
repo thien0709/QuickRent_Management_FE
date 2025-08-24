@@ -4,7 +4,7 @@ import java.math.BigDecimal
 import java.time.Instant
 
 data class TransportServiceRequest(
-    val driverId: Long? = null,
+    val driverId: Long,
     val fromLatitude: BigDecimal,
     val fromLongitude: BigDecimal,
     val toLatitude: BigDecimal,

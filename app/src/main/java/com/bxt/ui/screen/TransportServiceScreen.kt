@@ -1,7 +1,5 @@
-// file: com/bxt/ui/screen/TransportServiceScreen.kt
 package com.bxt.ui.screen
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,7 +13,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -36,22 +33,20 @@ fun TransportServiceScreen(
 ) {
     val d = LocalDimens.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    val addressMap by viewModel.addressMap.collectAsStateWithLifecycle()
 
-    // Filter states
     var showFilterSheet by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var minPrice by remember { mutableStateOf("") }
     var maxPrice by remember { mutableStateOf("") }
     var addressQuery by remember { mutableStateOf("") }
 
-    // Xử lý lỗi điều hướng đăng nhập / popup
+    // Điều hướng về login nếu 401/403
     LaunchedEffect(uiState) {
         val state = uiState
         if (state is TransportServiceListState.Error) {
             if (state.message.contains("forbidden", true) || state.message.contains("unauthorized", true)) {
-                Toast.makeText(context, "Phiên đăng nhập đã hết hạn.", Toast.LENGTH_LONG).show()
-                navController.navigate("login_route") { popUpTo(0) { inclusive = true } }
+                navController.navigate("login") { popUpTo(0) { inclusive = true } }
             } else {
                 ErrorPopupManager.showError(
                     message = state.message,
@@ -62,24 +57,30 @@ fun TransportServiceScreen(
         }
     }
 
-    // Helper lọc (gọn và an toàn)
+    // Filter helper — có xét cả địa chỉ đi/đến
     fun List<TransportServiceResponse>.filtered(
-        q: String,
-        minStr: String,
-        maxStr: String,
-        addrQ: String
+        q: String, minStr: String, maxStr: String, addrQ: String
     ): List<TransportServiceResponse> {
         val min = minStr.toDoubleOrNull()
         val max = maxStr.toDoubleOrNull()
         return filter { s ->
-            val text = buildString {
+            val textForSearch = buildString {
                 append("Chuyến đi #${s.id ?: ""} ")
                 append(s.description.orEmpty())
             }
+            val addresses = s.id?.let { id ->
+                addressMap[id]
+            }
+            val fromAddr = addresses?.first.orEmpty()
+            val toAddr = addresses?.second.orEmpty()
+
             val price = s.deliveryFee?.toDouble() ?: 0.0
 
-            val okSearch = q.isBlank() || text.contains(q, ignoreCase = true)
-            val okAddr = addrQ.isBlank() || s.description.orEmpty().contains(addrQ, ignoreCase = true)
+            val okSearch = q.isBlank() || textForSearch.contains(q, ignoreCase = true)
+            val okAddr = addrQ.isBlank() ||
+                    fromAddr.contains(addrQ, ignoreCase = true) ||
+                    toAddr.contains(addrQ, ignoreCase = true) ||
+                    s.description.orEmpty().contains(addrQ, ignoreCase = true)
             val okPrice = when {
                 min != null && max != null -> price in min..max
                 min != null -> price >= min
@@ -92,7 +93,7 @@ fun TransportServiceScreen(
 
     Column(Modifier.fillMaxSize()) {
 
-        // Search & Filter
+        // Search & Filter bar
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -101,28 +102,24 @@ fun TransportServiceScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(Modifier.padding(d.pagePadding), verticalArrangement = Arrangement.spacedBy(d.rowGap)) {
-                // Search
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     label = { Text("Tìm kiếm dịch vụ...", style = MaterialTheme.typography.labelSmall) },
-                    textStyle = MaterialTheme.typography.bodySmall,
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Tìm kiếm") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Xóa")
+                                Icon(Icons.Default.Clear, contentDescription = null)
                             }
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = d.fieldMinHeight),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = d.fieldMinHeight),
                     singleLine = true,
-                    shape = MaterialTheme.shapes.medium
+                    shape = MaterialTheme.shapes.medium,
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
 
-                // Filter summary + button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -144,7 +141,7 @@ fun TransportServiceScreen(
             }
         }
 
-        // Nội dung chính
+        // Nội dung
         Box(Modifier.fillMaxSize()) {
             ErrorPopupManager.ErrorPopup()
 
@@ -161,22 +158,14 @@ fun TransportServiceScreen(
                             CircularProgressIndicator()
                         }
                     }
-
                     is TransportServiceListState.Success -> {
-                        val filteredServices by remember(
-                            state.services, searchQuery, minPrice, maxPrice, addressQuery
+                        val filtered = remember(
+                            state.services, searchQuery, minPrice, maxPrice, addressQuery, addressMap
                         ) {
-                            mutableStateOf(
-                                state.services.filtered(
-                                    q = searchQuery,
-                                    minStr = minPrice,
-                                    maxStr = maxPrice,
-                                    addrQ = addressQuery
-                                )
-                            )
+                            state.services.filtered(searchQuery, minPrice, maxPrice, addressQuery)
                         }
 
-                        if (filteredServices.isEmpty()) {
+                        if (filtered.isEmpty()) {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     val hasFilter = searchQuery.isNotBlank() ||
@@ -184,17 +173,13 @@ fun TransportServiceScreen(
                                     Text(
                                         text = if (hasFilter)
                                             "Không tìm thấy kết quả phù hợp với bộ lọc."
-                                        else
-                                            "Không có dịch vụ nào.",
+                                        else "Không có dịch vụ nào.",
                                         style = MaterialTheme.typography.bodySmall,
                                         modifier = Modifier.padding(d.pagePadding)
                                     )
                                     if (hasFilter) {
                                         TextButton(onClick = {
-                                            searchQuery = ""
-                                            minPrice = ""
-                                            maxPrice = ""
-                                            addressQuery = ""
+                                            searchQuery = ""; minPrice = ""; maxPrice = ""; addressQuery = ""
                                         }) { Text("Xóa bộ lọc", style = MaterialTheme.typography.bodySmall) }
                                     }
                                 }
@@ -206,19 +191,24 @@ fun TransportServiceScreen(
                                 verticalArrangement = Arrangement.spacedBy(d.sectionGap)
                             ) {
                                 items(
-                                    items = filteredServices,
+                                    items = filtered,
                                     key = { it.id ?: it.hashCode().toLong() }
                                 ) { service ->
+                                    val pair = service.id?.let { addressMap[it] }
+                                    val fromAddr = pair?.first ?: "Đang lấy địa chỉ..."
+                                    val toAddr = pair?.second ?: "Đang lấy địa chỉ..."
+
+                                    // ⬇️ Dùng Card phiên bản nhận chuỗi địa chỉ (đã refactor)
                                     TransportServiceCard(
                                         service = service,
-                                        onDelete = { viewModel.deleteTransportService(it) },
-                                        onClick = { /* mở chi tiết nếu cần */ }
+                                        fromAddress = fromAddr,
+                                        toAddress = toAddr,
+                                        onClick = { /* mở chi tiết */ }
                                     )
                                 }
                             }
                         }
                     }
-
                     is TransportServiceListState.Error -> {
                         Column(
                             modifier = Modifier
@@ -244,99 +234,104 @@ fun TransportServiceScreen(
     }
 
     if (showFilterSheet) {
-        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(LocalDimens.current.pagePadding),
-                verticalArrangement = Arrangement.spacedBy(LocalDimens.current.rowGap)
-            ) {
-                Text(
-                    text = "Bộ lọc dịch vụ",
-                    style = MaterialTheme.typography.titleSmall
-                )
+        FilterBottomSheet(
+            addressQuery = addressQuery,
+            onAddressQuery = { addressQuery = it },
+            minPrice = minPrice,
+            onMinPrice = { minPrice = it },
+            maxPrice = maxPrice,
+            onMaxPrice = { maxPrice = it },
+            onDismiss = { showFilterSheet = false }
+        )
+    }
 
-                // Lọc theo địa chỉ/mô tả
+    ExpandableFab(actions = com.bxt.util.FabActions.transport(navController))
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FilterBottomSheet(
+    addressQuery: String,
+    onAddressQuery: (String) -> Unit,
+    minPrice: String,
+    onMinPrice: (String) -> Unit,
+    maxPrice: String,
+    onMaxPrice: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        val d = LocalDimens.current
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(d.pagePadding),
+            verticalArrangement = Arrangement.spacedBy(d.rowGap)
+        ) {
+            Text(text = "Bộ lọc dịch vụ", style = MaterialTheme.typography.titleSmall)
+
+            OutlinedTextField(
+                value = addressQuery,
+                onValueChange = onAddressQuery,
+                label = { Text("Mô tả/Địa chỉ", style = MaterialTheme.typography.labelSmall) },
+                placeholder = { Text("Nhập mô tả hoặc địa chỉ cần tìm...", style = MaterialTheme.typography.bodySmall) },
+                textStyle = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth().heightIn(min = d.fieldMinHeight),
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
+            )
+
+            Text("Khoảng giá", style = MaterialTheme.typography.bodySmall)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(d.rowGap)
+            ) {
                 OutlinedTextField(
-                    value = addressQuery,
-                    onValueChange = { addressQuery = it },
-                    label = { Text("Mô tả/Địa chỉ", style = MaterialTheme.typography.labelSmall) },
-                    placeholder = { Text("Nhập mô tả hoặc địa chỉ cần tìm...", style = MaterialTheme.typography.bodySmall) },
+                    value = minPrice,
+                    onValueChange = onMinPrice,
+                    label = { Text("Giá tối thiểu", style = MaterialTheme.typography.labelSmall) },
+                    placeholder = { Text("0", style = MaterialTheme.typography.bodySmall) },
                     textStyle = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = LocalDimens.current.fieldMinHeight),
+                    modifier = Modifier.weight(1f).heightIn(min = d.fieldMinHeight),
+                    keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                     singleLine = true,
                     shape = MaterialTheme.shapes.medium
                 )
+                OutlinedTextField(
+                    value = maxPrice,
+                    onValueChange = onMaxPrice,
+                    label = { Text("Giá tối đa", style = MaterialTheme.typography.labelSmall) },
+                    placeholder = { Text("∞", style = MaterialTheme.typography.bodySmall) },
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f).heightIn(min = d.fieldMinHeight),
+                    keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium
+                )
+            }
 
-                // Khoảng giá
-                Text("Khoảng giá", style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(d.sectionGap))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(LocalDimens.current.rowGap)
-                ) {
-                    OutlinedTextField(
-                        value = minPrice,
-                        onValueChange = { minPrice = it },
-                        label = { Text("Giá tối thiểu", style = MaterialTheme.typography.labelSmall) },
-                        placeholder = { Text("0", style = MaterialTheme.typography.bodySmall) },
-                        textStyle = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = LocalDimens.current.fieldMinHeight),
-                        keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        singleLine = true,
-                        shape = MaterialTheme.shapes.medium
-                    )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(d.rowGap)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        onAddressQuery("")
+                        onMinPrice("")
+                        onMaxPrice("")
+                    },
+                    modifier = Modifier.weight(1f).height(d.buttonHeight),
+                    shape = MaterialTheme.shapes.medium
+                ) { Text("Xóa tất cả", style = MaterialTheme.typography.bodySmall) }
 
-                    OutlinedTextField(
-                        value = maxPrice,
-                        onValueChange = { maxPrice = it },
-                        label = { Text("Giá tối đa", style = MaterialTheme.typography.labelSmall) },
-                        placeholder = { Text("∞", style = MaterialTheme.typography.bodySmall) },
-                        textStyle = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = LocalDimens.current.fieldMinHeight),
-                        keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        singleLine = true,
-                        shape = MaterialTheme.shapes.medium
-                    )
-                }
-
-                Spacer(Modifier.height(LocalDimens.current.sectionGap))
-
-                // Actions
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(LocalDimens.current.rowGap)
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            searchQuery = ""
-                            minPrice = ""
-                            maxPrice = ""
-                            addressQuery = ""
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(LocalDimens.current.buttonHeight),
-                        shape = MaterialTheme.shapes.medium
-                    ) { Text("Xóa tất cả", style = MaterialTheme.typography.bodySmall) }
-
-                    Button(
-                        onClick = { showFilterSheet = false },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(LocalDimens.current.buttonHeight),
-                        shape = MaterialTheme.shapes.medium
-                    ) { Text("Áp dụng", style = MaterialTheme.typography.bodySmall) }
-                }
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f).height(d.buttonHeight),
+                    shape = MaterialTheme.shapes.medium
+                ) { Text("Áp dụng", style = MaterialTheme.typography.bodySmall) }
             }
         }
     }
-
-    ExpandableFab(actions = FabActions.transport(navController))
 }
