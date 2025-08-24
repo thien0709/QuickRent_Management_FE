@@ -81,14 +81,26 @@ interface ApiService {
     ): ItemResponse
 
     @GET("items/available")
-    suspend fun getAvailableItems(): PagedResponse<ItemResponse>
+    suspend fun getAvailableItems(
+        @Query("page") page: Int = 0
+    ): PagedResponse<ItemResponse>
 
     @GET("items/owner")
-    suspend fun getItemsByUser(): PagedResponse<ItemResponse>
+    suspend fun getItemsByUser(
+        @Query("page") page: Int = 0
+    ): PagedResponse<ItemResponse>
 
     @GET("items/categories/{categoryId}")
     suspend fun getItemsByCategory(
-        @Path("categoryId") categoryId: Long
+        @Path("categoryId") categoryId: Long,
+        @Query("page") page: Int = 0
+    ): PagedResponse<ItemResponse>
+
+
+    @POST("api/items/search")
+    suspend fun searchItems(
+        @Body request: ItemRequest,
+        @Query("page") page: Int
     ): PagedResponse<ItemResponse>
 
     @GET("items/{id}")

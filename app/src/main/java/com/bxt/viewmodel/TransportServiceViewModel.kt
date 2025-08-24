@@ -51,7 +51,7 @@ class TransportServiceViewModel @Inject constructor(
                 when (val result = repository.deleteTransportService(id)) {
                     is ApiResult.Success -> {
                         _userMessage.emit("Xóa dịch vụ thành công!")
-                        loadTransportServices()
+                        loadTransportServices() // Tải lại danh sách sau khi xóa
                     }
                     is ApiResult.Error -> {
                         _userMessage.emit(result.error.message ?: "Xóa thất bại.")

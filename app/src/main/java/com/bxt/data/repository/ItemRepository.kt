@@ -16,18 +16,26 @@ interface ItemRepository {
         imageParts: List<MultipartBody.Part>
     ): ApiResult<ItemResponse>
 
-    suspend fun getAvailableItem(): ApiResult<PagedResponse<ItemResponse>>
-    suspend fun getItemsByCategory(
-        categoryId: Long,
-    ): ApiResult<PagedResponse<ItemResponse>>
-
 
     suspend fun getItemInfo(itemId: Long): ApiResult<ItemResponse>
     suspend fun getItemImages(itemId: Long): ApiResult<List<String>>
 
 
-    suspend fun getItemsByUser(
-    ): ApiResult<PagedResponse<ItemResponse>>
+
+    suspend fun getAvailableItem(): ApiResult<PagedResponse<ItemResponse>>
+    suspend fun getAvailableItem(page: Int): ApiResult<PagedResponse<ItemResponse>>
+
+
+    suspend fun getItemsByUser(): ApiResult<PagedResponse<ItemResponse>>
+    suspend fun getItemsByUser(page: Int): ApiResult<PagedResponse<ItemResponse>>
+
+    suspend fun getItemsByCategory(categoryId: Long): ApiResult<PagedResponse<ItemResponse>>
+    suspend fun getItemsByCategory(categoryId: Long, page: Int): ApiResult<PagedResponse<ItemResponse>>
+
+    suspend fun searchItems(query: String, page: Int = 0): ApiResult<PagedResponse<ItemResponse>>
+
+
+
 
     suspend fun updateItem(
         itemId: Long,

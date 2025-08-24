@@ -28,14 +28,20 @@ sealed class RegisterState {
 
 sealed class HomeState {
     object Loading : HomeState()
+
     data class Success(
-        val categories: List<CategoryResponse>,
-        val popularItems: List<ItemResponse>
+        val categories: List<CategoryResponse> = emptyList(),
+        val popularItems: List<ItemResponse> = emptyList(),
+        val currentPage: Int = 0,
+        val totalPages: Int = 0,
+        val isLastPage: Boolean = false,
+        val totalElements: Long = 0
     ) : HomeState()
 
-    data class Error(val error: String) : HomeState()
+    data class Error(
+        val message: String
+    ) : HomeState()
 }
-
 
 data class UserState(
     val user: ApiResult<UserResponse>? = null,
