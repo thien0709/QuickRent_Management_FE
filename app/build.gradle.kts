@@ -6,6 +6,7 @@ plugins {
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+    id ("com.google.gms.google-services")
 
 }
 
@@ -114,10 +115,12 @@ dependencies {
 
 
     //Firebase
-    implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
-    implementation("com.google.firebase:firebase-database")
-    implementation("com.google.firebase:firebase-messaging")
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
 
+    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.firebase:firebase-auth-ktx")
+
+    implementation("com.google.code.gson:gson:2.10.1")
     //Mapbox
     implementation("com.mapbox.maps:android:11.14.2")
     implementation("com.mapbox.extension:maps-compose:11.14.2")

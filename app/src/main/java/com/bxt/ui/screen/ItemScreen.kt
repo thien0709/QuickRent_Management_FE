@@ -1,10 +1,12 @@
 package com.bxt.ui.screen
 
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,11 +15,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.bxt.data.api.dto.response.ItemDetail
+import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.ui.components.ImagePager
 import com.bxt.ui.state.ItemState
 import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.ItemViewModel
+import com.google.gson.Gson
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Locale
@@ -26,14 +31,13 @@ import java.util.Locale
 @Composable
 fun ItemScreen(
     itemId: Long,
+    navController: NavController,
     onClickBack: () -> Unit,
-    onClickOwner: (ownerId: Long) -> Unit,
     onClickRent: (itemId: Long, price: String) -> Unit,
     viewModel: ItemViewModel = hiltViewModel()
 ) {
     LaunchedEffect(itemId) { viewModel.load(itemId) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val d = LocalDimens.current
 
     Scaffold(
         topBar = {
@@ -66,7 +70,7 @@ fun ItemScreen(
                     if (detail.item != null) {
                         ItemDetailContent(
                             itemDetail = detail,
-                            onClickOwner = onClickOwner,
+                            navController = navController,
                             onClickRent = { price -> onClickRent(itemId, price) }
                         )
                     } else {
@@ -84,7 +88,7 @@ fun ItemScreen(
 @Composable
 private fun ItemDetailContent(
     itemDetail: ItemDetail,
-    onClickOwner: (ownerId: Long) -> Unit,
+    navController: NavController,
     onClickRent: (price: String) -> Unit
 ) {
     val d = LocalDimens.current
@@ -95,6 +99,31 @@ private fun ItemDetailContent(
             item.imagePrimary?.takeIf { it.isNotBlank() }?.let { add(it) }
             itemDetail.images.forEach { url ->
                 if (url.isNotBlank() && url != item.imagePrimary) add(url)
+            }
+        }
+    }
+
+    // Hàm để navigate tới chat với thông tin item
+    val navigateToChat = remember(item) {
+        {
+            if (item.ownerId != null) {
+                // Tạo thông tin attachable để truyền vào chat
+                val attachableInfo = mapOf(
+                    "type" to "Item",
+                    "title" to (item.title ?: "Sản phẩm"),
+                    "subtitle" to (item.description?.take(100) ?: ""),
+                    "image" to (item.imagePrimary ?: ""),
+                    "price" to money(item.rentalPricePerHour),
+                    "itemId" to item.id.toString(),
+                    "condition" to (item.conditionStatus ?: ""),
+                    "availability" to (item.availabilityStatus ?: "")
+                )
+
+                val attachableJson = Gson().toJson(attachableInfo)
+                val encodedJson = Uri.encode(attachableJson)
+
+                // Navigate tới chat với thông tin item đính kèm
+                navController.navigate("chat_screen/${item.ownerId}?attachableJson=$encodedJson")
             }
         }
     }
@@ -171,13 +200,19 @@ private fun ItemDetailContent(
                 horizontalArrangement = Arrangement.spacedBy(d.rowGap)
             ) {
                 OutlinedButton(
-                    onClick = { item.ownerId?.let(onClickOwner) },
+                    onClick = navigateToChat,
                     modifier = Modifier
                         .weight(1f)
                         .height(d.buttonHeight),
                     shape = MaterialTheme.shapes.medium,
                     enabled = item.ownerId != null
                 ) {
+                    Icon(
+                        Icons.Default.Message,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
                     Text("Chat ngay", style = MaterialTheme.typography.bodySmall)
                 }
 
@@ -193,6 +228,19 @@ private fun ItemDetailContent(
                     enabled = item.rentalPricePerHour != null
                 ) {
                     Text("Thuê ngay", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            if (item.ownerId != null) {
+                Spacer(Modifier.height(d.sectionGap))
+
+                Card(
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
                 }
             }
         }

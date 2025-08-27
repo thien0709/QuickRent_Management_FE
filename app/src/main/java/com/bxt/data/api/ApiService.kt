@@ -31,6 +31,9 @@ interface ApiService {
     @POST("logout")
     suspend fun logout()
 
+    @GET("users/{id}")
+    suspend fun getUserNameById(@Path("id") id: Long): String
+
     @GET("users/profile")
     suspend fun getUserInfo(): UserResponse
 

@@ -38,7 +38,8 @@ class RentalItemViewModel @Inject constructor(
         totalPrice: BigDecimal,
         address: String,
         latTo : BigDecimal,
-        lngTo : BigDecimal
+        lngTo : BigDecimal,
+        paymentMethod : String
     ) {
         val renterId = userId.value
         if (renterId == null) {
@@ -60,7 +61,8 @@ class RentalItemViewModel @Inject constructor(
                 rentalEndTime = endAt,
                 totalPrice = totalPrice,
                 latTo = latTo,
-                lngTo = lngTo
+                lngTo = lngTo,
+                paymentMethod = paymentMethod
             )
             when (val result = rentalRepository.createRentalRequest(request)) {
                 is ApiResult.Success -> {

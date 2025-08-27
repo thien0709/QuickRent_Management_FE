@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.bxt" />
+                  <option name="mobileSdkAppId" value="1:808102034429:android:fe24d304c7e78ab1147794" />
+                  <option name="projectId" value="quickrent-c2d31" />
+                  <option name="projectNumber" value="808102034429" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

@@ -28,7 +28,10 @@ import com.bxt.ui.screen.*
 import com.bxt.viewmodel.RentalServiceViewModel
 import com.bxt.viewmodel.TransportServiceViewModel
 import com.bxt.viewmodel.WelcomeViewModel
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.first
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @Composable
 fun AppNavigation() {
@@ -49,8 +52,11 @@ fun AppNavigation() {
         "welcome",
         "login",
         "register",
-        "item/",
-        "rent_item/"
+        "item_detail/", // Đã sửa từ "item/" thành "item_detail/"
+        "rent_item/",
+        "chat_screen/", // Thêm để ẩn bottom bar trong chat
+        "add_item",
+        "add_transport_service"
     )
 
     val hideBottomBar = routesToHideBottomBar.any { routePrefix ->
@@ -66,7 +72,7 @@ fun AppNavigation() {
                             BottomNavItem("Home", Icons.Default.Home, "home"),
                             BottomNavItem("Rental", Icons.Default.ShoppingCart, "category"),
                             BottomNavItem("Transport", Icons.Default.DeliveryDining, "transport_service"),
-                            BottomNavItem("Chat", Icons.Default.Textsms, "chat"),
+                            BottomNavItem("Chat", Icons.Default.Textsms, "chat_list"), // Đã sửa từ "chat" thành "chat_list"
                             BottomNavItem("Profile", Icons.Default.Person, "profile")
                         ),
                         currentRoute = currentRoute,
@@ -126,7 +132,8 @@ fun AppNavigation() {
                             navController.navigate("category/${category.id}")
                         },
                         onItemClick = { item ->
-                            navController.navigate("item/${item.id}")
+                            // Đã sửa: navigate đến route đúng
+                            navController.navigate("item_detail/${item.id}")
                         },
                         onAllCategoriesClick = {
                             navController.navigate("category")
@@ -142,27 +149,28 @@ fun AppNavigation() {
                         navController = navController,
                         onBackClick = { navController.navigateUp() },
                         onProductClick = { productId ->
-                            navController.navigate("item/$productId")
+                            // Đã sửa: navigate đến route đúng
+                            navController.navigate("item_detail/$productId")
                         }
                     )
                 }
-                composable(
-                    route = "item/{id}",
-                    arguments = listOf(navArgument("id") { type = NavType.LongType })
-                ) { backStackEntry ->
-                    val itemId = backStackEntry.arguments?.getLong("id") ?: error("Missing item id")
 
+                // Route chính cho Item Detail
+                composable(
+                    route = "item_detail/{itemId}",
+                    arguments = listOf(navArgument("itemId") { type = NavType.LongType })
+                ) { backStackEntry ->
+                    val itemId = backStackEntry.arguments?.getLong("itemId") ?: 0L
                     ItemScreen(
                         itemId = itemId,
+                        navController = navController,
                         onClickBack = { navController.popBackStack() },
-                        onClickOwner = { ownerId ->
-                            // ví dụ: navController.navigate("owner/$ownerId")
-                        },
-                        onClickRent = { id, price ->
-                            navController.navigate("rent_item/$id/$price")
+                        onClickRent = { itemId, price ->
+                            navController.navigate("rent_item/$itemId/$price")
                         }
                     )
                 }
+
                 composable(
                     route = "rent_item/{itemId}/{price}",
                     arguments = listOf(
@@ -202,9 +210,7 @@ fun AppNavigation() {
                 }
 
                 composable("transactions") {
-//                    TransactionsScreen(
-//                        onBackClick = { navController.popBackStack() }
-//                    )
+                    // TransactionsScreen khi có
                 }
 
                 composable("transport_service") {
@@ -212,21 +218,40 @@ fun AppNavigation() {
                     TransportServiceScreen(
                         navController = navController,
                         viewModel = hiltViewModel(),
-
                     )
                 }
 
                 composable("add_transport_service") {
                     AddTransportScreen(
                         onSubmit = {
-                            // Khi thành công, quay lại màn hình trước đó
                             navController.popBackStack()
                         },
                         onBack = {
-                            // Khi nhấn nút back, cũng quay lại màn hình trước đó
                             navController.popBackStack()
                         }
                     )
+                }
+
+                // Chat Routes
+                composable("chat_list") {
+                    ChatListScreen(
+                        navController = navController,
+                        viewModel = hiltViewModel() // Thêm viewModel nếu cần
+                    )
+                }
+
+                composable(
+                    route = "chat_screen/{otherUserId}?attachableJson={attachableJson}",
+                    arguments = listOf(
+                        navArgument("otherUserId") { type = NavType.StringType },
+                        navArgument("attachableJson") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        }
+                    )
+                ) { backStackEntry ->
+                    ChatScreen(navController = navController)
                 }
             }
             ErrorPopupManager.ErrorPopup()

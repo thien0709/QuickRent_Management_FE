@@ -10,6 +10,7 @@ data class RentalRequestRequest (
      val rentalStartTime: Instant,
      val rentalEndTime: Instant,
      val totalPrice: BigDecimal,
+     val paymentMethod: String,
      val latTo : BigDecimal,
      val lngTo : BigDecimal,
 )
