@@ -2,11 +2,13 @@ package com.bxt.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bxt.data.api.dto.response.PagedResponse
 import com.bxt.data.api.dto.response.RentalRequestResponse
 import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
 import com.bxt.data.repository.RentalRequestRepository
 import com.bxt.di.ApiResult
+import com.bxt.di.ErrorResponse
 import com.bxt.ui.state.RentalRequestsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +28,12 @@ class RentalServiceViewModel @Inject constructor(
     private val _state = MutableStateFlow<RentalRequestsState>(RentalRequestsState.Loading)
     val state: StateFlow<RentalRequestsState> = _state.asStateFlow()
 
+    private val _isUpdatingStatus = MutableStateFlow<Long?>(null)
+    val isUpdatingStatus: StateFlow<Long?> = _isUpdatingStatus.asStateFlow()
+
+    private val _errorEvent = MutableStateFlow<String?>(null)
+    val errorEvent: StateFlow<String?> = _errorEvent.asStateFlow()
+
     private val _thumbs = MutableStateFlow<Map<Long, String?>>(emptyMap())
     val thumbs: StateFlow<Map<Long, String?>> = _thumbs.asStateFlow()
 
@@ -35,16 +43,39 @@ class RentalServiceViewModel @Inject constructor(
     fun loadByRenter() = loadData { rentalRepo.getRentalRequestsByRenter() }
     fun loadByOwner() = loadData { rentalRepo.getRentalRequestsByOwner() }
 
-    private fun loadData(loader: suspend () -> ApiResult<List<RentalRequestResponse>>) = viewModelScope.launch {
+    private fun loadData(loader: suspend () -> ApiResult<PagedResponse<RentalRequestResponse>>) = viewModelScope.launch {
         _state.value = RentalRequestsState.Loading
         when (val res = loader()) {
             is ApiResult.Success -> {
-                val data = res.data
+                val data = res.data.content
                 _state.value = RentalRequestsState.Success(data)
                 loadAdditionalData(data)
             }
             is ApiResult.Error -> _state.value = RentalRequestsState.Error(res.error)
         }
+    }
+
+    fun errorEventConsumed() {
+        _errorEvent.value = null
+    }
+
+    fun updateStatus(
+        requestId: Long?,
+        newStatus: String,
+        onDone: () -> Unit
+    ) = viewModelScope.launch {
+        if (requestId == null) return@launch
+        _isUpdatingStatus.value = requestId
+
+        when (val result = rentalRepo.updateRequestStatus(requestId, newStatus)) {
+            is ApiResult.Success -> {
+                onDone()
+            }
+            is ApiResult.Error -> {
+                _errorEvent.value = result.error.message
+            }
+        }
+        _isUpdatingStatus.value = null
     }
 
     private fun loadAdditionalData(requests: List<RentalRequestResponse>) {
@@ -63,16 +94,11 @@ class RentalServiceViewModel @Inject constructor(
     }
 
     private fun loadThumb(itemId: Long) = viewModelScope.launch {
-        // Bước 1: Dùng 'when' để chỉ lấy ra giá trị imageUrl
         val imageUrl = when (val res = itemRepo.getItemInfo(itemId)) {
             is ApiResult.Success -> res.data.imagePrimary
-            is ApiResult.Error -> null // Nếu lỗi, kết quả là null
+            is ApiResult.Error -> null
         }
-
-        // Bước 2: Cập nhật bản đồ chỉ một lần duy nhất với kết quả đã có
-        _thumbs.update { currentMap ->
-            currentMap + (itemId to imageUrl)
-        }
+        _thumbs.update { currentMap -> currentMap + (itemId to imageUrl) }
     }
 
     private fun resolveAddress(req: RentalRequestResponse) = viewModelScope.launch {
@@ -84,30 +110,8 @@ class RentalServiceViewModel @Inject constructor(
             _addresses.update { it + (id to "Tọa độ không hợp lệ") }
             return@launch
         }
-
         locationRepo.getAddressFromLatLng(lat, lng)
-            .onSuccess { addr ->
-                _addresses.update { it + (id to addr.ifBlank { "Không rõ vị trí" }) }
-            }
-            .onFailure {
-                _addresses.update { it + (id to "Không thể lấy địa chỉ") }
-            }
-    }
-
-    fun updateStatus(
-        requestId: Long?,
-        newStatus: String,
-        onDone: () -> Unit
-    ) = viewModelScope.launch {
-        if (requestId == null) return@launch
-        // TODO: Hiển thị loading indicator
-        when (rentalRepo.updateRequestStatus(requestId, newStatus)) {
-            is ApiResult.Success -> {
-                onDone()
-            }
-            is ApiResult.Error -> {
-                // TODO: Hiển thị thông báo lỗi
-            }
-        }
+            .onSuccess { addr -> _addresses.update { it + (id to addr.ifBlank { "Không rõ vị trí" }) } }
+            .onFailure { _addresses.update { it + (id to "Không thể lấy địa chỉ") } }
     }
 }

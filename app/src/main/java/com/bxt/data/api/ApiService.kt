@@ -1,5 +1,6 @@
 package com.bxt.data.api
 
+import android.graphics.pdf.PdfDocument.Page
 import com.bxt.data.api.dto.request.ItemRequest
 import com.bxt.data.api.dto.request.LoginRequest
 import com.bxt.data.api.dto.request.RefreshTokenRequest
@@ -117,16 +118,19 @@ interface ApiService {
     suspend fun createRentalRequest(@Body request: RentalRequestRequest): RentalRequestResponse
 
     @GET("rental-requests/owner")
-    suspend fun getRentalRequestsByOwner(): List<RentalRequestResponse>
+    suspend fun getRentalRequestsByOwner(): PagedResponse<RentalRequestResponse>
 
     @GET("rental-requests/renter")
-    suspend fun getRentalRequestsByRenter(): List<RentalRequestResponse>
+    suspend fun getRentalRequestsByRenter(): PagedResponse<RentalRequestResponse>
 
     @GET("rental-requests/{id}")
     suspend fun updateRentalRequest(id: String, request: RentalRequestRequest) : RentalRequestResponse
 
-    @PATCH("rental-requests/{id}")
-    suspend fun updateRequestStatus(requestId: Long, newStatus: String) : RentalRequestResponse
+    @PATCH("rental-requests/{id}/status")
+    suspend fun updateRequestStatus(
+        @Path("id") requestId: Long,
+        @Query("status") newStatus: String
+    ): RentalRequestResponse
 
     // Transport Services
     @GET("transport-services")

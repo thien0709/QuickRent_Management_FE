@@ -12,6 +12,7 @@ data class RentalRequestResponse(
     val totalPrice: BigDecimal?,
     val status: String?,
     val latFrom : BigDecimal?,
+    val paymentMethod: String?,
     val lngFrom : BigDecimal?,
     val latTo: BigDecimal?,
     val lngTo: BigDecimal?,

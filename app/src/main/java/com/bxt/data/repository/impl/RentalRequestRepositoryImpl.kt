@@ -3,6 +3,7 @@ package com.bxt.data.repository.impl
 import com.bxt.data.api.ApiCallExecutor
 import com.bxt.data.api.ApiService
 import com.bxt.data.api.dto.request.RentalRequestRequest
+import com.bxt.data.api.dto.response.PagedResponse
 import com.bxt.data.api.dto.response.RentalRequestResponse
 import com.bxt.data.repository.RentalRequestRepository
 import com.bxt.di.ApiResult
@@ -14,7 +15,7 @@ class RentalRequestRepositoryImpl(
 
 
     // Other methods can be added as needed
-    override suspend fun getRentalRequests(): ApiResult<List<RentalRequestResponse>> {
+    override suspend fun getRentalRequests(): ApiResult<PagedResponse<RentalRequestResponse>> {
         TODO("Not yet implemented")
     }
 
@@ -41,13 +42,13 @@ class RentalRequestRepositoryImpl(
         TODO("Not yet implemented")
     }
 
-    override suspend fun getRentalRequestsByRenter(): ApiResult<List<RentalRequestResponse>> {
+    override suspend fun getRentalRequestsByRenter(): ApiResult<PagedResponse<RentalRequestResponse>> {
         return apiCallExecutor.execute {
             apiService.getRentalRequestsByRenter()
         }
     }
 
-    override suspend fun getRentalRequestsByOwner(): ApiResult<List<RentalRequestResponse>> {
+    override suspend fun getRentalRequestsByOwner(): ApiResult<PagedResponse<RentalRequestResponse>> {
         return apiCallExecutor.execute {
             apiService.getRentalRequestsByOwner()
         }
