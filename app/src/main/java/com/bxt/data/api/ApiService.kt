@@ -32,7 +32,7 @@ interface ApiService {
     suspend fun logout()
 
     @GET("users/{id}")
-    suspend fun getUserNameById(@Path("id") id: Long): String
+    suspend fun getUserNameById(@Path("id") id: Long): UserResponse
 
     @GET("users/profile")
     suspend fun getUserInfo(): UserResponse

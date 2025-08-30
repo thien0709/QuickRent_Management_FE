@@ -21,6 +21,8 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.bxt.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,16 +122,23 @@ private fun MessageBubbleFromMap(
     val isMyMessage = myUserId != null && senderId == myUserId
     val align = if (isMyMessage) Alignment.End else Alignment.Start
 
+    val textContent = (messageMap["text"] as? String)?.takeIf { it.isNotBlank() }
+    val attachableContent = messageMap["attachable"] as? Map<String, Any?>
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = align
     ) {
-        (messageMap["attachable"] as? Map<String, Any?>)?.let { attach ->
-            AttachableCardFromMap(attach)
-            Spacer(Modifier.height(4.dp))
-        }
-
-        (messageMap["text"] as? String)?.takeIf { it.isNotBlank() }?.let { text ->
+        // Logic mới để quyết định cách hiển thị
+        if (attachableContent != null) {
+            // Nếu có thẻ sản phẩm, hiển thị bong bóng tích hợp
+            IntegratedMessageCard(
+                text = textContent,
+                attachableMap = attachableContent,
+                isMyMessage = isMyMessage
+            )
+        } else if (textContent != null) {
+            // Nếu chỉ có text, hiển thị bong bóng text bình thường
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = if (isMyMessage)
@@ -139,7 +148,7 @@ private fun MessageBubbleFromMap(
                 )
             ) {
                 Text(
-                    text,
+                    textContent,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     color = if (isMyMessage)
                         MaterialTheme.colorScheme.onPrimaryContainer
@@ -152,22 +161,70 @@ private fun MessageBubbleFromMap(
 }
 
 @Composable
-private fun AttachableCardFromMap(attachableMap: Map<String, Any?>) {
-    Card {
-        Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            (attachableMap["image"] as? String)?.let { url ->
-                AsyncImage(model = url, contentDescription = "Attachment", modifier = Modifier.size(50.dp))
-                Spacer(Modifier.width(8.dp))
+private fun IntegratedMessageCard(
+    text: String?,
+    attachableMap: Map<String, Any?>,
+    isMyMessage: Boolean
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (isMyMessage)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            // Hiển thị văn bản giới thiệu (nếu có)
+            text?.let {
+                Text(
+                    text = it,
+                    modifier = Modifier.padding(bottom = 8.dp, start = 4.dp, end = 4.dp),
+                    color = if (isMyMessage)
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    else
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                )
             }
-            Column {
-                val title = attachableMap["title"] as? String
-                val subtitle = attachableMap["subtitle"] as? String
-                Text(title ?: "Không có tiêu đề", fontWeight = FontWeight.Bold)
-                subtitle?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+
+            // Hiển thị nội dung thẻ sản phẩm
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                (attachableMap["image"] as? String)?.let { url ->
+                    AsyncImage(model = url, contentDescription = "Attachment", modifier = Modifier.size(50.dp))
+                    Spacer(Modifier.width(8.dp))
+                }
+                Column {
+                    val title = attachableMap["title"] as? String
+                    val subtitle = attachableMap["subtitle"] as? String
+
+                    val decodedTitle = remember(title) {
+                        try {
+                            URLDecoder.decode(title, StandardCharsets.UTF_8.name())
+                        } catch (e: Exception) { title ?: "Không có tiêu đề" }
+                    }
+                    val decodedSubtitle = remember(subtitle) {
+                        try {
+                            subtitle?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.name()) }
+                        } catch (e: Exception) { subtitle }
+                    }
+
+                    Text(
+                        decodedTitle,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isMyMessage) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    decodedSubtitle?.let {
+                        Text(
+                            it,
+                            color = if (isMyMessage) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
             }
         }
     }
 }
+
 
 @Composable
 private fun MessageInput(

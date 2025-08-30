@@ -13,7 +13,7 @@ import javax.inject.Singleton
 @Singleton
 class ChatRepositoryImpl @Inject constructor() : ChatRepository {
 
-    private val database by lazy { FirebaseDatabase.getInstance().reference }
+    private val database = FirebaseDatabase.getInstance().reference
 
     override fun sendMessage(
         myUserId: String,
@@ -24,27 +24,20 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
             .child("chats").child(otherUserId)
             .child("messages").push().key ?: return
 
-        val lastText = messageMap["text"] as? String ?: "Đã gửi một đối tượng đính kèm"
-        val ts = (messageMap["timestamp"] as? Long) ?: System.currentTimeMillis()
+        val lastText = messageMap["text"] as? String ?: "Tin nhắn"
+        val timestamp = messageMap["timestamp"] as? Long ?: System.currentTimeMillis()
 
-        val myBase    = "/users/$myUserId/chats/$otherUserId"
-        val otherBase = "/users/$otherUserId/chats/$myUserId"
-
-        // Tất cả path đều là "lá", không có path nào là tổ tiên của path khác
-        val updates = hashMapOf<String, Any>(
-            "$myBase/messages/$newKey" to messageMap,
-            "$otherBase/messages/$newKey" to messageMap,
-
-            "$myBase/lastMessage" to lastText,
-            "$myBase/timestamp"   to ts,
-
-            "$otherBase/lastMessage" to lastText,
-            "$otherBase/timestamp"   to ts
+        val updates = mapOf(
+            "/users/$myUserId/chats/$otherUserId/messages/$newKey" to messageMap,
+            "/users/$otherUserId/chats/$myUserId/messages/$newKey" to messageMap,
+            "/users/$myUserId/chats/$otherUserId/lastMessage" to lastText,
+            "/users/$myUserId/chats/$otherUserId/timestamp" to timestamp,
+            "/users/$otherUserId/chats/$myUserId/lastMessage" to lastText,
+            "/users/$otherUserId/chats/$myUserId/timestamp" to timestamp
         )
 
         database.updateChildren(updates)
     }
-
 
     override fun listenForMessages(
         myUserId: String,
@@ -56,16 +49,19 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
 
         val listener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                val map = snapshot.value as? Map<String, Any?> ?: return
-                onNewMessage(map)
+                val messageMap = snapshot.value as? Map<String, Any?> ?: return
+                onNewMessage(messageMap)
             }
+
             override fun onCancelled(error: DatabaseError) {
-                Log.w("ChatRepository", "listenForMessages:onCancelled", error.toException())
+                Log.w("ChatRepository", "Listen cancelled", error.toException())
             }
+
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
             override fun onChildRemoved(snapshot: DataSnapshot) {}
             override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
         }
+
         messagesRef.addChildEventListener(listener)
         return listener
     }
@@ -85,19 +81,22 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
         onResult: (Map<String, Map<String, Any?>>) -> Unit
     ) {
         val chatsRef = database.child("users").child(myUserId).child("chats")
+
         chatsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val result = mutableMapOf<String, Map<String, Any?>>()
+
                 for (child in snapshot.children) {
                     val otherId = child.key ?: continue
-                    val value = child.value as? Map<String, Any?> ?: emptyMap()
-                    @Suppress("UNCHECKED_CAST")
-                    result[otherId] = value as Map<String, Any?>
+                    val chatData = child.value as? Map<String, Any?> ?: emptyMap()
+                    result[otherId] = chatData
                 }
+
                 onResult(result)
             }
+
             override fun onCancelled(error: DatabaseError) {
-                Log.w("ChatRepository", "getChatList:onCancelled", error.toException())
+                Log.w("ChatRepository", "Chat list cancelled", error.toException())
                 onResult(emptyMap())
             }
         })

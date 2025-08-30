@@ -9,6 +9,7 @@ import com.bxt.data.api.dto.response.TransportServiceResponse
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
 import com.bxt.di.ErrorResponse
+import com.bxt.viewmodel.ChatThreadUi
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.AutocompletePrediction
 
@@ -102,10 +103,10 @@ sealed interface TransportServiceListState {
 }
 
 sealed interface AddTransportServiceState {
-    data object Idle : AddTransportServiceState // Trạng thái ban đầu
-    data object Submitting : AddTransportServiceState // Đang gửi yêu cầu
-    data class Success(val message: String) : AddTransportServiceState // Thành công
-    data class Error(val message: String) : AddTransportServiceState // Thất bại
+    data object Idle : AddTransportServiceState
+    data object Submitting : AddTransportServiceState
+    data class Success(val message: String) : AddTransportServiceState
+    data class Error(val message: String) : AddTransportServiceState
 }
 
 data class LocationPickerState(
@@ -119,4 +120,10 @@ sealed interface CategoriesUiState {
     data object Loading : CategoriesUiState
     data class Success(val categories: List<CategoryResponse>) : CategoriesUiState
     data class Error(val message: String) : CategoriesUiState
+}
+
+sealed interface ChatListUiState {
+    data object Loading : ChatListUiState
+    data class Success(val threads: List<ChatThreadUi>) : ChatListUiState
+    data class Error(val message: String) : ChatListUiState
 }

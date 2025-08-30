@@ -23,27 +23,20 @@ class ChatViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val dataStore: DataStoreManager,
     private val userApi: ApiService,
-    savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     val otherUserId: String = savedStateHandle["otherUserId"]!!
-    private val initialAttachableJson: String? = savedStateHandle["attachableJson"]
+    private var lastSentAttachableJson: String? = null
 
-    // login local
     private val _isUserLoggedIn = MutableStateFlow(false)
     val isUserLoggedIn: StateFlow<Boolean> = _isUserLoggedIn.asStateFlow()
-
     private val _currentUserId = MutableStateFlow<String?>(null)
     val currentUserId: StateFlow<String?> = _currentUserId.asStateFlow()
-
-    // tên người nhận (từ API)
     private val _recipientName = MutableStateFlow<String?>(null)
     val recipientName: StateFlow<String?> = _recipientName.asStateFlow()
-
-    // UI state
     private val _messages = mutableStateListOf<Map<String, Any?>>()
     val messages: List<Map<String, Any?>> = _messages
-
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
@@ -58,12 +51,17 @@ class ChatViewModel @Inject constructor(
     private fun observeLocalSession() {
         viewModelScope.launch {
             combine(dataStore.accessToken, dataStore.userId) { token, uid ->
-                val loggedIn = !token.isNullOrBlank()
-                val uidStr = uid?.toString()
-                Pair(loggedIn, uidStr)
+                Pair(!token.isNullOrBlank(), uid?.toString())
             }.collect { (loggedIn, uidStr) ->
                 _isUserLoggedIn.value = loggedIn
                 _currentUserId.value = uidStr
+
+                // Thêm lớp kiểm tra tại đây
+                if (uidStr != null && uidStr == otherUserId) {
+                    _errorMessage.value = "Bạn không thể tự trò chuyện với chính mình."
+                    detachListener()
+                    return@collect
+                }
 
                 if (!loggedIn || uidStr == null) {
                     _errorMessage.value = "Vui lòng đăng nhập để sử dụng tính năng chat"
@@ -74,7 +72,62 @@ class ChatViewModel @Inject constructor(
                         detachListener()
                         listenForMessages()
                     }
+                    sendInitialAttachableMessageIfNeeded()
                 }
+            }
+        }
+    }
+
+    private fun sendInitialAttachableMessageIfNeeded() {
+        val myId = _currentUserId.value ?: return
+        if (myId == otherUserId) return
+
+        val currentAttachableJson: String? = savedStateHandle["attachableJson"]
+
+        if (currentAttachableJson != null && currentAttachableJson != lastSentAttachableJson) {
+            viewModelScope.launch {
+                try {
+                    lastSentAttachableJson = currentAttachableJson
+                    val messageMap = hashMapOf<String, Any?>(
+                        "senderId" to myId,
+                        "text" to "",
+                        "timestamp" to System.currentTimeMillis()
+                    )
+                    val type = object : TypeToken<Map<String, Any?>>() {}.type
+                    messageMap["attachable"] = Gson().fromJson<Map<String, Any?>>(currentAttachableJson, type)
+
+                    chatRepository.sendMessage(myId, otherUserId, messageMap)
+                } catch (e: Exception) {
+                    lastSentAttachableJson = null
+                    _errorMessage.value = "Không thể gửi thông tin sản phẩm."
+                }
+            }
+        }
+    }
+
+    fun sendMessage(text: String) {
+        val myId = _currentUserId.value
+        if (myId == otherUserId) {
+            _errorMessage.value = "Bạn không thể tự trò chuyện với chính mình."
+            return
+        }
+        if (myId == null || !_isUserLoggedIn.value) {
+            _errorMessage.value = "Bạn cần đăng nhập để gửi tin nhắn"
+            return
+        }
+        if (text.isBlank()) return
+
+        viewModelScope.launch {
+            try {
+                val messageMap = hashMapOf<String, Any?>(
+                    "senderId" to myId,
+                    "text" to text.trim(),
+                    "timestamp" to System.currentTimeMillis()
+                )
+                chatRepository.sendMessage(myId, otherUserId, messageMap)
+                _errorMessage.value = null
+            } catch (e: Exception) {
+                _errorMessage.value = "Không thể gửi tin nhắn: ${e.message}"
             }
         }
     }
@@ -83,16 +136,16 @@ class ChatViewModel @Inject constructor(
         val idLong = otherUserId.toLongOrNull() ?: return
         viewModelScope.launch {
             try {
-                _recipientName.value = userApi.getUserNameById(idLong)
+                val response = userApi.getUserNameById(idLong)
+                _recipientName.value = response.fullName
             } catch (_: Exception) {
-                // giữ null -> UI fallback "Chat với: {id}"
+                _recipientName.value = "Người dùng #${otherUserId}"
             }
         }
     }
 
     fun listenForMessages() {
         val myId = _currentUserId.value ?: return
-        if (!_isUserLoggedIn.value) return
         if (messageListener != null && listeningForUserId == myId) return
 
         listeningForUserId = myId
@@ -105,40 +158,13 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun sendMessage(text: String) {
-        if (!_isUserLoggedIn.value) {
-            _errorMessage.value = "Bạn cần đăng nhập để gửi tin nhắn"
-            return
-        }
-        val myId = _currentUserId.value ?: run {
-            _errorMessage.value = "Không xác định được người dùng hiện tại"
-            return
-        }
-        if (text.isBlank() && initialAttachableJson == null) return
-
-        viewModelScope.launch {
-            try {
-                val hasAttachable = _messages.any { it.containsKey("attachable") }
-                val messageMap = hashMapOf<String, Any?>(
-                    "senderId" to myId,
-                    "text" to text.trim(),
-                    "timestamp" to System.currentTimeMillis()
-                )
-                if (!hasAttachable && initialAttachableJson != null) {
-                    val type = object : TypeToken<Map<String, Any?>>() {}.type
-                    messageMap["attachable"] = Gson().fromJson<Map<String, Any?>>(initialAttachableJson, type)
-                }
-                chatRepository.sendMessage(myId, otherUserId, messageMap)
-                _errorMessage.value = null
-            } catch (e: Exception) {
-                _errorMessage.value = "Không thể gửi tin nhắn: ${e.message}"
-            }
-        }
-    }
 
     private fun detachListener() {
-        val myId = listeningForUserId ?: return
-        messageListener?.let { chatRepository.removeMessagesListener(myId, otherUserId, it) }
+        listeningForUserId?.let {
+            messageListener?.let { listener ->
+                chatRepository.removeMessagesListener(it, otherUserId, listener)
+            }
+        }
         messageListener = null
         listeningForUserId = null
         _messages.clear()

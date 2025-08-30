@@ -1,13 +1,18 @@
 package com.bxt.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bxt.data.api.ApiService
 import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.ChatRepository
-import com.google.firebase.database.FirebaseDatabase
+import com.bxt.ui.state.ChatListUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,68 +28,89 @@ data class ChatThreadUi(
 @HiltViewModel
 class ChatListViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
-    private val dataStore: DataStoreManager
+    private val dataStore: DataStoreManager,
+    private val apiService: ApiService
 ) : ViewModel() {
 
-    private val db = FirebaseDatabase.getInstance().reference
+    private val _uiState = MutableStateFlow<ChatListUiState>(ChatListUiState.Loading)
+    val uiState: StateFlow<ChatListUiState> = _uiState.asStateFlow()
 
-    private val _threads = MutableStateFlow<List<ChatThreadUi>>(emptyList())
-    val threads: StateFlow<List<ChatThreadUi>> = _threads
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    private val _loading = MutableStateFlow(false)
-    val loading: StateFlow<Boolean> = _loading
+    init {
+        loadChatList(isRefreshAction = false)
+    }
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
+    fun refresh() {
+        loadChatList(isRefreshAction = true)
+    }
 
-    fun loadChatList() {
+    private fun loadChatList(isRefreshAction: Boolean) {
         viewModelScope.launch {
-            _loading.value = true
-            val myId = dataStore.userId.first()?.toString()
-            if (myId == null) {
-                _error.value = "Không tìm thấy userId local"
-                _loading.value = false
-                return@launch
+            if (isRefreshAction) {
+                _isRefreshing.value = true
+            } else {
+                _uiState.value = ChatListUiState.Loading
             }
 
-            chatRepository.getChatList(myId) { chats ->
-                // build list thô (chưa có profile)
-                val base = chats.entries.map { (otherId, info) ->
-                    val last = info["lastMessage"] as? String
-                    val ts = (info["timestamp"] as? Long) ?: 0L
-                    ChatThreadUi(
-                        otherUserId = otherId,
-                        displayName = "User #$otherId",
-                        avatarUrl = null,
-                        lastMessage = last,
-                        timestamp = ts
-                    )
-                }.sortedByDescending { it.timestamp }.toMutableList()
-
-                _threads.value = base
-
-                // nạp profile cho từng otherId (nếu có)
-                base.forEach { thread ->
-                    db.child("users").child(thread.otherUserId).child("profile").get()
-                        .addOnSuccessListener { snap ->
-                            val name = snap.child("displayName").getValue(String::class.java)
-                            val avatar = snap.child("avatarUrl").getValue(String::class.java)
-                            val updated = _threads.value.toMutableList()
-                            val idx = updated.indexOfFirst { it.otherUserId == thread.otherUserId }
-                            if (idx >= 0) {
-                                updated[idx] = updated[idx].copy(
-                                    displayName = name ?: updated[idx].displayName,
-                                    avatarUrl = avatar
-                                )
-                                _threads.value = updated
-                            }
-                        }
-                        .addOnFailureListener {
-                            // bỏ qua, dùng fallback
-                        }
+            try {
+                val myId = dataStore.userId.first()?.toString()
+                if (myId == null) {
+                    _uiState.value = ChatListUiState.Error("Không tìm thấy userId local")
+                    if (isRefreshAction) _isRefreshing.value = false
+                    return@launch
                 }
 
-                _loading.value = false
+                chatRepository.getChatList(myId) { chats ->
+                    viewModelScope.launch {
+                        try {
+                            // Lọc bỏ cuộc trò chuyện với chính mình
+                            val filteredChats = chats.filterKeys { otherId -> otherId != myId }
+
+                            val baseThreads = filteredChats.entries.map { (otherId, info) ->
+                                val last = info["lastMessage"] as? String
+                                val ts = (info["timestamp"] as? Long) ?: 0L
+                                ChatThreadUi(otherId, "...", null, last, ts)
+                            }
+
+                            val profileJobs = baseThreads.map { thread ->
+                                async {
+                                    try {
+                                        val userId = thread.otherUserId.toLongOrNull()
+                                        if (userId != null) {
+                                            val userResponse = apiService.getUserNameById(userId)
+                                            thread.copy(
+                                                displayName = userResponse.fullName?.takeIf { it.isNotBlank() } ?: "User #${thread.otherUserId}",
+                                                avatarUrl = userResponse.avatarUrl
+                                            )
+                                        } else {
+                                            thread.copy(displayName = "User #${thread.otherUserId}")
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("ChatListViewModel", "Lỗi tải profile: ${thread.otherUserId}", e)
+                                        thread.copy(displayName = "User #${thread.otherUserId}")
+                                    }
+                                }
+                            }
+
+                            val threadsWithProfiles = profileJobs.awaitAll()
+                            _uiState.value = ChatListUiState.Success(threadsWithProfiles.sortedByDescending { it.timestamp })
+
+                        } catch (e: Exception) {
+                            _uiState.value = ChatListUiState.Error("Không thể xử lý danh sách chat: ${e.message}")
+                        } finally {
+                            if (isRefreshAction) {
+                                _isRefreshing.value = false
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = ChatListUiState.Error("Không thể tải danh sách chat: ${e.message}")
+                if (isRefreshAction) {
+                    _isRefreshing.value = false
+                }
             }
         }
     }

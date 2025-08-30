@@ -17,13 +17,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.bxt.data.api.dto.response.ItemDetail
-import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.ui.components.ImagePager
 import com.bxt.ui.state.ItemState
 import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.ItemViewModel
 import com.google.gson.Gson
 import java.math.BigDecimal
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -71,7 +72,8 @@ fun ItemScreen(
                         ItemDetailContent(
                             itemDetail = detail,
                             navController = navController,
-                            onClickRent = { price -> onClickRent(itemId, price) }
+                            onClickRent = { price -> onClickRent(itemId, price) },
+                            viewModel = viewModel
                         )
                     } else {
                         ErrorStateContent(
@@ -89,41 +91,19 @@ fun ItemScreen(
 private fun ItemDetailContent(
     itemDetail: ItemDetail,
     navController: NavController,
-    onClickRent: (price: String) -> Unit
+    onClickRent: (price: String) -> Unit,
+    viewModel: ItemViewModel
 ) {
     val d = LocalDimens.current
     val item = requireNotNull(itemDetail.item)
+
+    val currentUserId by viewModel.currentUserId.collectAsStateWithLifecycle(initialValue = null)
 
     val photos: List<String> = remember(itemDetail) {
         buildList {
             item.imagePrimary?.takeIf { it.isNotBlank() }?.let { add(it) }
             itemDetail.images.forEach { url ->
                 if (url.isNotBlank() && url != item.imagePrimary) add(url)
-            }
-        }
-    }
-
-    // Hàm để navigate tới chat với thông tin item
-    val navigateToChat = remember(item) {
-        {
-            if (item.ownerId != null) {
-                // Tạo thông tin attachable để truyền vào chat
-                val attachableInfo = mapOf(
-                    "type" to "Item",
-                    "title" to (item.title ?: "Sản phẩm"),
-                    "subtitle" to (item.description?.take(100) ?: ""),
-                    "image" to (item.imagePrimary ?: ""),
-                    "price" to money(item.rentalPricePerHour),
-                    "itemId" to item.id.toString(),
-                    "condition" to (item.conditionStatus ?: ""),
-                    "availability" to (item.availabilityStatus ?: "")
-                )
-
-                val attachableJson = Gson().toJson(attachableInfo)
-                val encodedJson = Uri.encode(attachableJson)
-
-                // Navigate tới chat với thông tin item đính kèm
-                navController.navigate("chat_screen/${item.ownerId}?attachableJson=$encodedJson")
             }
         }
     }
@@ -139,7 +119,6 @@ private fun ItemDetailContent(
         )
 
         Column(Modifier.padding(d.pagePadding)) {
-            // Title
             Text(
                 text = item.title.orEmpty(),
                 style = MaterialTheme.typography.headlineSmall,
@@ -149,7 +128,6 @@ private fun ItemDetailContent(
 
             Spacer(Modifier.height(d.rowGap))
 
-            // Chips trạng thái
             Row(horizontalArrangement = Arrangement.spacedBy(d.rowGap)) {
                 AssistChipBox(
                     text = "Tình trạng: ${item.conditionStatus.orEmpty().ifBlank { "—" }}",
@@ -161,7 +139,6 @@ private fun ItemDetailContent(
 
             Spacer(Modifier.height(d.sectionGap))
 
-            // Card giá
             Card(
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
@@ -186,7 +163,6 @@ private fun ItemDetailContent(
 
             Spacer(Modifier.height(d.sectionGap))
 
-            // Mô tả
             Text(
                 text = item.description.orEmpty(),
                 style = MaterialTheme.typography.bodySmall
@@ -194,53 +170,52 @@ private fun ItemDetailContent(
 
             Spacer(Modifier.height(d.sectionGap + 4.dp))
 
-            // Actions
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(d.rowGap)
-            ) {
-                OutlinedButton(
-                    onClick = navigateToChat,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(d.buttonHeight),
-                    shape = MaterialTheme.shapes.medium,
-                    enabled = item.ownerId != null
-                ) {
-                    Icon(
-                        Icons.Default.Message,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text("Chat ngay", style = MaterialTheme.typography.bodySmall)
-                }
-
-                Button(
-                    onClick = {
-                        val price = item.rentalPricePerHour?.toPlainString() ?: "0"
-                        onClickRent(price)
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(d.buttonHeight),
-                    shape = MaterialTheme.shapes.medium,
-                    enabled = item.rentalPricePerHour != null
-                ) {
-                    Text("Thuê ngay", style = MaterialTheme.typography.bodySmall)
-                }
-            }
-
-            if (item.ownerId != null) {
-                Spacer(Modifier.height(d.sectionGap))
-
-                Card(
-                    shape = MaterialTheme.shapes.medium,
+            // Điều kiện `if` bao bọc cả Row chứa 2 nút
+            // Chỉ hiển thị các nút hành động (Chat, Thuê) nếu người xem không phải là chủ sở hữu
+            if (currentUserId != null && item.ownerId != null && item.ownerId.toString() != currentUserId) {
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    horizontalArrangement = Arrangement.spacedBy(d.rowGap)
                 ) {
+                    OutlinedButton(
+                        onClick = {
+                            val attachableInfo = mapOf(
+                                "title" to (item.title ?: "Sản phẩm"),
+                                "subtitle" to money(item.rentalPricePerHour),
+                                "image" to (item.imagePrimary ?: "")
+                            )
+                            val attachableJson = Gson().toJson(attachableInfo)
+                            val encodedJson = URLEncoder.encode(attachableJson, StandardCharsets.UTF_8.toString())
+                            navController.navigate("chat_screen/${item.ownerId}?attachableJson=$encodedJson")
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(d.buttonHeight),
+                        shape = MaterialTheme.shapes.medium,
+                        enabled = item.ownerId != null
+                    ) {
+                        Icon(
+                            Icons.Default.Message,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("Chat ngay", style = MaterialTheme.typography.bodySmall)
+                    }
+
+                    Button(
+                        onClick = {
+                            val price = item.rentalPricePerHour?.toPlainString() ?: "0"
+                            onClickRent(price)
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(d.buttonHeight),
+                        shape = MaterialTheme.shapes.medium,
+                        enabled = item.rentalPricePerHour != null
+                    ) {
+                        Text("Thuê ngay", style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
         }
