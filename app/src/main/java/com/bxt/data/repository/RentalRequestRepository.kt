@@ -10,7 +10,7 @@ interface RentalRequestRepository {
     suspend fun createRentalRequest(request: RentalRequestRequest): ApiResult<RentalRequestResponse>
     suspend fun updateRentalRequest(id: Long, request: RentalRequestRequest): ApiResult<RentalRequestResponse>
     suspend fun deleteRentalRequest(id: Long): ApiResult<Unit>
-    suspend fun getRentalRequestsByRenter(): ApiResult<PagedResponse<RentalRequestResponse>>
-    suspend fun getRentalRequestsByOwner(): ApiResult<PagedResponse<RentalRequestResponse>>
+    suspend fun getRentalRequestsByRenter(page: Int): ApiResult<PagedResponse<RentalRequestResponse>>
+    suspend fun getRentalRequestsByOwner(page: Int): ApiResult<PagedResponse<RentalRequestResponse>>
     suspend fun updateRequestStatus(requestId: Long, newStatus: String): ApiResult<RentalRequestResponse>
 }

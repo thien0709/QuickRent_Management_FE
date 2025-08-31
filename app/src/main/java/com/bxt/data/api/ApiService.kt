@@ -117,10 +117,10 @@ interface ApiService {
     suspend fun createRentalRequest(@Body request: RentalRequestRequest): RentalRequestResponse
 
     @GET("rental-requests/owner")
-    suspend fun getRentalRequestsByOwner(): PagedResponse<RentalRequestResponse>
+    suspend fun getRentalRequestsByOwner(@Query("page") page: Int): PagedResponse<RentalRequestResponse>
 
     @GET("rental-requests/renter")
-    suspend fun getRentalRequestsByRenter(): PagedResponse<RentalRequestResponse>
+    suspend fun getRentalRequestsByRenter(@Query("page") page: Int): PagedResponse<RentalRequestResponse>
 
     @PATCH("rental-requests/{id}")
     suspend fun updateRentalRequest(

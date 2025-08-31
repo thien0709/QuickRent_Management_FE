@@ -1,5 +1,3 @@
-// bxt/viewmodel/RentalServiceViewModel.kt
-
 package com.bxt.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -11,12 +9,10 @@ import com.bxt.data.repository.LocationRepository
 import com.bxt.data.repository.RentalRequestRepository
 import com.bxt.di.ApiResult
 import com.bxt.di.ErrorResponse
+import com.bxt.di.ErrorType
 import com.bxt.ui.state.RentalRequestsState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -25,7 +21,6 @@ class RentalServiceViewModel @Inject constructor(
     private val rentalRepo: RentalRequestRepository,
     private val itemRepo: ItemRepository,
     private val locationRepo: LocationRepository,
-    // Sẽ thêm repository cho transaction image ở bước sau
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<RentalRequestsState>(RentalRequestsState.Loading)
@@ -43,18 +38,106 @@ class RentalServiceViewModel @Inject constructor(
     private val _addresses = MutableStateFlow<Map<Long, String>>(emptyMap())
     val addresses: StateFlow<Map<Long, String>> = _addresses.asStateFlow()
 
-    fun loadByRenter() = loadData { rentalRepo.getRentalRequestsByRenter() }
-    fun loadByOwner() = loadData { rentalRepo.getRentalRequestsByOwner() }
+    private var currentPage = 0
+    private var endReached = false
+    private var currentMode: LoadMode? = null
 
-    private fun loadData(loader: suspend () -> ApiResult<PagedResponse<RentalRequestResponse>>) = viewModelScope.launch {
-        _state.value = RentalRequestsState.Loading
-        when (val res = loader()) {
-            is ApiResult.Success -> {
-                val data = res.data.content
-                _state.value = RentalRequestsState.Success(data)
-                loadAdditionalData(data)
+    private enum class LoadMode { OWNER, RENTER }
+
+    // Thêm khối init để khởi tạo việc tải dữ liệu khi ViewModel được tạo
+    init {
+        initialLoad()
+    }
+
+    fun loadByRenter() {
+        if (currentMode == LoadMode.RENTER) return // Tránh tải lại khi đã ở chế độ này
+        currentMode = LoadMode.RENTER
+        initialLoad()
+    }
+
+    fun loadByOwner() {
+        if (currentMode == LoadMode.OWNER) return // Tránh tải lại khi đã ở chế độ này
+        currentMode = LoadMode.OWNER
+        initialLoad()
+    }
+
+    private fun initialLoad() {
+        viewModelScope.launch {
+            _state.value = RentalRequestsState.Loading
+            currentPage = 0
+            endReached = false
+            fetchRequests(isInitialLoad = true)
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            // Loại bỏ kiểm tra `currentMode == null` vì nó đã được thiết lập trong `init`
+            _state.value = RentalRequestsState.Loading
+            currentPage = 0
+            endReached = false
+            fetchRequests(isInitialLoad = true)
+        }
+    }
+
+    fun loadNextPage() {
+        // Kiểm tra isLoadingMore để tránh gọi API nhiều lần
+        val currentState = _state.value
+        if (endReached || (currentState is RentalRequestsState.Success && currentState.isLoadingMore)) {
+            return
+        }
+
+        viewModelScope.launch {
+            fetchRequests(isInitialLoad = false)
+        }
+    }
+
+    private suspend fun fetchRequests(isInitialLoad: Boolean) {
+        if (!isInitialLoad) {
+            (_state.value as? RentalRequestsState.Success)?.let {
+                _state.value = it.copy(isLoadingMore = true)
             }
-            is ApiResult.Error -> _state.value = RentalRequestsState.Error(res.error)
+        }
+
+        val loader: suspend () -> ApiResult<PagedResponse<RentalRequestResponse>> = {
+            when (currentMode) {
+                LoadMode.OWNER -> rentalRepo.getRentalRequestsByOwner(currentPage)
+                LoadMode.RENTER -> rentalRepo.getRentalRequestsByRenter(currentPage)
+                null -> ApiResult.Error(ErrorResponse("Chế độ tải không được thiết lập.", false, ErrorType.BAD_REQUEST))
+            }
+        }
+
+        when (val result = loader()) {
+            is ApiResult.Success -> {
+                val pagedData = result.data
+                val newItems = pagedData.content
+                endReached = pagedData.last
+
+                val currentItems = if (isInitialLoad) emptyList() else (_state.value as? RentalRequestsState.Success)?.data ?: emptyList()
+                val mergedItems = currentItems + newItems
+
+                _state.value = RentalRequestsState.Success(
+                    data = mergedItems,
+                    isLoadingMore = false,
+                    canLoadMore = !endReached
+                )
+
+                if (!endReached) {
+                    currentPage++
+                }
+
+                loadAdditionalData(newItems)
+            }
+            is ApiResult.Error -> {
+                if (isInitialLoad) {
+                    _state.value = RentalRequestsState.Error(result.error)
+                } else {
+                    _errorEvent.value = "Lỗi khi tải thêm: ${result.error.message}"
+                    (_state.value as? RentalRequestsState.Success)?.let {
+                        _state.value = it.copy(isLoadingMore = false)
+                    }
+                }
+            }
         }
     }
 
@@ -71,29 +154,16 @@ class RentalServiceViewModel @Inject constructor(
         _isUpdatingStatus.value = requestId
 
         when (val result = rentalRepo.updateRequestStatus(requestId, newStatus)) {
-            is ApiResult.Success -> {
-                onDone()
-            }
-            is ApiResult.Error -> {
-                _errorEvent.value = result.error.message
-            }
+            is ApiResult.Success -> onDone()
+            is ApiResult.Error -> _errorEvent.value = result.error.message
         }
         _isUpdatingStatus.value = null
     }
 
     private fun loadAdditionalData(requests: List<RentalRequestResponse>) {
         requests.forEach { req ->
-            req.itemId?.let { id ->
-                if (!_thumbs.value.containsKey(id)) {
-                    loadThumb(id)
-                }
-            }
-            req.id?.let { id ->
-                if (!_addresses.value.containsKey(id)) {
-                    resolveAddress(req)
-                }
-            }
-            // TODO: Ở bước tiếp theo, chúng ta sẽ thêm logic để tải ảnh giao dịch tại đây
+            req.itemId?.let { id -> if (!_thumbs.value.containsKey(id)) loadThumb(id) }
+            req.id?.let { id -> if (!_addresses.value.containsKey(id)) resolveAddress(req) }
         }
     }
 

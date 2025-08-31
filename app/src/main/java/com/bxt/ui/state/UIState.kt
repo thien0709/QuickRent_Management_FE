@@ -92,10 +92,16 @@ sealed interface RentalState {
     data class Error(val message: String) : RentalState
 }
 
+
 sealed interface RentalRequestsState {
-    data object Loading : RentalRequestsState
-    data class Success(val data: List<RentalRequestResponse>) : RentalRequestsState
-    data class Error(val message: ErrorResponse) : RentalRequestsState
+    data object Loading : RentalRequestsState // Giữ nguyên
+    data class Error(val message: ErrorResponse) : RentalRequestsState // Giữ nguyên
+
+    data class Success(
+        val data: List<RentalRequestResponse> = emptyList(),
+        val isLoadingMore: Boolean = false, // Cờ báo đang tải trang tiếp theo
+        val canLoadMore: Boolean = true     // Cờ báo còn trang để tải hay không
+    ) : RentalRequestsState
 }
 
 sealed interface TransportServiceListState {

@@ -38,15 +38,15 @@ class RentalRequestRepositoryImpl(
         TODO("Not yet implemented")
     }
 
-    override suspend fun getRentalRequestsByRenter(): ApiResult<PagedResponse<RentalRequestResponse>> {
+    override suspend fun getRentalRequestsByRenter(page: Int): ApiResult<PagedResponse<RentalRequestResponse>> {
         return apiCallExecutor.execute {
-            apiService.getRentalRequestsByRenter()
+            apiService.getRentalRequestsByRenter(page = page)
         }
     }
 
-    override suspend fun getRentalRequestsByOwner(): ApiResult<PagedResponse<RentalRequestResponse>> {
+    override suspend fun getRentalRequestsByOwner(page: Int): ApiResult<PagedResponse<RentalRequestResponse>> {
         return apiCallExecutor.execute {
-            apiService.getRentalRequestsByOwner()
+            apiService.getRentalRequestsByOwner(page = page)
         }
     }
 
