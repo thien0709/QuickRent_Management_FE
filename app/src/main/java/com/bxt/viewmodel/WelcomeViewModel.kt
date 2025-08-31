@@ -32,20 +32,20 @@ class WelcomeViewModel @Inject constructor(
 
     private val onboardingPages = listOf(
         OnboardingPage(
-            title = "Chào mừng đến với BXT App",
-            description = "Ứng dụng giúp bạn quản lý công việc một cách hiệu quả và dễ dàng"
+            title = "Welcome to BXT App",
+            description = "An app that helps you manage your work efficiently and effortlessly."
         ),
         OnboardingPage(
-            title = "Quản lý dễ dàng",
-            description = "Theo dõi tiến độ công việc, đặt mục tiêu và hoàn thành nhiệm vụ một cách khoa học"
+            title = "Effortless Management",
+            description = "Track progress, set goals, and complete tasks in a smart, organized way."
         ),
         OnboardingPage(
-            title = "Đồng bộ mọi lúc",
-            description = "Dữ liệu của bạn được đồng bộ và bảo mật trên tất cả thiết bị"
+            title = "Sync Everywhere",
+            description = "Your data stays synced and secure across all your devices."
         ),
         OnboardingPage(
-            title = "Bắt đầu ngay",
-            description = "Hãy tạo tài khoản hoặc đăng nhập để bắt đầu trải nghiệm"
+            title = "Get Started",
+            description = "Create an account or sign in to begin your experience."
         )
     )
 

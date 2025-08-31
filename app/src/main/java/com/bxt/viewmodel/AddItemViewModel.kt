@@ -11,6 +11,7 @@ import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.di.ApiResult
 import com.bxt.ui.state.AddItemState
+import com.bxt.ui.state.CategoriesUiState
 import com.bxt.util.FileUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -22,12 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MultipartBody
 
-// UI state cho danh mục
-sealed interface CategoriesUiState {
-    data object Loading : CategoriesUiState
-    data class Success(val categories: List<CategoryResponse>) : CategoriesUiState
-    data class Error(val message: String) : CategoriesUiState
-}
+
 
 @HiltViewModel
 class AddItemViewModel @Inject constructor(

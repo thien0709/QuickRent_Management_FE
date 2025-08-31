@@ -7,6 +7,7 @@ import com.bxt.data.api.dto.request.RentalRequestRequest
 import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.RentalRequestRepository
 import com.bxt.di.ApiResult
+import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.state.RentalState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -37,7 +38,8 @@ class RentalItemViewModel @Inject constructor(
         totalPrice: BigDecimal,
         address: String,
         latTo : BigDecimal,
-        lngTo : BigDecimal
+        lngTo : BigDecimal,
+        paymentMethod : String
     ) {
         val renterId = userId.value
         if (renterId == null) {
@@ -59,14 +61,21 @@ class RentalItemViewModel @Inject constructor(
                 rentalEndTime = endAt,
                 totalPrice = totalPrice,
                 latTo = latTo,
-                lngTo = lngTo
+                lngTo = lngTo,
+                paymentMethod = paymentMethod
             )
             when (val result = rentalRepository.createRentalRequest(request)) {
                 is ApiResult.Success -> {
                     _rentalState.value = RentalState.Success(result.data.id)
                 }
                 is ApiResult.Error -> {
-                    _rentalState.value = RentalState.Error(result.error.message ?: "Tạo yêu cầu thất bại")
+                    val err = result.error
+                    ErrorPopupManager.showError(
+                        message = err.message,
+                        canRetry = err.canRetry,
+                        onRetry = if (err.canRetry) { {  } } else null
+                    )
+                    _rentalState.value = RentalState.Error(err.message)
                 }
             }
         }

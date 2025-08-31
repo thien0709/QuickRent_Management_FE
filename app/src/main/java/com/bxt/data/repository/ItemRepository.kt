@@ -1,6 +1,7 @@
 package com.bxt.data.repository
 
 import com.bxt.data.api.dto.request.ItemRequest
+import com.bxt.data.api.dto.response.ItemDetail
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.PagedResponse
 import com.bxt.di.ApiResult
@@ -15,12 +16,36 @@ interface ItemRepository {
         imageParts: List<MultipartBody.Part>
     ): ApiResult<ItemResponse>
 
-    suspend fun getAvailableItem(): ApiResult<PagedResponse<ItemResponse>>
-    suspend fun getItemsByCategory(
-        categoryId: Long,
-    ): ApiResult<PagedResponse<ItemResponse>>
 
-    suspend fun getItemDetail(
+    suspend fun getItemInfo(itemId: Long): ApiResult<ItemResponse>
+    suspend fun getItemImages(itemId: Long): ApiResult<List<String>>
+
+
+
+    suspend fun getAvailableItem(): ApiResult<PagedResponse<ItemResponse>>
+    suspend fun getAvailableItem(page: Int): ApiResult<PagedResponse<ItemResponse>>
+
+
+    suspend fun getItemsByUser(): ApiResult<PagedResponse<ItemResponse>>
+    suspend fun getItemsByUser(page: Int): ApiResult<PagedResponse<ItemResponse>>
+
+    suspend fun getItemsByCategory(categoryId: Long): ApiResult<PagedResponse<ItemResponse>>
+    suspend fun getItemsByCategory(categoryId: Long, page: Int): ApiResult<PagedResponse<ItemResponse>>
+
+    suspend fun searchItems(query: String, page: Int = 0): ApiResult<PagedResponse<ItemResponse>>
+
+
+
+
+    suspend fun updateItem(
         itemId: Long,
+        reqPart: ItemRequest,
+        imageParts: List<MultipartBody.Part>
     ): ApiResult<ItemResponse>
+
+    suspend fun deleteItem(
+        itemId: Long,
+    ): ApiResult<Unit>
+
+
 }

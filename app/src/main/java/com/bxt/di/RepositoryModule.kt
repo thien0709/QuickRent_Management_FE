@@ -6,6 +6,7 @@ import com.bxt.data.api.ApiService
 import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.AuthRepository
 import com.bxt.data.repository.CategoryRepository
+import com.bxt.data.repository.ChatRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
 import com.bxt.data.repository.RentalRequestRepository
@@ -76,5 +77,29 @@ object RepositoryModule {
         apiCallExecutor: ApiCallExecutor
     ): RentalRequestRepository {
         return RentalRequestRepositoryImpl(apiService, apiCallExecutor)
+    }
+
+    @Singleton
+    @Provides
+    fun provideTransportServiceRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): com.bxt.data.repository.TransportServiceRepository {
+        return TransportServiceRepositoryImpl(apiService, apiCallExecutor)
+    }
+
+    @Singleton
+    @Provides
+    fun provideChatRepository(): ChatRepository {
+        return ChatRepositoryImpl()
+    }
+
+    @Singleton
+    @Provides
+    fun provideRentalTransactionRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): com.bxt.data.repository.RentalTransactionRepository {
+        return RentalTransactionRepositoryImpl(apiService, apiCallExecutor)
     }
 }

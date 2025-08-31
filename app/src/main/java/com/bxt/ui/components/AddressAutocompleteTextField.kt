@@ -1,78 +1,73 @@
+// file: com/bxt/ui/components/AddressAutocompleteTextField.kt
 package com.bxt.ui.components
 
-import android.content.Context
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import com.google.android.libraries.places.api.Places
-import com.google.android.libraries.places.api.model.AutocompletePrediction
-import com.google.android.libraries.places.api.model.AutocompleteSessionToken
-import com.google.android.libraries.places.api.model.Place
-import com.google.android.libraries.places.api.net.FetchPlaceRequest
-import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
+import com.bxt.viewmodel.PredictionItem
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddressAutocompleteTextField(
-    modifier: Modifier = Modifier,
-    context: Context,
-    value: String,
-    onValueChange: (String) -> Unit,
-    onPlaceSelected: (Place) -> Unit,
-    label: @Composable (() -> Unit)? = { Text("Địa chỉ nhận hàng") }
+    label: String,
+    text: String,
+    isLoading: Boolean,
+    suggestions: List<PredictionItem>,
+    onTextChange: (String) -> Unit,
+    onSelect: (PredictionItem) -> Unit
 ) {
-    val placesClient = remember { Places.createClient(context) }
-    var predictions by remember { mutableStateOf<List<AutocompletePrediction>>(emptyList()) }
+    var internal by remember { mutableStateOf(TextFieldValue(text)) }
     var expanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier
-    ) {
+    // đồng bộ khi ViewModel update text
+    LaunchedEffect(text) {
+        if (text != internal.text) internal = internal.copy(text = text)
+    }
+
+    // debounce 250ms
+    LaunchedEffect(internal.text) {
+        val q = internal.text
+        delay(250)
+        onTextChange(q)
+        expanded = q.length >= 3
+    }
+
+    Box {
         OutlinedTextField(
-            modifier = Modifier.menuAnchor(),
-            value = value,
+            value = internal,
             onValueChange = {
-                onValueChange(it)
-                expanded = it.isNotEmpty()
-                if (it.isNotEmpty()) {
-                    scope.launch {
-                        val token = AutocompleteSessionToken.newInstance()
-                        val request = FindAutocompletePredictionsRequest.builder()
-                            .setSessionToken(token)
-                            .setQuery(it)
-                            .setCountries("VN") // Giới hạn tìm kiếm ở Việt Nam
-                            .build()
-                        placesClient.findAutocompletePredictions(request).addOnSuccessListener { response ->
-                            predictions = response.autocompletePredictions
-                        }
-                    }
-                } else {
-                    predictions = emptyList()
-                }
+                internal = it
             },
-            label = label
+            label = { Text(label) },
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                if (isLoading) CircularProgressIndicator(modifier = Modifier.heightIn(20.dp), strokeWidth = 2.dp)
+            }
         )
 
-        if (predictions.isNotEmpty()) {
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                predictions.forEach { prediction ->
+        DropdownMenu(
+            expanded = expanded && suggestions.isNotEmpty(),
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 260.dp)
+        ) {
+            LazyColumn {
+                items(suggestions) { item ->
                     DropdownMenuItem(
-                        text = { Text(prediction.getFullText(null).toString()) },
+                        text = { Text("${item.primary} — ${item.secondary}") },
                         onClick = {
-                            onValueChange(prediction.getFullText(null).toString())
                             expanded = false
-                            val placeFields = listOf(Place.Field.ID, Place.Field.LAT_LNG, Place.Field.ADDRESS)
-                            val request = FetchPlaceRequest.newInstance(prediction.placeId, placeFields)
-                            placesClient.fetchPlace(request).addOnSuccessListener { response ->
-                                onPlaceSelected(response.place)
-                            }
+                            onSelect(item)
                         }
                     )
                 }

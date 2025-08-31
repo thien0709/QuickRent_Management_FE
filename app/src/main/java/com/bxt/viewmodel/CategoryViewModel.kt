@@ -76,4 +76,8 @@ class CategoryViewModel @Inject constructor(
         }
     }
 
+    fun loadCategoryData(categoryId: Long) {
+
+    }
+
 }

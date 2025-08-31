@@ -1,19 +1,22 @@
 package com.bxt.data.api
 
+import android.graphics.pdf.PdfDocument.Page
 import com.bxt.data.api.dto.request.ItemRequest
 import com.bxt.data.api.dto.request.LoginRequest
 import com.bxt.data.api.dto.request.RefreshTokenRequest
 import com.bxt.data.api.dto.request.RegisterRequest
 import com.bxt.data.api.dto.request.RentalRequestRequest
+import com.bxt.data.api.dto.request.TransportServiceRequest
 import com.bxt.data.api.dto.request.UpdateUserRequest
 import com.bxt.data.api.dto.response.*
+import com.bxt.di.ApiResult
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.*
 
 interface ApiService {
 
-    // === Authentication ===
-    // Các endpoint này là public, không cần token
+    // User Authentication
     @POST("login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 
@@ -29,6 +32,9 @@ interface ApiService {
 
     @POST("logout")
     suspend fun logout()
+
+    @GET("users/{id}")
+    suspend fun getUserNameById(@Path("id") id: Long): UserResponse
 
     @GET("users/profile")
     suspend fun getUserInfo(): UserResponse
@@ -47,7 +53,6 @@ interface ApiService {
         @Field("newPassword") newPassword: String
     ): UserResponse
 
-    // Sửa lại: Xóa Path("id")
     @Multipart
     @PATCH("users/avatar")
     suspend fun updateUserAvatar(
@@ -62,13 +67,14 @@ interface ApiService {
         @Body location: Map<String, Double>
     ): Unit
 
+    // Category
     @GET("categories")
     suspend fun getCategories(): List<CategoryResponse>
 
     @GET("categories/{id}")
     suspend fun getCategoryById(@Path("id") id: Long): CategoryResponse
 
-    // === Item ===
+    // Items
     @GET("items")
     suspend fun getItems(): List<ItemResponse>
 
@@ -80,20 +86,111 @@ interface ApiService {
     ): ItemResponse
 
     @GET("items/available")
-    suspend fun getAvailableItems(): PagedResponse<ItemResponse>
+    suspend fun getAvailableItems(
+        @Query("page") page: Int = 0
+    ): PagedResponse<ItemResponse>
+
+    @GET("items/owner")
+    suspend fun getItemsByUser(
+        @Query("page") page: Int = 0
+    ): PagedResponse<ItemResponse>
 
     @GET("items/categories/{categoryId}")
     suspend fun getItemsByCategory(
-        @Path("categoryId") categoryId: Long
-    ): PagedResponse<ItemResponse> // Có thể là public
+        @Path("categoryId") categoryId: Long,
+        @Query("page") page: Int = 0
+    ): PagedResponse<ItemResponse>
+
+
+    @POST("items/search")
+    suspend fun searchItems(@Body request: ItemRequest, @Query("page") page: Int): PagedResponse<ItemResponse>
+
 
     @GET("items/{id}")
-    suspend fun getItemDetail(@Path("id") id: Long): ItemResponse // Có thể là public
+    suspend fun getItemDetail(@Path("id") id: Long): ItemResponse
 
     @GET("items/{id}/images")
-    suspend fun getItemImages(@Path("id") id: Long): List<String> // Có thể là public
+    suspend fun getItemImages(@Path("id") id: Long): List<String>
 
-    // === Rental Request (Cần token) ===
+    // Rental Services
     @POST("rental-requests")
     suspend fun createRentalRequest(@Body request: RentalRequestRequest): RentalRequestResponse
+
+    @GET("rental-requests/owner")
+    suspend fun getRentalRequestsByOwner(@Query("page") page: Int): PagedResponse<RentalRequestResponse>
+
+    @GET("rental-requests/renter")
+    suspend fun getRentalRequestsByRenter(@Query("page") page: Int): PagedResponse<RentalRequestResponse>
+
+    @PATCH("rental-requests/{id}")
+    suspend fun updateRentalRequest(
+        @Path("id") id: Long,
+        @Body request: RentalRequestRequest
+    ): RentalRequestResponse
+
+
+    @PATCH("rental-requests/{id}/status")
+    suspend fun updateRequestStatus(
+        @Path("id") requestId: Long,
+        @Query("status") newStatus: String
+    ): RentalRequestResponse
+
+    @GET("rental-requests/{id}")
+    suspend fun getRentalRequestById(@Path("id") id: Long): RentalRequestResponse
+
+    // Transport Services
+    @GET("transport-services")
+    suspend fun getTransportServices(): List<TransportServiceResponse>
+
+    @GET("transport-services/owner")
+    suspend fun getTransportServicesByOwner(): List<TransportServiceResponse>
+
+    @GET("transport-services/renter")
+    suspend fun getTransportServicesByRenter(): List<TransportServiceResponse>
+
+    @GET("transport-services/{id}")
+    suspend fun getTransportServiceById(@Path("id") id: Long): TransportServiceResponse
+
+    @POST("transport-services")
+    suspend fun createTransportService(@Body request: TransportServiceRequest): TransportServiceResponse
+
+    @PATCH("transport-services/{id}")
+    suspend fun updateTransportService(
+        @Path("id") id: Long,
+        @Body request: TransportServiceRequest
+    ): TransportServiceResponse
+
+    @DELETE("transport-services/{id}")
+    suspend fun deleteTransportService(id: Long)
+
+    @PATCH("transport-services/{id}/status")
+    suspend fun updateServiceStatus(
+        @Path("id") serviceId: Long,
+        @Body newStatus: String
+    ): TransportServiceResponse
+
+    // Rental Transactions
+    @GET("rental-transactions/{transactionId}/images")
+    suspend fun getTransactionImages(
+        @Path("transactionId") transactionId: Long
+    ): List<TransactionImageResponse>
+
+    @PATCH("rental-transactions/{transactionId}/confirm-pickup")
+    suspend fun confirmPickup(
+        @Path("transactionId") transactionId: Long,
+        @Query("status") newStatus: String
+    ): RentalTransactionResponse
+
+    @GET("rental-transactions/by-request/{requestId}")
+    suspend fun getRentalTransactionByRequestId(@Path("requestId") requestId: Long): RentalTransactionResponse
+
+    @Multipart
+    @POST("rental-transactions/{transactionId}/images")
+    suspend fun uploadTransactionImages(
+        @Path("transactionId") transactionId: Long,
+        @Part("imageType") imageType: RequestBody,
+        @Part images: List<MultipartBody.Part>
+    ): List<TransactionImageResponse>
+
+
 }
