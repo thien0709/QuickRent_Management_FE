@@ -11,6 +11,7 @@ import com.bxt.data.api.dto.request.UpdateUserRequest
 import com.bxt.data.api.dto.response.*
 import com.bxt.di.ApiResult
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.*
 
 interface ApiService {
@@ -101,11 +102,9 @@ interface ApiService {
     ): PagedResponse<ItemResponse>
 
 
-    @POST("api/items/search")
-    suspend fun searchItems(
-        @Body request: ItemRequest,
-        @Query("page") page: Int
-    ): PagedResponse<ItemResponse>
+    @POST("items/search")
+    suspend fun searchItems(@Body request: ItemRequest, @Query("page") page: Int): PagedResponse<ItemResponse>
+
 
     @GET("items/{id}")
     suspend fun getItemDetail(@Path("id") id: Long): ItemResponse
@@ -123,14 +122,21 @@ interface ApiService {
     @GET("rental-requests/renter")
     suspend fun getRentalRequestsByRenter(): PagedResponse<RentalRequestResponse>
 
-    @GET("rental-requests/{id}")
-    suspend fun updateRentalRequest(id: String, request: RentalRequestRequest) : RentalRequestResponse
+    @PATCH("rental-requests/{id}")
+    suspend fun updateRentalRequest(
+        @Path("id") id: Long,
+        @Body request: RentalRequestRequest
+    ): RentalRequestResponse
+
 
     @PATCH("rental-requests/{id}/status")
     suspend fun updateRequestStatus(
         @Path("id") requestId: Long,
         @Query("status") newStatus: String
     ): RentalRequestResponse
+
+    @GET("rental-requests/{id}")
+    suspend fun getRentalRequestById(@Path("id") id: Long): RentalRequestResponse
 
     // Transport Services
     @GET("transport-services")
@@ -162,5 +168,29 @@ interface ApiService {
         @Path("id") serviceId: Long,
         @Body newStatus: String
     ): TransportServiceResponse
+
+    // Rental Transactions
+    @GET("rental-transactions/{transactionId}/images")
+    suspend fun getTransactionImages(
+        @Path("transactionId") transactionId: Long
+    ): List<TransactionImageResponse>
+
+    @PATCH("rental-transactions/{transactionId}/confirm-pickup")
+    suspend fun confirmPickup(
+        @Path("transactionId") transactionId: Long,
+        @Query("status") newStatus: String
+    ): RentalTransactionResponse
+
+    @GET("rental-transactions/by-request/{requestId}")
+    suspend fun getRentalTransactionByRequestId(@Path("requestId") requestId: Long): RentalTransactionResponse
+
+    @Multipart
+    @POST("rental-transactions/{transactionId}/images")
+    suspend fun uploadTransactionImages(
+        @Path("transactionId") transactionId: Long,
+        @Part("imageType") imageType: RequestBody,
+        @Part images: List<MultipartBody.Part>
+    ): List<TransactionImageResponse>
+
 
 }

@@ -13,14 +13,10 @@ class RentalRequestRepositoryImpl(
     private val apiCallExecutor: ApiCallExecutor
 ) : RentalRequestRepository {
 
-
-    // Other methods can be added as needed
-    override suspend fun getRentalRequests(): ApiResult<PagedResponse<RentalRequestResponse>> {
-        TODO("Not yet implemented")
-    }
-
-    override suspend fun getRentalRequestById(id: String): ApiResult<RentalRequestResponse> {
-        TODO("Not yet implemented")
+    override suspend fun getRentalRequestById(id: Long): ApiResult<RentalRequestResponse> {
+        return apiCallExecutor.execute {
+            apiService.getRentalRequestById(id)
+        }
     }
 
     override suspend fun createRentalRequest(request: RentalRequestRequest): ApiResult<RentalRequestResponse> {
@@ -30,7 +26,7 @@ class RentalRequestRepositoryImpl(
     }
 
     override suspend fun updateRentalRequest(
-        id: String,
+        id: Long,
         request: RentalRequestRequest
     ): ApiResult<RentalRequestResponse> {
         return apiCallExecutor.execute {
@@ -38,7 +34,7 @@ class RentalRequestRepositoryImpl(
         }
     }
 
-    override suspend fun deleteRentalRequest(id: String): ApiResult<Unit> {
+    override suspend fun deleteRentalRequest(id: Long): ApiResult<Unit> {
         TODO("Not yet implemented")
     }
 

@@ -5,11 +5,13 @@ import com.bxt.data.api.dto.response.ItemDetail
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.api.dto.response.RentalRequestResponse
+import com.bxt.data.api.dto.response.RentalTransactionResponse
 import com.bxt.data.api.dto.response.TransportServiceResponse
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
 import com.bxt.di.ErrorResponse
 import com.bxt.viewmodel.ChatThreadUi
+import com.bxt.viewmodel.FullTransactionDetails
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.AutocompletePrediction
 
@@ -126,4 +128,10 @@ sealed interface ChatListUiState {
     data object Loading : ChatListUiState
     data class Success(val threads: List<ChatThreadUi>) : ChatListUiState
     data class Error(val message: String) : ChatListUiState
+}
+
+sealed interface TransactionDetailState {
+    object Loading : TransactionDetailState
+    data class Success(val details: FullTransactionDetails) : TransactionDetailState
+    data class Error(val message: String) : TransactionDetailState
 }

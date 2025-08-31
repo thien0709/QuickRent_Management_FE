@@ -1,3 +1,5 @@
+// bxt/viewmodel/RentalServiceViewModel.kt
+
 package com.bxt.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -23,6 +25,7 @@ class RentalServiceViewModel @Inject constructor(
     private val rentalRepo: RentalRequestRepository,
     private val itemRepo: ItemRepository,
     private val locationRepo: LocationRepository,
+    // Sẽ thêm repository cho transaction image ở bước sau
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<RentalRequestsState>(RentalRequestsState.Loading)
@@ -90,6 +93,7 @@ class RentalServiceViewModel @Inject constructor(
                     resolveAddress(req)
                 }
             }
+            // TODO: Ở bước tiếp theo, chúng ta sẽ thêm logic để tải ảnh giao dịch tại đây
         }
     }
 

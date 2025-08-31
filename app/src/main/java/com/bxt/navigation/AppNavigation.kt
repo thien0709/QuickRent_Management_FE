@@ -26,6 +26,7 @@ import com.bxt.ui.components.BottomNavigationBar
 import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.screen.*
 import com.bxt.viewmodel.RentalServiceViewModel
+import com.bxt.viewmodel.TransactionDetailViewModel
 import com.bxt.viewmodel.TransportServiceViewModel
 import com.bxt.viewmodel.WelcomeViewModel
 import com.google.gson.Gson
@@ -253,6 +254,27 @@ fun AppNavigation() {
                 ) { backStackEntry ->
                     ChatScreen(navController = navController)
                 }
+                composable("rental_service") {
+                    RentalServiceScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onRentalClick = { id ->
+                            navController.navigate("transaction_detail/$id")
+                        }
+                    )
+                }
+
+                composable(
+                    route = "transaction_detail/{rentalRequestId}",
+                    arguments = listOf(navArgument("rentalRequestId") { type = NavType.LongType })
+                ) { backStackEntry ->
+                    val vm: TransactionDetailViewModel = hiltViewModel(backStackEntry)
+                    TransactionDetailScreen(
+                        viewModel = vm,
+                        onBackClick = { navController.popBackStack() },
+                        onUploadSuccess = { navController.popBackStack() }
+                    )
+                }
+
             }
             ErrorPopupManager.ErrorPopup()
         }

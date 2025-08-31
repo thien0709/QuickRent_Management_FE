@@ -1,3 +1,5 @@
+// bxt/ui/components/RentalRequestCard.kt
+
 package com.bxt.ui.components
 
 import androidx.compose.foundation.background
@@ -8,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -24,12 +25,11 @@ fun RentalRequestCard(
     isOwnerMode: Boolean,
     thumbnailUrl: String?,
     address: String?,
-    isUpdating: Boolean, // Thêm tham số này để nhận trạng thái loading
+    isUpdating: Boolean,
     onView: () -> Unit,
     onChangeStatus: (String) -> Unit
 ) {
     ElevatedCard {
-        // Box được dùng để có thể đặt lớp phủ loading lên trên
         Box {
             Row(
                 modifier = Modifier.padding(12.dp),
@@ -55,7 +55,6 @@ fun RentalRequestCard(
                         AssistChip(onClick = {}, label = { Text(data.status ?: "UNKNOWN") })
                     }
 
-                    // Sử dụng hàm format để ngày tháng dễ đọc hơn
                     Text("Bắt đầu: ${formatInstant(data.rentalStartTime)}", style = MaterialTheme.typography.bodySmall)
                     Text("Kết thúc: ${formatInstant(data.rentalEndTime)}", style = MaterialTheme.typography.bodySmall)
                     Text("Đến: ${address ?: "Đang tải..."}", style = MaterialTheme.typography.bodySmall)
@@ -66,36 +65,29 @@ fun RentalRequestCard(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
                             onClick = onView,
-                            // Vô hiệu hóa nút khi đang cập nhật
                             enabled = !isUpdating
                         ) {
-                            Text("Xem")
+                            Text("Xem chi tiết")
                         }
 
-                        var open by remember { mutableStateOf(false) }
-                        val nextStatuses = remember(data.status, isOwnerMode) {
-                            nextStatusesFor(data.status, isOwnerMode)
-                        }
-
-                        // Chỉ hiển thị nút "Đổi trạng thái" nếu có trạng thái tiếp theo để chọn
-                        if (nextStatuses.isNotEmpty()) {
-                            Box {
-                                Button(
-                                    onClick = { open = true },
-                                    // Vô hiệu hóa nút khi đang cập nhật
-                                    enabled = !isUpdating
-                                ) {
-                                    Text("Đổi trạng thái")
+                        val currentStatus = data.status?.uppercase()
+                        if (isOwnerMode) {
+                            when (currentStatus) {
+                                "PENDING" -> {
+                                    Button(onClick = { onChangeStatus("CONFIRMED") }, enabled = !isUpdating) { Text("Chấp nhận") }
+                                    Button(onClick = { onChangeStatus("REJECTED") }, enabled = !isUpdating, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("Từ chối") }
                                 }
-                                DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-                                    nextStatuses.forEach { st ->
-                                        DropdownMenuItem(
-                                            text = { Text(st) },
-                                            onClick = {
-                                                open = false
-                                                onChangeStatus(st)
-                                            }
-                                        )
+                                "CONFIRMED" -> {
+                                    Button(onClick = { onView() }, enabled = !isUpdating) {
+                                        Text("Chuẩn bị")
+                                    }
+                                }
+                            }
+                        } else {
+                            when (currentStatus) {
+                                "PENDING", "CONFIRMED" -> {
+                                    Button(onClick = { onChangeStatus("CANCELLED") }, enabled = !isUpdating) {
+                                        Text("Hủy yêu cầu")
                                     }
                                 }
                             }
@@ -104,13 +96,12 @@ fun RentalRequestCard(
                 }
             }
 
-            // Lớp phủ loading sẽ hiển thị khi isUpdating là true
             if (isUpdating) {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                        .clip(CardDefaults.shape), // Bo góc theo Card
+                        .clip(CardDefaults.shape),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
@@ -120,25 +111,12 @@ fun RentalRequestCard(
     }
 }
 
-// Giữ nguyên hàm logic này, nhưng sửa lại các trạng thái cho đúng với backend
-private fun nextStatusesFor(current: String?, isOwnerMode: Boolean): List<String> {
-    val c = current?.uppercase().orEmpty()
-    return when {
-        c == "PENDING" && isOwnerMode -> listOf("CONFIRMED", "REJECTED")
-        c == "CONFIRMED" && isOwnerMode -> listOf("COMPLETED")
-        c == "PENDING" && !isOwnerMode -> listOf("CANCELLED")
-        c == "CONFIRMED" && !isOwnerMode -> listOf("CANCELLED")
-        else -> emptyList()
-    }
-}
-
-// Hàm tiện ích để format Instant thành chuỗi dd/MM/yyyy HH:mm cho dễ đọc
 private fun formatInstant(instant: Instant?): String {
     if (instant == null) return "-"
     return try {
         val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
             .withLocale(Locale("vi", "VN"))
-            .withZone(ZoneId.systemDefault()) // Dùng múi giờ của thiết bị
+            .withZone(ZoneId.systemDefault())
         formatter.format(instant)
     } catch (e: Exception) {
         "-"

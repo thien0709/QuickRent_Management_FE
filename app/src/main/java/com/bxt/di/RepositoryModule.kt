@@ -93,4 +93,13 @@ object RepositoryModule {
     fun provideChatRepository(): ChatRepository {
         return ChatRepositoryImpl()
     }
+
+    @Singleton
+    @Provides
+    fun provideRentalTransactionRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): com.bxt.data.repository.RentalTransactionRepository {
+        return RentalTransactionRepositoryImpl(apiService, apiCallExecutor)
+    }
 }
