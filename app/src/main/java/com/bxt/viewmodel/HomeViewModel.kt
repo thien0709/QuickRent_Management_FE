@@ -2,9 +2,12 @@ package com.bxt.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ItemRepository
+import com.bxt.data.repository.LocationRepository
+import com.bxt.data.repository.UserRepository
 import com.bxt.di.ApiResult
 import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.state.HomeState
@@ -14,6 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -21,21 +25,24 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val itemRepository: ItemRepository,
-    private val dataStore: DataStoreManager
+    private val dataStore: DataStoreManager,
+    private val userRepository: UserRepository,
+    private val locationRepository: LocationRepository,
+
 ) : ViewModel() {
 
     private val _homeState = MutableStateFlow<HomeState>(HomeState.Loading)
-    // Giữ nguyên cách expose như file cũ để không thay đổi interface phía UI
     val homeState: StateFlow<HomeState> = _homeState
 
-    // Thêm state cho refresh & load-more
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     private val _isLoadingMore = MutableStateFlow(false)
     val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
 
-    // Biến phân trang
+    private val _itemAddresses = MutableStateFlow<Map<Long, String>>(emptyMap())
+    val itemAddresses: StateFlow<Map<Long, String>> = _itemAddresses.asStateFlow()
+
     private var currentPage = 0
     private var endReached = false
 
@@ -54,17 +61,15 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { initialLoad() }
     }
 
-    /** Tải lần đầu: categories + trang 0 items */
     private suspend fun initialLoad() {
         _homeState.value = HomeState.Loading
         fetchCategories()
-        // reset trang
         currentPage = 0
         endReached = false
+        _itemAddresses.value = emptyMap()
         fetchItems(reset = true)
     }
 
-    /** Kéo xuống để làm mới */
     fun refresh() {
         if (_isRefreshing.value) return
         viewModelScope.launch {
@@ -77,7 +82,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Cuộn tới cuối để nạp thêm */
     fun loadNextPage() {
         if (_isLoadingMore.value || endReached) return
         viewModelScope.launch {
@@ -87,7 +91,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Tải danh mục, không làm hỏng danh sách items đang có */
     private suspend fun fetchCategories() {
         when (val categories = categoryRepository.getCategories()) {
             is ApiResult.Success -> {
@@ -108,35 +111,61 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Tải items theo trang. reset=true thì thay thế danh sách, ngược lại nối thêm */
     private suspend fun fetchItems(reset: Boolean) {
-        when (val items = itemRepository.getAvailableItem(page = currentPage)) {
+        when (val itemsResult = itemRepository.getAvailableItem(page = currentPage)) {
             is ApiResult.Success -> {
-                val content = items.data?.content ?: emptyList()
-                if (content.isEmpty()) {
+                val newItems = itemsResult.data?.content ?: emptyList()
+                if (newItems.isEmpty()) {
                     endReached = true
                 }
-                val prev = _homeState.value as? HomeState.Success
-                val merged = if (reset) content else prev?.popularItems.orEmpty() + content
+                val currentState = _homeState.value as? HomeState.Success
+                val allItems = if (reset) newItems else currentState?.popularItems.orEmpty() + newItems
 
                 _homeState.value = HomeState.Success(
-                    categories = prev?.categories
-                        ?: ( _homeState.value as? HomeState.Success )?.categories
-                        ?: emptyList(),
-                    popularItems = merged,
+                    categories = currentState?.categories ?: emptyList(),
+                    popularItems = allItems,
                     currentPage = currentPage,
-                    totalPages = prev?.totalPages ?: 0, // nếu server không trả meta có thể để 0
                     isLastPage = endReached,
-                    totalElements = merged.size.toLong()
+                    totalElements = allItems.size.toLong()
                 )
 
-                if (content.isNotEmpty()) {
-                    currentPage += 1
+                if (newItems.isNotEmpty()) {
+                    currentPage++
+                    loadAddressesForItems(newItems)
                 }
             }
             is ApiResult.Error -> {
-                _homeState.value = HomeState.Error(items.error.message ?: "Lỗi khi tải sản phẩm.")
-                ErrorPopupManager.showError(items.error.message, false)
+                _homeState.value = HomeState.Error(itemsResult.error.message)
+                ErrorPopupManager.showError(itemsResult.error.message, false)
+            }
+        }
+    }
+
+     private fun loadAddressesForItems(items: List<ItemResponse>) {
+        viewModelScope.launch {
+            items.forEach { item ->
+                if (item.id != null && !_itemAddresses.value.containsKey(item.id)) {
+                    item.ownerId?.let { ownerId ->
+                        // 1. Gọi repository để lấy tọa độ (lat, lng)
+                        val locationResult = userRepository.getUserLocation(ownerId)
+                        if (locationResult is ApiResult.Success) {
+                            val locationMap = locationResult.data
+                            val lat = locationMap["lat"]?.toDouble()
+                            val lng = locationMap["lng"]?.toDouble()
+                            if (lat != null && lng != null) {
+                                val addressTextResult = locationRepository.getAddressFromLatLng(lat, lng)
+                                val addressText = addressTextResult.getOrNull() ?: "Không rõ vị trí"
+                                _itemAddresses.update { currentMap ->
+                                    currentMap + (item.id to addressText)
+                                }
+                            } else {
+                                _itemAddresses.update { currentMap ->
+                                    currentMap + (item.id to "Chủ sở hữu chưa cập nhật vị trí")
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

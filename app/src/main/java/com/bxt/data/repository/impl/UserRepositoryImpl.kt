@@ -11,6 +11,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
+import java.math.BigDecimal
 import javax.inject.Inject
 
 class UserRepositoryImpl @Inject constructor(
@@ -21,6 +22,12 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun getUserInfo(): ApiResult<UserResponse> {
         return apiCallExecutor.execute { apiService.getUserInfo() }
     }
+
+
+    override suspend fun getUserLocation(id: Long): ApiResult<Map<String, BigDecimal>> {
+        return apiCallExecutor.execute { apiService.getUserLocationById(id) }
+    }
+
 
     override suspend fun updateUserInfo(
         username: String,

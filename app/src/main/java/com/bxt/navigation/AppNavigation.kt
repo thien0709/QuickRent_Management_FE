@@ -164,7 +164,6 @@ fun AppNavigation() {
                     CategoryScreen(
                         categoryId = categoryId,
                         navController = navController,
-                        onBackClick = { navController.navigateUp() },
                         onProductClick = { productId ->
                             navController.navigate("item_detail/$productId")
                         }

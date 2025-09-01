@@ -57,7 +57,7 @@ fun HomeScreen(
 ) {
     val d = LocalDimens.current
     var searchText by remember { mutableStateOf("") }
-
+    val itemAddresses by viewModel.itemAddresses.collectAsState()
     val homeState by viewModel.homeState.collectAsState()
     val isDarkModeEnabled by viewModel.isDarkModeEnabled.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -256,13 +256,18 @@ fun HomeScreen(
             if (success.popularItems.isEmpty()) {
                 item { EmptyLottie(empty, progress) }
             } else {
-                items(success.popularItems /* , key = { it.id } nếu có id */) { it ->
-                    PopularItemCard(item = it, onClick = { onItemClick(it) })
+                items(success.popularItems, key = { it.id ?: it.hashCode() }) { item ->
+                    val address = itemAddresses[item.id]
+                    PopularItemCard(
+                        item = item,
+                        address = address,
+                        onClick = { onItemClick(item) }
+                    )
+
                     Spacer(Modifier.height(d.rowGap))
                 }
             }
 
-            // Footer spinner khi đang tải thêm
             item {
                 if (isLoadingMore) {
                     Row(

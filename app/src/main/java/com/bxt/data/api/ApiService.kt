@@ -13,6 +13,7 @@ import com.bxt.di.ApiResult
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.http.*
+import java.math.BigDecimal
 
 interface ApiService {
 
@@ -45,6 +46,9 @@ interface ApiService {
         @Part("request") request: UpdateUserRequest,
         @Part avatar: MultipartBody.Part?
     ): RegisterResponse
+
+    @GET("users/{id}/location")
+    suspend fun getUserLocationById(@Path("id") id: Long): Map<String, BigDecimal>
 
     @POST("users/change-password")
     @FormUrlEncoded

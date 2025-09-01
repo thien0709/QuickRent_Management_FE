@@ -1,40 +1,50 @@
-// Dán toàn bộ code này vào file CategoryViewModel.kt
-
 package com.bxt.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bxt.data.api.dto.response.CategoryResponse
+import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ItemRepository
+import com.bxt.data.repository.LocationRepository
+import com.bxt.data.repository.UserRepository
 import com.bxt.di.ApiResult
-import com.bxt.ui.state.CategoryState // Import State của bạn
+import com.bxt.ui.state.CategoryState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import javax.inject.Inject
+
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
-    private val itemRepository: ItemRepository
+    private val itemRepository: ItemRepository,
+    // *** THÊM 2 DÒNG NÀY ***
+    private val userRepository: UserRepository,
+    private val locationRepository: LocationRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<CategoryState>(CategoryState.Loading)
     val state: StateFlow<CategoryState> = _state.asStateFlow()
 
+    // *** THÊM STATE MỚI ĐỂ LƯU ĐỊA CHỈ ***
+    private val _itemAddresses = MutableStateFlow<Map<Long, String>>(emptyMap())
+    val itemAddresses: StateFlow<Map<Long, String>> = _itemAddresses.asStateFlow()
+
+
     fun loadInitialData() {
         viewModelScope.launch {
             _state.value = CategoryState.Loading
+            _itemAddresses.value = emptyMap() // Xóa địa chỉ cũ
             when (val result = categoryRepository.getCategories()) {
                 is ApiResult.Success -> {
-                    val categories = result.data
-                     if (categories.isNotEmpty()) {
-                        val firstCategory = categories.first()
-                        onCategorySelected(firstCategory, categories)
+                    val categories = result.data ?: emptyList()
+                    if (categories.isNotEmpty()) {
+                        // Tự động chọn danh mục đầu tiên và tải sản phẩm
+                        onCategorySelected(categories.first(), categories)
                     } else {
+                        // Cập nhật trạng thái thành công với danh sách rỗng
                         _state.value = CategoryState.Success(
                             categories = emptyList(),
                             products = emptyList(),
@@ -42,7 +52,7 @@ class CategoryViewModel @Inject constructor(
                             isLoadingProducts = false
                         )
                     }
-                    }
+                }
                 is ApiResult.Error -> {
                     _state.value = CategoryState.Error("Không thể tải danh sách danh mục: ${result.error.message}")
                 }
@@ -53,15 +63,15 @@ class CategoryViewModel @Inject constructor(
     fun loadCategoryData(categoryId: Long) {
         viewModelScope.launch {
             _state.value = CategoryState.Loading
+            _itemAddresses.value = emptyMap() // Xóa địa chỉ cũ
 
-            // Load categories first
             when (val categoryResult = categoryRepository.getCategories()) {
                 is ApiResult.Success -> {
-                    val categories = categoryResult.data
+                    val categories = categoryResult.data ?: emptyList()
                     val selectedCategory = categories.find { it.id == categoryId }
 
-                    // Then load products for the category
                     if (selectedCategory != null) {
+                        // Tải sản phẩm cho danh mục đã chọn
                         onCategorySelected(selectedCategory, categories)
                     } else {
                         _state.value = CategoryState.Error("Không tìm thấy danh mục với ID: $categoryId")
@@ -82,10 +92,11 @@ class CategoryViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = CategoryState.Success(
                 categories = currentCategories,
-                products = emptyList(),
+                products = emptyList(), // Xóa sản phẩm cũ
                 selectedCategory = category,
                 isLoadingProducts = true
             )
+            _itemAddresses.value = emptyMap() // Xóa địa chỉ cũ
 
             when (val itemResult = itemRepository.getItemsByCategory(categoryId)) {
                 is ApiResult.Success -> {
@@ -96,6 +107,7 @@ class CategoryViewModel @Inject constructor(
                             isLoadingProducts = false
                         ) ?: it
                     }
+                    loadAddressesForItems(products)
                 }
                 is ApiResult.Error -> {
                     _state.update {
@@ -103,6 +115,37 @@ class CategoryViewModel @Inject constructor(
                             products = emptyList(),
                             isLoadingProducts = false
                         ) ?: it
+                    }
+                }
+            }
+        }
+    }
+
+    // *** THÊM HÀM MỚI NÀY (giống hệt trong HomeViewModel) ***
+    private fun loadAddressesForItems(items: List<ItemResponse>) {
+        viewModelScope.launch {
+            items.forEach { item ->
+                if (item.id != null && !_itemAddresses.value.containsKey(item.id)) {
+                    item.ownerId?.let { ownerId ->
+                        val locationResult = userRepository.getUserLocation(ownerId)
+                        if (locationResult is ApiResult.Success) {
+                            val locationMap = locationResult.data
+                            val lat = locationMap["lat"]?.toDouble()
+                            val lng = locationMap["lng"]?.toDouble()
+
+                            if (lat != null && lng != null) {
+                                val addressTextResult = locationRepository.getAddressFromLatLng(lat, lng)
+                                val addressText = addressTextResult.getOrNull() ?: "Không rõ vị trí"
+
+                                _itemAddresses.update { currentMap ->
+                                    currentMap + (item.id to addressText)
+                                }
+                            } else {
+                                _itemAddresses.update { currentMap ->
+                                    currentMap + (item.id to "Chủ sở hữu chưa cập nhật vị trí")
+                                }
+                            }
+                        }
                     }
                 }
             }
