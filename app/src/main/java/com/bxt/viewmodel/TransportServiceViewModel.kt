@@ -28,7 +28,6 @@ class TransportServiceViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<TransportServiceListState>(TransportServiceListState.Loading)
     val uiState = _uiState.asStateFlow()
 
-    // id -> (fromAddress, toAddress)
     private val _addressMap = MutableStateFlow<Map<Long, Pair<String, String>>>(emptyMap())
     val addressMap = _addressMap.asStateFlow()
 
