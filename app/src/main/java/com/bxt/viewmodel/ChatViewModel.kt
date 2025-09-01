@@ -11,6 +11,7 @@ import com.google.firebase.database.ChildEventListener
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,10 +43,13 @@ class ChatViewModel @Inject constructor(
 
     private var messageListener: ChildEventListener? = null
     private var listeningForUserId: String? = null
+    private var hasLoadedInitialHistory = false
+
+    private var attachableMessageTimestamp: Long? = null
 
     init {
-        observeLocalSession()
         fetchRecipientName()
+        observeLocalSession()
     }
 
     private fun observeLocalSession() {
@@ -56,7 +60,6 @@ class ChatViewModel @Inject constructor(
                 _isUserLoggedIn.value = loggedIn
                 _currentUserId.value = uidStr
 
-                // Thêm lớp kiểm tra tại đây
                 if (uidStr != null && uidStr == otherUserId) {
                     _errorMessage.value = "Bạn không thể tự trò chuyện với chính mình."
                     detachListener()
@@ -68,12 +71,26 @@ class ChatViewModel @Inject constructor(
                     detachListener()
                 } else {
                     _errorMessage.value = null
-                    if (listeningForUserId != uidStr) {
-                        detachListener()
-                        listenForMessages()
+                    if (!hasLoadedInitialHistory) {
+                        loadHistoryAndListenForNewMessages()
                     }
-                    sendInitialAttachableMessageIfNeeded()
                 }
+            }
+        }
+    }
+
+    private fun loadHistoryAndListenForNewMessages() {
+        val myId = _currentUserId.value ?: return
+        hasLoadedInitialHistory = true
+
+        sendInitialAttachableMessageIfNeeded()
+
+        viewModelScope.launch {
+            delay(100)
+            chatRepository.getInitialMessages(myId, otherUserId) { initialMessages ->
+                _messages.clear()
+                _messages.addAll(initialMessages)
+                listenForNewMessages()
             }
         }
     }
@@ -88,17 +105,24 @@ class ChatViewModel @Inject constructor(
             viewModelScope.launch {
                 try {
                     lastSentAttachableJson = currentAttachableJson
+
+                    // Tạo timestamp và lưu lại
+                    val timestamp = System.currentTimeMillis()
+                    attachableMessageTimestamp = timestamp
+
                     val messageMap = hashMapOf<String, Any?>(
                         "senderId" to myId,
                         "text" to "",
-                        "timestamp" to System.currentTimeMillis()
+                        "timestamp" to timestamp
                     )
                     val type = object : TypeToken<Map<String, Any?>>() {}.type
-                    messageMap["attachable"] = Gson().fromJson<Map<String, Any?>>(currentAttachableJson, type)
+                    messageMap["attachable"] =
+                        Gson().fromJson<Map<String, Any?>>(currentAttachableJson, type)
 
                     chatRepository.sendMessage(myId, otherUserId, messageMap)
                 } catch (e: Exception) {
                     lastSentAttachableJson = null
+                    attachableMessageTimestamp = null
                     _errorMessage.value = "Không thể gửi thông tin sản phẩm."
                 }
             }
@@ -137,27 +161,33 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val response = userApi.getUserNameById(idLong)
-                _recipientName.value = response.fullName
+                _recipientName.value =
+                    response.fullName?.takeIf { it.isNotBlank() } ?: "Người dùng #${otherUserId}"
             } catch (_: Exception) {
                 _recipientName.value = "Người dùng #${otherUserId}"
             }
         }
     }
 
-    fun listenForMessages() {
+    private fun listenForNewMessages() {
         val myId = _currentUserId.value ?: return
         if (messageListener != null && listeningForUserId == myId) return
 
         listeningForUserId = myId
         try {
             messageListener = chatRepository.listenForMessages(myId, otherUserId) { newMessage ->
-                _messages.add(newMessage)
+                // Kiểm tra để tránh tin nhắn bị trùng lặp
+                val messageTimestamp = newMessage["timestamp"] as? Long
+                val isDuplicate = _messages.any { it["timestamp"] == messageTimestamp }
+
+                if (!isDuplicate) {
+                    _messages.add(newMessage)
+                }
             }
         } catch (e: Exception) {
             _errorMessage.value = "Không thể tải tin nhắn: ${e.message}"
         }
     }
-
 
     private fun detachListener() {
         listeningForUserId?.let {
@@ -168,6 +198,7 @@ class ChatViewModel @Inject constructor(
         messageListener = null
         listeningForUserId = null
         _messages.clear()
+        hasLoadedInitialHistory = false
     }
 
     override fun onCleared() {
