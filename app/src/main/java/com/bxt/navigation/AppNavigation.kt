@@ -234,16 +234,16 @@ fun AppNavigation() {
                     )
                 }
 
-//                composable("add_transport_service") {
-//                    AddTransportScreen(
-//                        onSubmit = {
-//                            navController.popBackStack()
-//                        },
-//                        onBack = {
-//                            navController.popBackStack()
-//                        }
-//                    )
-//                }
+                composable("add_transport_service") {
+                    AddTransportScreen(
+                        onSubmit = {
+                            navController.popBackStack()
+                        },
+                        onBack = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
 
                 // Chat Routes
                 composable("chat_list") {

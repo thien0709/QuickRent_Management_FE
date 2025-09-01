@@ -131,7 +131,7 @@ dependencies {
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
 
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation(libs.gson)
     //Mapbox
     implementation(libs.android)
     implementation(libs.maps.compose)
@@ -140,6 +140,7 @@ dependencies {
     implementation(libs.place.autocomplete)
     implementation(libs.mapbox.search.android)
     implementation(libs.mapbox.search.android.ui)
+
 
 
     testImplementation(libs.junit)

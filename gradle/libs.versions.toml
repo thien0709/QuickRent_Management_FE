@@ -8,6 +8,7 @@ converterGson = "3.0.0"
 datastorePreferences = "1.1.7"
 discover = "2.14.0"
 foundation = "1.6.0"
+gson = "2.10.1"
 hiltNavigationCompose = "1.2.0"
 kotlin = "2.1.0"
 coreKtx = "1.16.0"
@@ -56,6 +57,7 @@ autofill = { module = "com.mapbox.search:autofill", version.ref = "autofill" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 discover = { module = "com.mapbox.search:discover", version.ref = "discover" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
