@@ -171,7 +171,6 @@ fun AppNavigation() {
                     )
                 }
 
-                // Route chính cho Item Detail
                 composable(
                     route = "item_detail/{itemId}",
                     arguments = listOf(navArgument("itemId") { type = NavType.LongType })
@@ -181,17 +180,16 @@ fun AppNavigation() {
                         itemId = itemId,
                         navController = navController,
                         onClickBack = { navController.popBackStack() },
-                        onClickRent = { itemId, price ->
-                            navController.navigate("rent_item/$itemId/$price")
+                        onClickRent = { rentItemId ->
+                            navController.navigate("rent_item/$rentItemId")
                         }
                     )
                 }
 
                 composable(
-                    route = "rent_item/{itemId}/{price}",
+                    route = "rent_item/{itemId}",
                     arguments = listOf(
-                        navArgument("itemId") { type = NavType.LongType },
-                        navArgument("price") { type = NavType.StringType }
+                        navArgument("itemId") { type = NavType.LongType }
                     )
                 ) {
                     RentalItemScreen(
@@ -252,7 +250,7 @@ fun AppNavigation() {
                 composable("chat_list") {
                     ChatListScreen(
                         navController = navController,
-                        viewModel = hiltViewModel() // Thêm viewModel nếu cần
+                        viewModel = hiltViewModel()
                     )
                 }
 
