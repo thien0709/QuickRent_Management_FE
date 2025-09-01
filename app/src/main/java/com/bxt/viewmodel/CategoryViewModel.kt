@@ -27,16 +27,22 @@ class CategoryViewModel @Inject constructor(
 
     fun loadInitialData() {
         viewModelScope.launch {
-            _state.value = CategoryState.Loading // Reset về loading state
+            _state.value = CategoryState.Loading
             when (val result = categoryRepository.getCategories()) {
                 is ApiResult.Success -> {
-                    _state.value = CategoryState.Success(
-                        categories = result.data,
-                        products = emptyList(),
-                        selectedCategory = null,
-                        isLoadingProducts = false
-                    )
-                }
+                    val categories = result.data
+                     if (categories.isNotEmpty()) {
+                        val firstCategory = categories.first()
+                        onCategorySelected(firstCategory, categories)
+                    } else {
+                        _state.value = CategoryState.Success(
+                            categories = emptyList(),
+                            products = emptyList(),
+                            selectedCategory = null,
+                            isLoadingProducts = false
+                        )
+                    }
+                    }
                 is ApiResult.Error -> {
                     _state.value = CategoryState.Error("Không thể tải danh sách danh mục: ${result.error.message}")
                 }
@@ -46,7 +52,7 @@ class CategoryViewModel @Inject constructor(
 
     fun loadCategoryData(categoryId: Long) {
         viewModelScope.launch {
-            _state.value = CategoryState.Loading // Reset về loading state
+            _state.value = CategoryState.Loading
 
             // Load categories first
             when (val categoryResult = categoryRepository.getCategories()) {
@@ -55,24 +61,10 @@ class CategoryViewModel @Inject constructor(
                     val selectedCategory = categories.find { it.id == categoryId }
 
                     // Then load products for the category
-                    when (val itemResult = itemRepository.getItemsByCategory(categoryId)) {
-                        is ApiResult.Success -> {
-                            val products = itemResult.data.content ?: emptyList()
-                            _state.value = CategoryState.Success(
-                                categories = categories,
-                                products = products,
-                                selectedCategory = selectedCategory,
-                                isLoadingProducts = false
-                            )
-                        }
-                        is ApiResult.Error -> {
-                            _state.value = CategoryState.Success(
-                                categories = categories,
-                                products = emptyList(),
-                                selectedCategory = selectedCategory,
-                                isLoadingProducts = false
-                            )
-                        }
+                    if (selectedCategory != null) {
+                        onCategorySelected(selectedCategory, categories)
+                    } else {
+                        _state.value = CategoryState.Error("Không tìm thấy danh mục với ID: $categoryId")
                     }
                 }
                 is ApiResult.Error -> {
@@ -82,32 +74,35 @@ class CategoryViewModel @Inject constructor(
         }
     }
 
-    fun onCategorySelected(category: CategoryResponse) {
+    fun onCategorySelected(category: CategoryResponse, allCategories: List<CategoryResponse>? = null) {
         val currentState = _state.value
-        if (currentState is CategoryState.Success) {
-            val categoryId = category.id ?: return
+        val currentCategories = allCategories ?: (currentState as? CategoryState.Success)?.categories ?: return
+        val categoryId = category.id ?: return
 
-            viewModelScope.launch {
-                // Update state to show loading for products
-                _state.value = currentState.copy(
-                    selectedCategory = category,
-                    products = emptyList(),
-                    isLoadingProducts = true
-                )
+        viewModelScope.launch {
+            _state.value = CategoryState.Success(
+                categories = currentCategories,
+                products = emptyList(),
+                selectedCategory = category,
+                isLoadingProducts = true
+            )
 
-                when (val itemResult = itemRepository.getItemsByCategory(categoryId)) {
-                    is ApiResult.Success -> {
-                        val products = itemResult.data.content ?: emptyList()
-                        _state.value = currentState.copy(
+            when (val itemResult = itemRepository.getItemsByCategory(categoryId)) {
+                is ApiResult.Success -> {
+                    val products = itemResult.data.content ?: emptyList()
+                    _state.update {
+                        (it as? CategoryState.Success)?.copy(
                             products = products,
                             isLoadingProducts = false
-                        )
+                        ) ?: it
                     }
-                    is ApiResult.Error -> {
-                        _state.value = currentState.copy(
+                }
+                is ApiResult.Error -> {
+                    _state.update {
+                        (it as? CategoryState.Success)?.copy(
                             products = emptyList(),
                             isLoadingProducts = false
-                        )
+                        ) ?: it
                     }
                 }
             }
