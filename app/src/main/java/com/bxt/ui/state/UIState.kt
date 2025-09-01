@@ -12,8 +12,8 @@ import com.bxt.di.ApiResult
 import com.bxt.di.ErrorResponse
 import com.bxt.viewmodel.ChatThreadUi
 import com.bxt.viewmodel.FullTransactionDetails
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.libraries.places.api.model.AutocompletePrediction
+//import com.google.android.gms.maps.model.LatLng
+//import com.google.android.libraries.places.api.model.AutocompletePrediction
 
 sealed class LoginState {
     object Idle : LoginState()
@@ -53,15 +53,15 @@ data class UserState(
     val shouldNavigateToLogin: Boolean = false
 )
 
-sealed class CategoryState {
-    object Loading : CategoryState()
-    data class Error(val message: String) : CategoryState()
+sealed interface CategoryState {
+    object Loading : CategoryState
+    data class Error(val message: String) : CategoryState
     data class Success(
         val categories: List<CategoryResponse>,
-        val products: List<ItemResponse> = emptyList(),
-        val selectedCategory: CategoryResponse? = null,
+        val products: List<ItemResponse>,
+        val selectedCategory: CategoryResponse?,
         val isLoadingProducts: Boolean = false
-    ) : CategoryState()
+    ) : CategoryState
 }
 
 sealed class LocationState {
@@ -117,11 +117,11 @@ sealed interface AddTransportServiceState {
     data class Error(val message: String) : AddTransportServiceState
 }
 
-data class LocationPickerState(
-    val searchQuery: String = "",
-    val predictions: List<AutocompletePrediction> = emptyList(),
-    val selectedLocation: LatLng? = null
-)
+//data class LocationPickerState(
+//    val searchQuery: String = "",
+//    val predictions: List<AutocompletePrediction> = emptyList(),
+//    val selectedLocation: LatLng? = null
+//)
 
 
 sealed interface CategoriesUiState {

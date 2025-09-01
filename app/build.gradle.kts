@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,6 +10,12 @@ plugins {
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
     id ("com.google.gms.google-services")
 
+}
+val properties = Properties()
+rootProject.file("secrets.properties").let {
+    if (it.exists()) {
+        properties.load(it.inputStream())
+    }
 }
 
 android {
@@ -22,6 +30,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        manifestPlaceholders["mapbox_access_token"] = properties.getProperty("MAPBOX_PUBLIC_TOKEN", "")
+
     }
 
     buildTypes {
@@ -91,10 +102,10 @@ dependencies {
 
     // Location
     implementation(libs.play.services.location)
-    implementation(libs.play.services.maps)
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.androidx.lifecycle.livedata.ktx)
-    implementation(libs.androidx.activity.ktx)
+//    implementation(libs.play.services.maps)
+//    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+//    implementation(libs.androidx.lifecycle.livedata.ktx)
+//    implementation(libs.androidx.activity.ktx)
 
     //List image
     implementation(libs.androidx.foundation)
@@ -104,12 +115,12 @@ dependencies {
 
     implementation (libs.androidx.material.icons.extended)
     // Maps
-    implementation("com.google.maps.android:maps-compose:4.3.3")
-    implementation("com.google.android.gms:play-services-maps:18.2.0")
-    implementation("com.google.android.libraries.places:places:3.4.0")
-    implementation("com.google.android.gms:play-services-location:21.2.0")
-    implementation("com.google.maps.android:maps-compose:2.11.4")
-    implementation("com.google.android.libraries.places:places:3.3.0")
+//    implementation("com.google.maps.android:maps-compose:4.3.3")
+//    implementation("com.google.android.gms:play-services-maps:18.2.0")
+//    implementation("com.google.android.libraries.places:places:3.4.0")
+//    implementation("com.google.android.gms:play-services-location:21.2.0")
+//    implementation("com.google.maps.android:maps-compose:2.11.4")
+//    implementation("com.google.android.libraries.places:places:3.3.0")
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
@@ -122,10 +133,13 @@ dependencies {
 
     implementation("com.google.code.gson:gson:2.10.1")
     //Mapbox
-    implementation("com.mapbox.maps:android:11.14.2")
-    implementation("com.mapbox.extension:maps-compose:11.14.2")
-
-
+    implementation(libs.android)
+    implementation(libs.maps.compose)
+    implementation(libs.autofill)
+    implementation(libs.discover)
+    implementation(libs.place.autocomplete)
+    implementation(libs.mapbox.search.android)
+    implementation(libs.mapbox.search.android.ui)
 
 
     testImplementation(libs.junit)

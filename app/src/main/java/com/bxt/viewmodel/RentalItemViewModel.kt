@@ -51,7 +51,6 @@ class RentalItemViewModel @Inject constructor(
             return
         }
 
-
         viewModelScope.launch {
             _rentalState.value = RentalState.Submitting
             val request = RentalRequestRequest(

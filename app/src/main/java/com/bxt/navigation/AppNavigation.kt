@@ -53,9 +53,9 @@ fun AppNavigation() {
         "welcome",
         "login",
         "register",
-        "item_detail/", // Đã sửa từ "item/" thành "item_detail/"
+        "item_detail/",
         "rent_item/",
-        "chat_screen/", // Thêm để ẩn bottom bar trong chat
+        "chat_screen/",
         "add_item",
         "add_transport_service"
     )
@@ -72,8 +72,12 @@ fun AppNavigation() {
                         items = listOf(
                             BottomNavItem("Home", Icons.Default.Home, "home"),
                             BottomNavItem("Rental", Icons.Default.ShoppingCart, "category"),
-                            BottomNavItem("Transport", Icons.Default.DeliveryDining, "transport_service"),
-                            BottomNavItem("Chat", Icons.Default.Textsms, "chat_list"), // Đã sửa từ "chat" thành "chat_list"
+                            BottomNavItem(
+                                "Transport",
+                                Icons.Default.DeliveryDining,
+                                "transport_service"
+                            ),
+                            BottomNavItem("Chat", Icons.Default.Textsms, "chat_list"),
                             BottomNavItem("Profile", Icons.Default.Person, "profile")
                         ),
                         currentRoute = currentRoute,
@@ -130,10 +134,11 @@ fun AppNavigation() {
                 composable("home") {
                     HomeScreen(
                         onCategoryClick = { category ->
-                            navController.navigate("category/${category.id}")
+                            category.id?.let { categoryId ->
+                                navController.navigate("category?categoryId=$categoryId")
+                            }
                         },
                         onItemClick = { item ->
-                            // Đã sửa: navigate đến route đúng
                             navController.navigate("item_detail/${item.id}")
                         },
                         onAllCategoriesClick = {
@@ -145,12 +150,22 @@ fun AppNavigation() {
                 composable("profile") {
                     ProfileScreen(navController)
                 }
-                composable("category") {
+                composable(
+                    route = "category?categoryId={categoryId}",
+                    arguments = listOf(navArgument("categoryId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    })
+                ) { backStackEntry ->
+                    val categoryIdString = backStackEntry.arguments?.getString("categoryId")
+                    val categoryId = categoryIdString?.toLongOrNull()
+
                     CategoryScreen(
+                        categoryId = categoryId,
                         navController = navController,
                         onBackClick = { navController.navigateUp() },
                         onProductClick = { productId ->
-                            // Đã sửa: navigate đến route đúng
                             navController.navigate("item_detail/$productId")
                         }
                     )
@@ -222,16 +237,16 @@ fun AppNavigation() {
                     )
                 }
 
-                composable("add_transport_service") {
-                    AddTransportScreen(
-                        onSubmit = {
-                            navController.popBackStack()
-                        },
-                        onBack = {
-                            navController.popBackStack()
-                        }
-                    )
-                }
+//                composable("add_transport_service") {
+//                    AddTransportScreen(
+//                        onSubmit = {
+//                            navController.popBackStack()
+//                        },
+//                        onBack = {
+//                            navController.popBackStack()
+//                        }
+//                    )
+//                }
 
                 // Chat Routes
                 composable("chat_list") {

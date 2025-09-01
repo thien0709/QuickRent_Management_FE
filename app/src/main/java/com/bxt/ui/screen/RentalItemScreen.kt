@@ -17,14 +17,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bxt.ui.components.MapboxSearchBar
 import com.bxt.ui.components.PickDateTime
 import com.bxt.ui.state.RentalState
 import com.bxt.ui.theme.LocalDimens
+import com.bxt.util.MapboxMarkerUtils
 import com.bxt.viewmodel.RentalItemViewModel
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
+// Mapbox imports
+import com.mapbox.geojson.Point
+import com.mapbox.maps.CameraOptions
+import com.mapbox.maps.MapboxExperimental
+import com.mapbox.maps.Style
+import com.mapbox.maps.extension.compose.MapEffect
+import com.mapbox.maps.extension.compose.MapboxMap
+import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
+import com.mapbox.maps.extension.compose.annotation.generated.PointAnnotationGroup
+import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
+import com.mapbox.maps.extension.compose.rememberMapState
+import com.mapbox.maps.plugin.gestures.OnMapClickListener
+import com.mapbox.maps.plugin.gestures.gestures
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.math.BigDecimal
@@ -36,7 +47,7 @@ import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.max
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, MapboxExperimental::class)
 @Composable
 fun RentalItemScreen(
     onClickBack: () -> Unit,
@@ -55,36 +66,33 @@ fun RentalItemScreen(
     var address by remember { mutableStateOf("") }
     var selectedPaymentMethod by remember { mutableStateOf("CASH") }
 
-    // Map state
-    val hcmCity = LatLng(10.762622, 106.660172)
-    val markerState = rememberMarkerState(position = hcmCity)
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(hcmCity, 12f)
+    // Mapbox state
+    val hcmCity = Point.fromLngLat(106.660172, 10.762622) // Lưu ý: lng, lat
+    var selectedPoint by remember { mutableStateOf(hcmCity) }
+    val mapState = rememberMapState()
+    val mapViewportState = rememberMapViewportState {
+        setCameraOptions {
+            zoom(12.0)
+            center(hcmCity)
+        }
     }
 
-    fun getAddressFromLatLng(latLng: LatLng) {
+    fun getAddressFromPoint(point: Point) {
         scope.launch {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1) { addresses ->
+                    geocoder.getFromLocation(point.latitude(), point.longitude(), 1) { addresses ->
                         address = addresses.firstOrNull()?.getAddressLine(0) ?: "Không tìm thấy địa chỉ"
                     }
                 } else {
                     @Suppress("DEPRECATION")
-                    val addrs = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
+                    val addrs = geocoder.getFromLocation(point.latitude(), point.longitude(), 1)
                     address = addrs?.firstOrNull()?.getAddressLine(0) ?: "Không tìm thấy địa chỉ"
                 }
             } catch (_: IOException) {
                 address = "Lỗi khi lấy địa chỉ"
             }
         }
-    }
-
-    LaunchedEffect(markerState.dragState) {
-        if (markerState.dragState == DragState.END) getAddressFromLatLng(markerState.position)
-    }
-    LaunchedEffect(markerState.position) {
-        cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(markerState.position, 15f))
     }
 
     LaunchedEffect(rentalState) {
@@ -131,15 +139,31 @@ fun RentalItemScreen(
                 startAt = it
                 if (endAt == null || !endAt!!.isAfter(it)) endAt = it.plusHours(1)
             }, onEndAtChange = { endAt = it })
-            Divider()
-            AddressSelection(address, { address = it }, cameraPositionState, markerState) {
-                markerState.position = it
-                getAddressFromLatLng(it)
-            }
-            Divider()
+
+            HorizontalDivider()
+
+            MapboxAddressSelection(
+                address = address,
+                onAddressChange = { address = it },
+                selectedPoint = selectedPoint,
+                mapState = mapState,
+                mapViewportState = mapViewportState,
+                onPointSelected = { point ->
+                    selectedPoint = point
+                    getAddressFromPoint(point)
+                    // Di chuyển camera đến vị trí mới
+                    mapViewportState.setCameraOptions {
+                        zoom(15.0)
+                        center(point)
+                    }
+                }
+            )
+
+            HorizontalDivider()
             PaymentMethodSelector(selectedPaymentMethod) { selectedPaymentMethod = it }
-            Divider()
+            HorizontalDivider()
             RentalSummary(viewModel.pricePerHour, hours, total, canCalculate)
+
             Button(
                 onClick = {
                     viewModel.createRentalRequest(
@@ -147,8 +171,8 @@ fun RentalItemScreen(
                         endAt = endAt!!.toInstant(),
                         totalPrice = total,
                         address = address,
-                        latTo = BigDecimal.valueOf(markerState.position.latitude),
-                        lngTo = BigDecimal.valueOf(markerState.position.longitude),
+                        latTo = BigDecimal.valueOf(selectedPoint.latitude()),
+                        lngTo = BigDecimal.valueOf(selectedPoint.longitude()),
                         paymentMethod = selectedPaymentMethod
                     )
                 },
@@ -158,6 +182,7 @@ fun RentalItemScreen(
             ) {
                 Text("Xác nhận thuê", style = MaterialTheme.typography.bodySmall)
             }
+
             if (rentalState is RentalState.Submitting) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
@@ -166,7 +191,75 @@ fun RentalItemScreen(
     }
 }
 
-// Các Composable phụ không thay đổi
+@OptIn(MapboxExperimental::class)
+@Composable
+private fun MapboxAddressSelection(
+    address: String,
+    onAddressChange: (String) -> Unit,
+    selectedPoint: Point,
+    mapState: com.mapbox.maps.extension.compose.MapState,
+    mapViewportState: com.mapbox.maps.extension.compose.animation.viewport.MapViewportState,
+    onPointSelected: (Point) -> Unit
+) {
+    val d = LocalDimens.current
+    val context = LocalContext.current
+
+    Column(verticalArrangement = Arrangement.spacedBy(d.rowGap)) {
+        Text("Chọn địa chỉ giao hàng", style = MaterialTheme.typography.titleSmall)
+
+        // Replace the text field with MapboxSearchBar
+        MapboxSearchBar(
+            value = address,
+            onValueChange = onAddressChange,
+            proximity = selectedPoint,
+            onPlacePicked = { point, fullAddress ->
+                onPointSelected(point)
+                onAddressChange(fullAddress)
+                // Move camera to the new location
+                mapViewportState.setCameraOptions {
+                    zoom(15.0)
+                    center(point)
+                }
+            }
+        )
+
+        Text("Hoặc chọn trên bản đồ:", style = MaterialTheme.typography.bodySmall)
+
+        Box(modifier = Modifier.fillMaxWidth().height(d.imageSize * 3.2f)) {
+            MapboxMap(
+                modifier = Modifier.fillMaxSize(),
+                mapState = mapState,
+                mapViewportState = mapViewportState
+            ) {
+                // Set map style
+                MapEffect(Unit) { mapView ->
+                    mapView.getMapboxMap().loadStyleUri(Style.MAPBOX_STREETS)
+                }
+                // Map click listener
+                MapEffect(Unit) { mapView ->
+                    mapView.gestures.addOnMapClickListener(OnMapClickListener { point ->
+                        onPointSelected(point)
+                        true // consume the event
+                    })
+                }
+
+                // Annotation (marker) - Sử dụng utility function
+                PointAnnotationGroup(
+                    annotations = listOf(
+                        MapboxMarkerUtils.createSimpleMarker(
+                            point = selectedPoint,
+                            title = "Vị trí giao hàng",
+                            isDraggable = true,
+                            context = context
+                        )
+                    )
+                )
+            }
+        }
+    }
+}
+
+// Các Composable khác giữ nguyên (TimeSelection, PaymentMethodSelector, RentalSummary)
 @Composable
 private fun TimeSelection(
     startAt: OffsetDateTime?,
@@ -194,38 +287,6 @@ private fun TimeSelection(
             shape = MaterialTheme.shapes.medium
         ) {
             Text("Kết thúc: " + (endAt?.format(dtFmt) ?: "Chọn thời gian"), style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
-private fun AddressSelection(
-    address: String,
-    onAddressChange: (String) -> Unit,
-    mapCameraPositionState: CameraPositionState,
-    mapMarkerState: MarkerState,
-    onMapClick: (LatLng) -> Unit
-) {
-    val d = LocalDimens.current
-    Column(verticalArrangement = Arrangement.spacedBy(d.rowGap)) {
-        Text("Chọn địa chỉ giao hàng", style = MaterialTheme.typography.titleSmall)
-        OutlinedTextField(
-            value = address,
-            onValueChange = onAddressChange,
-            label = { Text("Địa chỉ nhận hàng...", style = MaterialTheme.typography.labelSmall) },
-            textStyle = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.fillMaxWidth().heightIn(min = d.fieldMinHeight),
-            shape = MaterialTheme.shapes.medium
-        )
-        Text("Hoặc chọn trên bản đồ:", style = MaterialTheme.typography.bodySmall)
-        Box(modifier = Modifier.fillMaxWidth().height(d.imageSize * 3.2f)) {
-            GoogleMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraPositionState = mapCameraPositionState,
-                onMapClick = onMapClick
-            ) {
-                Marker(state = mapMarkerState, title = "Vị trí giao hàng", snippet = "Kéo để chọn", draggable = true)
-            }
         }
     }
 }

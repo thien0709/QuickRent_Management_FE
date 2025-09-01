@@ -48,8 +48,7 @@ object FabActions {
     fun rental(nav: NavController) = listOf(
         FabAction("Add item ", { Icon(Icons.Default.Add, null) }) { nav.navigate("add_item") },
         FabAction("See request", { Icon(Icons.Default.Assignment, null) }) { nav.navigate("rental_service") },
-        FabAction("See transaction", { Icon(Icons.Default.Receipt, null) }) { nav.navigate("transactions_rental") },
-    )
+        )
 
     fun transport(nav: NavController) = listOf(
         FabAction("Add item ", { Icon(Icons.Default.Add, null) }) { nav.navigate("add_transport_service") },
@@ -57,10 +56,5 @@ object FabActions {
         FabAction("See transaction", { Icon(Icons.Default.Receipt, null) }) { nav.navigate("transactions_transport") },
     )
 
-    fun home(nav: NavController) = listOf(
-        FabAction("Quét QR", { Icon(Icons.Default.QrCodeScanner, null) }) { nav.navigate("qr") },
-        FabAction("Thông báo", { NotificationIcon(3) }) { nav.navigate("notifications") },
-        FabAction("Hỗ trợ", { Icon(Icons.Default.Help, null) }) { nav.navigate("support") }
-    )
 
 }
