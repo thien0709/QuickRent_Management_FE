@@ -12,6 +12,7 @@ import com.bxt.di.ApiResult
 import com.bxt.di.ErrorResponse
 import com.bxt.viewmodel.ChatThreadUi
 import com.bxt.viewmodel.FullTransactionDetails
+
 //import com.google.android.gms.maps.model.LatLng
 //import com.google.android.libraries.places.api.model.AutocompletePrediction
 
@@ -65,12 +66,22 @@ sealed interface CategoryState {
 }
 
 sealed class LocationState {
-    object Loading : LocationState()
-    data class Success(val location: Pair<Double, Double>, val address: String? = null) : LocationState()
-    data class Error(val message: String, val location: Pair<Double, Double>) : LocationState()
+    data object Loading : LocationState()
+
+    data class Success(
+        val location: Pair<Double, Double>? = null,
+        val address: String? = null
+    ) : LocationState()
+
+    data class Error(
+        val message: String,
+        val location: Pair<Double, Double>? = null
+    ) : LocationState()
+
     data class PermissionRequired(val shouldShowRationale: Boolean) : LocationState()
-    data class GpsDisabled(val isEnabled: Boolean) : LocationState()
+    data class GpsDisabled(val shouldShowRationale: Boolean) : LocationState()
 }
+
 sealed interface ItemState {
     data object Loading : ItemState
     data class Error(val message: String?) : ItemState

@@ -1,6 +1,5 @@
 package com.bxt.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,14 +12,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.snapshotFlow
 
 import com.mapbox.geojson.Point
 import com.mapbox.search.autocomplete.PlaceAutocomplete
@@ -40,61 +40,77 @@ fun MapboxSearchBar(
     var suggestions by remember { mutableStateOf<List<PlaceAutocompleteSuggestion>>(emptyList()) }
     var showSuggestions by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
+    var suppressNext by remember { mutableStateOf(false) } // chặn reopen sau khi pick
+    val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
 
-    // Debounce gõ phím rồi gọi suggestions()
-    LaunchedEffect(value, proximity) {
+    // Debounce input & fetch suggestions (I/O trên Dispatchers.IO)
+    LaunchedEffect(value, proximity, suppressNext) {
         snapshotFlow { value }
             .debounce(300)
-            .filter { it.length >= 3 }
+            .filter { it.length >= 3 && !suppressNext }
             .collectLatest { q ->
                 isLoading = true
-                val resp = placeAutocomplete.suggestions(
-                    query = q,
-                    proximity = proximity,
-                    options = PlaceAutocompleteOptions(
-                        countries = listOf(IsoCountryCode("VN"))
-                    )
-                )
-                suggestions = if (resp.isValue) (resp.value ?: emptyList()) else emptyList()
-                showSuggestions = suggestions.isNotEmpty()
-                isLoading = false
+                try {
+                    val resp = withContext(Dispatchers.IO) {
+                        placeAutocomplete.suggestions(
+                            query = q,
+                            proximity = proximity,
+                            options = PlaceAutocompleteOptions(
+                                countries = listOf(IsoCountryCode("VN"))
+                            )
+                        )
+                    }
+                    if (!suppressNext) {
+                        suggestions = if (resp.isValue) (resp.value ?: emptyList()) else emptyList()
+                        showSuggestions = suggestions.isNotEmpty()
+                    }
+                } catch (_: Throwable) {
+                    // ignore, đóng list
+                    suggestions = emptyList()
+                    showSuggestions = false
+                } finally {
+                    isLoading = false
+                }
             }
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Search input field
-        Box(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-                value = value,
-                onValueChange = {
-                    onValueChange(it)
+        OutlinedTextField(
+            value = value,
+            onValueChange = {
+                onValueChange(it)
+                if (suppressNext) {
+                    // lần set sau khi pick -> không mở list
+                    showSuggestions = false
+                    suggestions = emptyList()
+                    suppressNext = false
+                } else {
                     showSuggestions = it.length >= 3
-                },
-                label = { Text("Tìm địa chỉ (Mapbox)…") },
-                leadingIcon = {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                    } else {
-                        Icon(Icons.Default.Search, contentDescription = null)
+                }
+            },
+            label = { Text("Tìm địa chỉ (Mapbox)…") },
+            leadingIcon = {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Default.Search, contentDescription = null)
+                }
+            },
+            trailingIcon = {
+                if (value.isNotEmpty()) {
+                    IconButton(onClick = {
+                        onValueChange("")
+                        showSuggestions = false
+                        suggestions = emptyList()
+                    }) {
+                        Icon(Icons.Default.Close, contentDescription = "Xóa")
                     }
-                },
-                trailingIcon = {
-                    if (value.isNotEmpty()) {
-                        IconButton(onClick = {
-                            onValueChange("")
-                            showSuggestions = false
-                            suggestions = emptyList()
-                        }) {
-                            Icon(Icons.Default.Close, contentDescription = "Xóa")
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        // Suggestions list
         if (showSuggestions && suggestions.isNotEmpty()) {
             Card(
                 modifier = Modifier
@@ -109,16 +125,35 @@ fun MapboxSearchBar(
                             suggestion = suggestion,
                             onClick = {
                                 scope.launch {
-                                    val selection = placeAutocomplete.select(suggestion)
-                                    if (selection.isValue) {
-                                        val result = selection.value!!
-                                        val pickedPoint = result.coordinate
-                                        val addr = result.address?.formattedAddress ?: result.name
-                                        onPlacePicked(pickedPoint, addr)
-                                        onValueChange(addr)
+                                    isLoading = true
+                                    try {
+                                        val selection = withContext(Dispatchers.IO) {
+                                            placeAutocomplete.select(suggestion)
+                                        }
+                                        if (selection.isValue) {
+                                            val result = selection.value!!
+                                            val pickedPoint = result.coordinate
+                                            val addr =
+                                                result.address?.formattedAddress ?: result.name
+                                            // chặn reopen, đóng list, clear focus
+                                            suppressNext = true
+                                            showSuggestions = false
+                                            suggestions = emptyList()
+                                            focusManager.clearFocus()
+                                            onPlacePicked(pickedPoint, addr)
+                                            onValueChange(addr)
+                                        } else {
+                                            showSuggestions = false
+                                            suggestions = emptyList()
+                                            focusManager.clearFocus()
+                                        }
+                                    } catch (_: Throwable) {
+                                        showSuggestions = false
+                                        suggestions = emptyList()
+                                        focusManager.clearFocus()
+                                    } finally {
+                                        isLoading = false
                                     }
-                                    showSuggestions = false
-                                    suggestions = emptyList()
                                 }
                             }
                         )

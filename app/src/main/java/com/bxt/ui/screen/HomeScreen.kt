@@ -1,3 +1,4 @@
+// com/bxt/ui/screen/HomeScreen.kt
 package com.bxt.ui.screen
 
 import androidx.compose.foundation.background
@@ -25,7 +26,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
@@ -36,6 +36,7 @@ import com.bxt.R
 import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.ui.components.CategoryCard
+import com.bxt.ui.components.EditLocationPopup
 import com.bxt.ui.components.LoadingIndicator
 import com.bxt.ui.components.LocationPermissionHandler
 import com.bxt.ui.components.PopularItemCard
@@ -63,7 +64,7 @@ fun HomeScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isLoadingMore by viewModel.isLoadingMore.collectAsState()
 
-    // Lottie (giữ nguyên hiệu ứng trống)
+    // Lottie
     val empty by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.empty))
     val progress by animateLottieCompositionAsState(empty, iterations = LottieConstants.IterateForever)
 
@@ -81,31 +82,37 @@ fun HomeScreen(
         is LocationState.PermissionRequired -> "Cần cấp quyền vị trí"
         is LocationState.GpsDisabled -> "GPS đang tắt"
     }
+    val currentAddressText = (locationState as? LocationState.Success)?.address.orEmpty()
+    val isGettingCurrent = locationState is LocationState.Loading
 
     val hasAllData = homeState is HomeState.Success && locationState !is LocationState.Loading
     if (!hasAllData) {
         Box(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center
         ) { LoadingIndicator() }
         return
     }
     val success = homeState as HomeState.Success
 
-    // Pull-down refresh
+    // Pull-to-refresh
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
         onRefresh = { viewModel.refresh() }
     )
 
-    // Chạm đáy rồi kéo thêm để load-more
+    // Kéo thêm ở đáy để load-more
     val listState = rememberLazyListState()
     val pullUpConnection = rememberPullUpToLoadMore(
         listState = listState,
         isLoadingMore = isLoadingMore,
-        trigger = 96.dp, // kéo thêm ~96dp ở đáy sẽ gọi loadNextPage()
+        trigger = 96.dp,
         onLoadMore = { viewModel.loadNextPage() }
     )
+
+    var showEditLocation by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -122,8 +129,7 @@ fun HomeScreen(
             contentPadding = PaddingValues(d.pagePadding),
             verticalArrangement = Arrangement.spacedBy(d.sectionGap)
         ) {
-            // ====== GIỮ NGUYÊN LAYOUT GẦN NHƯ CŨ ======
-
+            // Header
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -142,24 +148,24 @@ fun HomeScreen(
                 }
             }
 
+            // Địa chỉ giao hàng + nút đổi địa chỉ
             item {
-                Text(
-                    text = "Delivery to: $deliveryText",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Button(
-                    onClick = { locationViewModel.fetchCurrentLocation() },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium
-                ) {
+                Column(Modifier.fillMaxWidth()) {
                     Text(
-                        "Change Location",
-                        style = MaterialTheme.typography.bodySmall
+                        text = "Delivery to: $deliveryText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = { showEditLocation = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) { Text("Đổi địa chỉ", style = MaterialTheme.typography.bodySmall) }
                 }
             }
 
+            // Search + Filter
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -168,7 +174,9 @@ fun HomeScreen(
                     OutlinedTextField(
                         value = searchText,
                         onValueChange = { searchText = it },
-                        placeholder = { Text("Search", style = MaterialTheme.typography.bodySmall, color = Color(0xFF999999)) },
+                        placeholder = {
+                            Text("Search", style = MaterialTheme.typography.bodySmall, color = Color(0xFF999999))
+                        },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Search,
@@ -194,7 +202,7 @@ fun HomeScreen(
 
                     Card(
                         modifier = Modifier
-                            .size(56.dp) // giữ 56dp như cũ
+                            .size(56.dp)
                             .clickable { onFilterClick() },
                         shape = MaterialTheme.shapes.medium,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -211,6 +219,7 @@ fun HomeScreen(
                 }
             }
 
+            // Categories
             item {
                 Row(
                     modifier = Modifier
@@ -245,6 +254,7 @@ fun HomeScreen(
                 }
             }
 
+            // Popular
             item {
                 Text(
                     text = "POPULAR TODAY",
@@ -263,11 +273,11 @@ fun HomeScreen(
                         address = address,
                         onClick = { onItemClick(item) }
                     )
-
                     Spacer(Modifier.height(d.rowGap))
                 }
             }
 
+            // Load-more indicator
             item {
                 if (isLoadingMore) {
                     Row(
@@ -286,9 +296,33 @@ fun HomeScreen(
             modifier = Modifier.align(Alignment.TopCenter)
         )
     }
-}
 
-/* ---------- Helpers ---------- */
+    if (showEditLocation) {
+        EditLocationPopup(
+            currentLocation = currentAddressText,
+            proximity = (locationState as? LocationState.Success)?.location?.let { (lat, lng) ->
+                // Mapbox Point expects (lng, lat)
+                com.mapbox.geojson.Point.fromLngLat(lng, lat)
+            },
+            onDismiss = { showEditLocation = false },
+            onSave = { point, addr ->
+                if (point != null) {
+                    locationViewModel.setManualLocation(
+                        lat = point.latitude(),
+                        lng = point.longitude(),
+                        address = addr
+                    )
+                } else {
+                    // user nhập tay mà không chọn gợi ý → lưu address, lat/lng giữ nguyên (nếu có)
+                    locationViewModel.setManualAddress(addr)
+                }
+                showEditLocation = false
+            },
+            onGetCurrentLocation = { locationViewModel.fetchCurrentLocation() },
+            isGettingCurrent = isGettingCurrent
+        )
+    }
+}
 
 @Composable
 private fun rememberPullUpToLoadMore(
@@ -306,7 +340,7 @@ private fun rememberPullUpToLoadMore(
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 if (source == NestedScrollSource.Drag && !listState.canScrollForward) {
                     val dy = available.y
-                    if (dy < 0f) { // kéo thêm ở đáy
+                    if (dy < 0f) {
                         accumulated += -dy
                         if (accumulated >= triggerPx && !isLoadingMore) {
                             accumulated = 0f
