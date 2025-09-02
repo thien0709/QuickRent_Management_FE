@@ -10,6 +10,7 @@ import com.bxt.data.repository.LocationRepository
 import com.bxt.data.repository.UserRepository
 import com.bxt.di.ApiResult
 import com.bxt.ui.state.CategoryState
+import com.bxt.util.extractDistrictOrWard
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -121,7 +122,6 @@ class CategoryViewModel @Inject constructor(
         }
     }
 
-    // *** THÊM HÀM MỚI NÀY (giống hệt trong HomeViewModel) ***
     private fun loadAddressesForItems(items: List<ItemResponse>) {
         viewModelScope.launch {
             items.forEach { item ->
@@ -132,17 +132,15 @@ class CategoryViewModel @Inject constructor(
                             val locationMap = locationResult.data
                             val lat = locationMap["lat"]?.toDouble()
                             val lng = locationMap["lng"]?.toDouble()
-
                             if (lat != null && lng != null) {
-                                val addressTextResult = locationRepository.getAddressFromLatLng(lat, lng)
-                                val addressText = addressTextResult.getOrNull() ?: "Không rõ vị trí"
-
+                                val districtResult = locationRepository.getAddressFromLatLng(lat, lng)
+                                val districtOrWard = extractDistrictOrWard(districtResult.getOrNull()) ?: "Location unknown"
                                 _itemAddresses.update { currentMap ->
-                                    currentMap + (item.id to addressText)
+                                    currentMap + (item.id to districtOrWard)
                                 }
                             } else {
                                 _itemAddresses.update { currentMap ->
-                                    currentMap + (item.id to "Chủ sở hữu chưa cập nhật vị trí")
+                                    currentMap + (item.id to "Owner location not updated")
                                 }
                             }
                         }

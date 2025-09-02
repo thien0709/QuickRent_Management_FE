@@ -11,6 +11,7 @@ import com.bxt.data.repository.UserRepository
 import com.bxt.di.ApiResult
 import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.state.HomeState
+import com.bxt.util.extractDistrictOrWard
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -136,31 +137,30 @@ class HomeViewModel @Inject constructor(
             }
             is ApiResult.Error -> {
                 _homeState.value = HomeState.Error(itemsResult.error.message)
-                ErrorPopupManager.showError(itemsResult.error.message, false)
+                ErrorPopupManager.showError(itemsResult.error.message, true)
             }
         }
     }
 
-     private fun loadAddressesForItems(items: List<ItemResponse>) {
+    private fun loadAddressesForItems(items: List<ItemResponse>) {
         viewModelScope.launch {
             items.forEach { item ->
                 if (item.id != null && !_itemAddresses.value.containsKey(item.id)) {
                     item.ownerId?.let { ownerId ->
-                        // 1. Gọi repository để lấy tọa độ (lat, lng)
                         val locationResult = userRepository.getUserLocation(ownerId)
                         if (locationResult is ApiResult.Success) {
                             val locationMap = locationResult.data
                             val lat = locationMap["lat"]?.toDouble()
                             val lng = locationMap["lng"]?.toDouble()
                             if (lat != null && lng != null) {
-                                val addressTextResult = locationRepository.getAddressFromLatLng(lat, lng)
-                                val addressText = addressTextResult.getOrNull() ?: "Không rõ vị trí"
+                                val districtResult = locationRepository.getAddressFromLatLng(lat, lng)
+                                val districtOrWard = extractDistrictOrWard(districtResult.getOrNull()) ?: "Location unknown"
                                 _itemAddresses.update { currentMap ->
-                                    currentMap + (item.id to addressText)
+                                    currentMap + (item.id to districtOrWard)
                                 }
                             } else {
                                 _itemAddresses.update { currentMap ->
-                                    currentMap + (item.id to "Chủ sở hữu chưa cập nhật vị trí")
+                                    currentMap + (item.id to "Owner location not updated")
                                 }
                             }
                         }

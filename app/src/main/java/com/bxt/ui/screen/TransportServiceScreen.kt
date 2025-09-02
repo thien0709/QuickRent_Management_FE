@@ -56,7 +56,6 @@ fun TransportServiceScreen(
     var radiusKmStr by remember { mutableStateOf("15") }
     val radiusKm = radiusKmStr.toDoubleOrNull().takeIf { nearMe }
 
-    // lỗi -> popup / điều hướng
     LaunchedEffect(uiState) {
         val s = uiState
         if (s is TransportServiceListState.Error) {
@@ -294,9 +293,9 @@ private fun FilterSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .imePadding()               // tránh bàn phím
+                .imePadding()
                 .navigationBarsPadding()
-                .heightIn(max = maxHeight)  // không full màn hình
+                .heightIn(max = maxHeight)
                 .verticalScroll(rememberScrollState())
                 .padding(d.pagePadding),
             verticalArrangement = Arrangement.spacedBy(d.rowGap)

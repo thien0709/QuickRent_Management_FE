@@ -1,4 +1,3 @@
-// com/bxt/ui/screen/HomeScreen.kt
 package com.bxt.ui.screen
 
 import androidx.compose.foundation.background
@@ -45,6 +44,7 @@ import com.bxt.ui.state.LocationState
 import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.HomeViewModel
 import com.bxt.viewmodel.LocationViewModel
+import com.mapbox.geojson.Point
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -97,13 +97,12 @@ fun HomeScreen(
     }
     val success = homeState as HomeState.Success
 
-    // Pull-to-refresh
+
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
         onRefresh = { viewModel.refresh() }
     )
 
-    // Kéo thêm ở đáy để load-more
     val listState = rememberLazyListState()
     val pullUpConnection = rememberPullUpToLoadMore(
         listState = listState,
@@ -148,7 +147,7 @@ fun HomeScreen(
                 }
             }
 
-            // Địa chỉ giao hàng + nút đổi địa chỉ
+            // Delivery Address
             item {
                 Column(Modifier.fillMaxWidth()) {
                     Text(
@@ -301,8 +300,7 @@ fun HomeScreen(
         EditLocationPopup(
             currentLocation = currentAddressText,
             proximity = (locationState as? LocationState.Success)?.location?.let { (lat, lng) ->
-                // Mapbox Point expects (lng, lat)
-                com.mapbox.geojson.Point.fromLngLat(lng, lat)
+                Point.fromLngLat(lng, lat)
             },
             onDismiss = { showEditLocation = false },
             onSave = { point, addr ->
@@ -313,7 +311,6 @@ fun HomeScreen(
                         address = addr
                     )
                 } else {
-                    // user nhập tay mà không chọn gợi ý → lưu address, lat/lng giữ nguyên (nếu có)
                     locationViewModel.setManualAddress(addr)
                 }
                 showEditLocation = false
