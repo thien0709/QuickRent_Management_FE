@@ -45,6 +45,8 @@ import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.HomeViewModel
 import com.bxt.viewmodel.LocationViewModel
 import com.mapbox.geojson.Point
+import com.bxt.util.haversineKm
+import com.bxt.util.extractDistrictOrWard
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -58,17 +60,19 @@ fun HomeScreen(
 ) {
     val d = LocalDimens.current
     var searchText by remember { mutableStateOf("") }
-    val itemAddresses by viewModel.itemAddresses.collectAsState()
+    val addresses by viewModel.itemAddresses.collectAsState()
     val homeState by viewModel.homeState.collectAsState()
+
     val isDarkModeEnabled by viewModel.isDarkModeEnabled.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isLoadingMore by viewModel.isLoadingMore.collectAsState()
 
-    // Lottie
     val empty by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.empty))
-    val progress by animateLottieCompositionAsState(empty, iterations = LottieConstants.IterateForever)
+    val progress by animateLottieCompositionAsState(
+        composition = empty,
+        iterations = LottieConstants.IterateForever
+    )
 
-    // Quyền vị trí
     LocationPermissionHandler(
         onPermissionGranted = { locationViewModel.fetchCurrentLocation() },
         onPermissionDenied = {}
@@ -96,7 +100,6 @@ fun HomeScreen(
         return
     }
     val success = homeState as HomeState.Success
-
 
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
@@ -174,7 +177,11 @@ fun HomeScreen(
                         value = searchText,
                         onValueChange = { searchText = it },
                         placeholder = {
-                            Text("Search", style = MaterialTheme.typography.bodySmall, color = Color(0xFF999999))
+                            Text(
+                                "Search",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF999999)
+                            )
                         },
                         leadingIcon = {
                             Icon(
@@ -247,7 +254,10 @@ fun HomeScreen(
                 } else {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(d.sectionGap)) {
                         items(success.categories) { category ->
-                            CategoryCard(category = category, onClick = { onCategoryClick(category) })
+                            CategoryCard(
+                                category = category,
+                                onClick = { onCategoryClick(category) }
+                            )
                         }
                     }
                 }
@@ -265,11 +275,24 @@ fun HomeScreen(
             if (success.popularItems.isEmpty()) {
                 item { EmptyLottie(empty, progress) }
             } else {
+                // Lấy vị trí người dùng
+                val userLatLng = (locationState as? LocationState.Success)?.location
+
                 items(success.popularItems, key = { it.id ?: it.hashCode() }) { item ->
-                    val address = itemAddresses[item.id]
+                    // Tính khoảng cách km nếu đủ dữ liệu
+                    val distanceKm = userLatLng?.let { (ulat, ulng) ->
+                        val ilat = item.lat?.toDouble()
+                        val ilng = item.lng?.toDouble()
+                        if (ilat != null && ilng != null) haversineKm(ulat, ulng, ilat, ilng) else null
+                    }
+
+                    // Rút gọn địa chỉ cho UI (nếu có)
+                    val addrShort = extractDistrictOrWard(addresses[item.id])
+
                     PopularItemCard(
                         item = item,
-                        address = address,
+                        locationText = addrShort,   // Địa chỉ hiển thị riêng
+                        distanceKm = distanceKm,    // Khoảng cách hiển thị riêng
                         onClick = { onItemClick(item) }
                     )
                     Spacer(Modifier.height(d.rowGap))
@@ -363,6 +386,10 @@ private fun rememberPullUpToLoadMore(
 @Composable
 private fun EmptyLottie(composition: LottieComposition?, progress: Float) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        LottieAnimation(composition = composition, progress = { progress }, modifier = Modifier.size(90.dp))
+        LottieAnimation(
+            composition = composition,
+            progress = { progress },
+            modifier = Modifier.size(90.dp)
+        )
     }
 }

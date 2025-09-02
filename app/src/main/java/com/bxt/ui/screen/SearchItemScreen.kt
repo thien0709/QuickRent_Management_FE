@@ -1,5 +1,4 @@
 // File: ui/screen/SearchScreen.kt
-
 package com.bxt.ui.screen
 
 import androidx.compose.foundation.layout.*
@@ -23,22 +22,30 @@ import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.ui.components.PopularItemCard
 import com.bxt.viewmodel.SearchItemViewModel
 
+// NEW: dùng LocationViewModel + state để tính khoảng cách
+import com.bxt.viewmodel.LocationViewModel
+import com.bxt.ui.state.LocationState
+import com.bxt.util.haversineKm
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchItemScreen(
     onNavigateBack: () -> Unit,
     onItemClick: (ItemResponse) -> Unit,
-    viewModel: SearchItemViewModel = hiltViewModel()
+    viewModel: SearchItemViewModel = hiltViewModel(),
+    locationViewModel: LocationViewModel = hiltViewModel() // NEW
 ) {
     val searchText by viewModel.searchText.collectAsState()
     val searchedItems by viewModel.searchedItems.collectAsState()
     val isSearching by viewModel.isSearching.collectAsState()
+    val addresses by viewModel.itemAddresses.collectAsState()
+
+    // Lấy vị trí hiện tại (nếu đã có)
+    val locationState by locationViewModel.locationState.collectAsState()
+    val userLatLng = (locationState as? LocationState.Success)?.location // Pair<Double, Double> (lat, lng)
 
     val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Scaffold(
         topBar = {
@@ -77,7 +84,11 @@ fun SearchItemScreen(
             )
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
             if (isSearching) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
@@ -87,9 +98,17 @@ fun SearchItemScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(searchedItems, key = { it.id ?: it.hashCode() }) { item ->
+                        // Tính khoảng cách theo km nếu có đủ dữ liệu
+                        val distanceKm: Double? = userLatLng?.let { (uLat, uLng) ->
+                            val iLat = item.lat?.toDouble()
+                            val iLng = item.lng?.toDouble()
+                            if (iLat != null && iLng != null) haversineKm(uLat, uLng, iLat, iLng) else null
+                        }
+
                         PopularItemCard(
                             item = item,
-                            address = null,
+                            locationText = addresses[item.id], // địa chỉ hiển thị RIÊNG
+                            distanceKm = distanceKm,          // khoảng cách hiển thị RIÊNG
                             onClick = { onItemClick(item) }
                         )
                     }

@@ -11,6 +11,8 @@ data class ItemResponse(
     val imagePrimary : String?,
     val rentalPricePerHour: BigDecimal?,
     val conditionStatus: String?,
+    val lat : BigDecimal?,
+    val lng : BigDecimal?,
     val availabilityStatus: String?,
     val isActive: Boolean?,
     val ownerId: Long?,

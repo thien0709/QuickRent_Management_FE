@@ -2,7 +2,6 @@ package com.bxt.data.api.dto.request;
 import java.math.BigDecimal
 
 data class ItemRequest(
-    val ownerId: Long? = null,
     val categoryId: Long? = null,
     val title: String? = null,
     val description: String? = null,

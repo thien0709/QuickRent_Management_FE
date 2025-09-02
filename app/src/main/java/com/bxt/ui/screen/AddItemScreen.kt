@@ -417,7 +417,6 @@ fun AddItemScreen(
                             else -> {
                                 val req = userId?.let {
                                     ItemRequest(
-                                        ownerId = it,
                                         categoryId = selectedCategoryId!!,
                                         title = title.trim(),
                                         description = description,
