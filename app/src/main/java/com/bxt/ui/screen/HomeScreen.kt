@@ -160,7 +160,7 @@ fun HomeScreen(
                         onClick = { showEditLocation = true },
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium
-                    ) { Text("Đổi địa chỉ", style = MaterialTheme.typography.bodySmall) }
+                    ) { Text("Change Address", style = MaterialTheme.typography.bodySmall) }
                 }
             }
 

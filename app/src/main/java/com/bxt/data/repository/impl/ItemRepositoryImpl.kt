@@ -78,10 +78,7 @@ class ItemRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun searchItems(
-        query: String,
-        page: Int
-    ): ApiResult<PagedResponse<ItemResponse>> {
-        TODO("Not yet implemented")
+    override suspend fun searchItems(request: ItemRequest, page: Int): PagedResponse<ItemResponse> {
+        return apiService.searchItems(request = request, page = page)
     }
 }

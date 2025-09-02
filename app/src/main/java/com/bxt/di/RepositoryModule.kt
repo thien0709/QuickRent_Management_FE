@@ -4,6 +4,7 @@ import android.content.Context
 import com.bxt.data.api.ApiCallExecutor // Import lớp mới
 import com.bxt.data.api.ApiService
 import com.bxt.data.local.DataStoreManager
+import com.bxt.data.repository.AddressRepository
 import com.bxt.data.repository.AuthRepository
 import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ChatRepository
@@ -101,5 +102,14 @@ object RepositoryModule {
         apiCallExecutor: ApiCallExecutor
     ): com.bxt.data.repository.RentalTransactionRepository {
         return RentalTransactionRepositoryImpl(apiService, apiCallExecutor)
+    }
+
+    @Singleton
+    @Provides
+    fun provideAddressRepository(
+        userRepository: UserRepository,
+        locationRepository: LocationRepository
+    ): AddressRepository {
+        return AddressRepositoryImpl(userRepository, locationRepository)
     }
 }

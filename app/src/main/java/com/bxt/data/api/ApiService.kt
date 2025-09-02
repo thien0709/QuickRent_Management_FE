@@ -110,6 +110,7 @@ interface ApiService {
     suspend fun searchItems(@Body request: ItemRequest, @Query("page") page: Int): PagedResponse<ItemResponse>
 
 
+
     @GET("items/{id}")
     suspend fun getItemDetail(@Path("id") id: Long): ItemResponse
 

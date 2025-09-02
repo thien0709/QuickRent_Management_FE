@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
+import com.bxt.data.repository.AddressRepository
 import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
@@ -21,31 +22,24 @@ import javax.inject.Inject
 class CategoryViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val itemRepository: ItemRepository,
-    // *** THÊM 2 DÒNG NÀY ***
-    private val userRepository: UserRepository,
-    private val locationRepository: LocationRepository
+    private val addressRepository: AddressRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<CategoryState>(CategoryState.Loading)
     val state: StateFlow<CategoryState> = _state.asStateFlow()
 
-    // *** THÊM STATE MỚI ĐỂ LƯU ĐỊA CHỈ ***
-    private val _itemAddresses = MutableStateFlow<Map<Long, String>>(emptyMap())
-    val itemAddresses: StateFlow<Map<Long, String>> = _itemAddresses.asStateFlow()
+    val itemAddresses: StateFlow<Map<Long, String>> = addressRepository.itemAddresses
 
 
     fun loadInitialData() {
         viewModelScope.launch {
             _state.value = CategoryState.Loading
-            _itemAddresses.value = emptyMap() // Xóa địa chỉ cũ
             when (val result = categoryRepository.getCategories()) {
                 is ApiResult.Success -> {
                     val categories = result.data ?: emptyList()
                     if (categories.isNotEmpty()) {
-                        // Tự động chọn danh mục đầu tiên và tải sản phẩm
-                        onCategorySelected(categories.first(), categories)
+                         onCategorySelected(categories.first(), categories)
                     } else {
-                        // Cập nhật trạng thái thành công với danh sách rỗng
                         _state.value = CategoryState.Success(
                             categories = emptyList(),
                             products = emptyList(),
@@ -64,7 +58,6 @@ class CategoryViewModel @Inject constructor(
     fun loadCategoryData(categoryId: Long) {
         viewModelScope.launch {
             _state.value = CategoryState.Loading
-            _itemAddresses.value = emptyMap() // Xóa địa chỉ cũ
 
             when (val categoryResult = categoryRepository.getCategories()) {
                 is ApiResult.Success -> {
@@ -91,13 +84,13 @@ class CategoryViewModel @Inject constructor(
         val categoryId = category.id ?: return
 
         viewModelScope.launch {
+            val oldProducts = (currentState as? CategoryState.Success)?.products ?: emptyList()
             _state.value = CategoryState.Success(
                 categories = currentCategories,
-                products = emptyList(), // Xóa sản phẩm cũ
+                products = oldProducts,
                 selectedCategory = category,
                 isLoadingProducts = true
             )
-            _itemAddresses.value = emptyMap() // Xóa địa chỉ cũ
 
             when (val itemResult = itemRepository.getItemsByCategory(categoryId)) {
                 is ApiResult.Success -> {
@@ -108,7 +101,7 @@ class CategoryViewModel @Inject constructor(
                             isLoadingProducts = false
                         ) ?: it
                     }
-                    loadAddressesForItems(products)
+                   addressRepository.loadAddressesForItems(products)
                 }
                 is ApiResult.Error -> {
                     _state.update {
@@ -116,34 +109,6 @@ class CategoryViewModel @Inject constructor(
                             products = emptyList(),
                             isLoadingProducts = false
                         ) ?: it
-                    }
-                }
-            }
-        }
-    }
-
-    private fun loadAddressesForItems(items: List<ItemResponse>) {
-        viewModelScope.launch {
-            items.forEach { item ->
-                if (item.id != null && !_itemAddresses.value.containsKey(item.id)) {
-                    item.ownerId?.let { ownerId ->
-                        val locationResult = userRepository.getUserLocation(ownerId)
-                        if (locationResult is ApiResult.Success) {
-                            val locationMap = locationResult.data
-                            val lat = locationMap["lat"]?.toDouble()
-                            val lng = locationMap["lng"]?.toDouble()
-                            if (lat != null && lng != null) {
-                                val districtResult = locationRepository.getAddressFromLatLng(lat, lng)
-                                val districtOrWard = extractDistrictOrWard(districtResult.getOrNull()) ?: "Location unknown"
-                                _itemAddresses.update { currentMap ->
-                                    currentMap + (item.id to districtOrWard)
-                                }
-                            } else {
-                                _itemAddresses.update { currentMap ->
-                                    currentMap + (item.id to "Owner location not updated")
-                                }
-                            }
-                        }
                     }
                 }
             }

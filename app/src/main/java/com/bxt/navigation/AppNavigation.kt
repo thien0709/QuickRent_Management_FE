@@ -144,9 +144,21 @@ fun AppNavigation() {
                         onAllCategoriesClick = {
                             navController.navigate("category")
                         },
-                        onFilterClick = {}
+                        onFilterClick = { navController.navigate("search") },
+
+                        )
+                }
+
+                composable("search") {
+                    SearchItemScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        onItemClick = { item ->
+                            // Điều hướng đến màn hình chi tiết sản phẩm
+                            navController.navigate("item_detail/${item.id}")
+                        }
                     )
                 }
+
                 composable("profile") {
                     ProfileScreen(navController)
                 }

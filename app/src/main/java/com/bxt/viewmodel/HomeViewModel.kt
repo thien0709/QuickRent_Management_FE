@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.local.DataStoreManager
+import com.bxt.data.repository.AddressRepository
 import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
@@ -27,8 +28,7 @@ class HomeViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val itemRepository: ItemRepository,
     private val dataStore: DataStoreManager,
-    private val userRepository: UserRepository,
-    private val locationRepository: LocationRepository,
+    private val addressRepository: AddressRepository
 
 ) : ViewModel() {
 
@@ -41,8 +41,7 @@ class HomeViewModel @Inject constructor(
     private val _isLoadingMore = MutableStateFlow(false)
     val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
 
-    private val _itemAddresses = MutableStateFlow<Map<Long, String>>(emptyMap())
-    val itemAddresses: StateFlow<Map<Long, String>> = _itemAddresses.asStateFlow()
+    val itemAddresses: StateFlow<Map<Long, String>> = addressRepository.itemAddresses
 
     private var currentPage = 0
     private var endReached = false
@@ -67,7 +66,6 @@ class HomeViewModel @Inject constructor(
         fetchCategories()
         currentPage = 0
         endReached = false
-        _itemAddresses.value = emptyMap()
         fetchItems(reset = true)
     }
 
@@ -132,7 +130,7 @@ class HomeViewModel @Inject constructor(
 
                 if (newItems.isNotEmpty()) {
                     currentPage++
-                    loadAddressesForItems(newItems)
+                    addressRepository.loadAddressesForItems(newItems)
                 }
             }
             is ApiResult.Error -> {
@@ -142,31 +140,4 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun loadAddressesForItems(items: List<ItemResponse>) {
-        viewModelScope.launch {
-            items.forEach { item ->
-                if (item.id != null && !_itemAddresses.value.containsKey(item.id)) {
-                    item.ownerId?.let { ownerId ->
-                        val locationResult = userRepository.getUserLocation(ownerId)
-                        if (locationResult is ApiResult.Success) {
-                            val locationMap = locationResult.data
-                            val lat = locationMap["lat"]?.toDouble()
-                            val lng = locationMap["lng"]?.toDouble()
-                            if (lat != null && lng != null) {
-                                val districtResult = locationRepository.getAddressFromLatLng(lat, lng)
-                                val districtOrWard = extractDistrictOrWard(districtResult.getOrNull()) ?: "Location unknown"
-                                _itemAddresses.update { currentMap ->
-                                    currentMap + (item.id to districtOrWard)
-                                }
-                            } else {
-                                _itemAddresses.update { currentMap ->
-                                    currentMap + (item.id to "Owner location not updated")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+ }

@@ -34,7 +34,7 @@ fun boundingBoxKm(centerLat: Double, centerLng: Double, radiusKm: Double): Pair<
     return LatLng(centerLat - dLat, centerLng - dLng) to
             LatLng(centerLat + dLat, centerLng + dLng)
 }
-public fun extractDistrictOrWard(fullAddress: String?): String? {
+fun extractDistrictOrWard(fullAddress: String?): String? {
     if (fullAddress.isNullOrEmpty()) return null
 
     val addressParts = fullAddress.split(",").map { it.trim() }

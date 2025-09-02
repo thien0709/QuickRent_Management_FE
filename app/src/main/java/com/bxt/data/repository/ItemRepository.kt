@@ -32,10 +32,7 @@ interface ItemRepository {
     suspend fun getItemsByCategory(categoryId: Long): ApiResult<PagedResponse<ItemResponse>>
     suspend fun getItemsByCategory(categoryId: Long, page: Int): ApiResult<PagedResponse<ItemResponse>>
 
-    suspend fun searchItems(query: String, page: Int = 0): ApiResult<PagedResponse<ItemResponse>>
-
-
-
+    suspend fun searchItems(request: ItemRequest, page: Int): PagedResponse<ItemResponse>
 
     suspend fun updateItem(
         itemId: Long,
