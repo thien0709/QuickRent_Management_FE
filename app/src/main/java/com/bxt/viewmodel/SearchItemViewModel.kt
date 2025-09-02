@@ -17,73 +17,139 @@ import javax.inject.Inject
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class SearchItemViewModel @Inject constructor(
-    private val itemRepository: ItemRepository,
-    private val locationRepository: LocationRepository
+    private val repo: ItemRepository,
+    private val locationRepo: LocationRepository
 ) : ViewModel() {
 
-    private val _searchText = MutableStateFlow("")
-    val searchText: StateFlow<String> = _searchText.asStateFlow()
+    // ---- Filters ----
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
 
-    private val _searchedItems = MutableStateFlow<List<ItemResponse>>(emptyList())
-    val searchedItems: StateFlow<List<ItemResponse>> = _searchedItems.asStateFlow()
+    private val _minPrice = MutableStateFlow<Double?>(null)
+    private val _maxPrice = MutableStateFlow<Double?>(null)
 
-    private val _isSearching = MutableStateFlow(false)
-    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+    private val _nearCenter = MutableStateFlow<Pair<Double, Double>?>(null)
+    private val _radiusKm = MutableStateFlow(5.0)
 
-    private val _itemAddresses = MutableStateFlow<Map<Long, String>>(emptyMap())
-    val itemAddresses: StateFlow<Map<Long, String>> = _itemAddresses.asStateFlow()
+    // ---- Paging state ----
+    private val _items = MutableStateFlow<List<ItemResponse>>(emptyList())
+    val items: StateFlow<List<ItemResponse>> = _items.asStateFlow()
+
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
+    private val _refreshing = MutableStateFlow(false)
+    val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
+
+    private val _loadingMore = MutableStateFlow(false)
+    val loadingMore: StateFlow<Boolean> = _loadingMore.asStateFlow()
+
+    private val _end = MutableStateFlow(false)
+    val endReached: StateFlow<Boolean> = _end.asStateFlow()
+
+    private var page = 0
+
+    // ---- Address cache for cards ----
+    private val _addresses = MutableStateFlow<Map<Long, String>>(emptyMap())
+    val addresses: StateFlow<Map<Long, String>> = _addresses.asStateFlow()
+    private val addrCache = mutableMapOf<String, String>()
 
     init {
         viewModelScope.launch {
-            _searchText
-                .debounce(400L)
-                .filter { it.length > 1 }
+            combine(
+                _query.debounce(250).map { it.trim() },
+                _minPrice, _maxPrice, _nearCenter, _radiusKm
+            ) { q, min, max, center, r -> Params(q.ifBlank { null }, min, max, center, r) }
                 .distinctUntilChanged()
-                .collectLatest { query -> searchItems(query) }
+                .collectLatest { startNew(it) }
         }
     }
 
-    fun onSearchQueryChanged(query: String) {
-        _searchText.value = query
-        if (query.isBlank()) {
-            _searchedItems.value = emptyList()
-            _itemAddresses.value = emptyMap()
-        }
+    // ---- Public API ----
+    fun setQuery(text: String) { _query.value = text }
+    fun setPrice(min: Double?, max: Double?) { _minPrice.value = min; _maxPrice.value = max }
+    fun setNearMe(enabled: Boolean, center: Pair<Double, Double>?, radiusKm: Double) {
+        _nearCenter.value = if (enabled) center else null
+        _radiusKm.value = radiusKm
     }
 
-    private fun searchItems(query: String) {
+    fun refresh() {
+        val p = Params(_query.value.ifBlank { null }, _minPrice.value, _maxPrice.value, _nearCenter.value, _radiusKm.value)
+        if (_refreshing.value || _loading.value) return
         viewModelScope.launch {
-            _isSearching.value = true
-            try {
-                val request = ItemRequest(title = query)
-                val page0 = itemRepository.searchItems(request, 0)
-                val items = page0.content.orEmpty()
-                _searchedItems.value = items
-
-                // reverse-geocode địa chỉ cho batch kết quả
-                prefetchAddresses(items)
-            } catch (_: Exception) {
-                _searchedItems.value = emptyList()
-                _itemAddresses.value = emptyMap()
-            } finally {
-                _isSearching.value = false
-            }
+            _refreshing.value = true
+            fetch(reset = true, p)
+            _refreshing.value = false
         }
     }
 
-    private fun prefetchAddresses(items: List<ItemResponse>) {
-        items.forEach { item ->
-            val id = item.id ?: return@forEach
-            if (_itemAddresses.value.containsKey(id)) return@forEach
+    fun loadMore() {
+        val p = Params(_query.value.ifBlank { null }, _minPrice.value, _maxPrice.value, _nearCenter.value, _radiusKm.value)
+        if (_loadingMore.value || _end.value || _loading.value) return
+        viewModelScope.launch {
+            _loadingMore.value = true
+            fetch(reset = false, p)
+            _loadingMore.value = false
+        }
+    }
 
+    // ---- Core ----
+    private fun startNew(p: Params) {
+        page = 0
+        _end.value = false
+        _items.value = emptyList()
+        viewModelScope.launch {
+            _loading.value = true
+            fetch(reset = true, p)
+            _loading.value = false
+        }
+    }
+
+    private suspend fun fetch(reset: Boolean, p: Params) {
+        val req = ItemRequest(title = p.title) // server search theo tên
+        val resp = if (p.center != null)
+            repo.searchItems(req, page, p.center.first, p.center.second, p.radiusKm)
+        else
+            repo.searchItems(req, page)
+
+        // Lọc giá client-side (gọn & an toàn nếu server chưa hỗ trợ)
+        val batch = resp.content.orEmpty().filter { item ->
+            val price = item.rentalPricePerHour?.toDouble()
+            val okMin = p.min == null || (price != null && price >= p.min)
+            val okMax = p.max == null || (price != null && price <= p.max)
+            okMin && okMax
+        }
+
+        if (batch.isEmpty()) { _end.value = true; return }
+
+        _items.value = if (reset) batch else _items.value + batch
+        page += 1
+
+        prefetchAddresses(batch)
+    }
+
+    private fun prefetchAddresses(list: List<ItemResponse>) {
+        list.forEach { item ->
+            val id = item.id ?: return@forEach
+            if (_addresses.value.containsKey(id)) return@forEach
             val lat = item.lat?.toDouble() ?: return@forEach
             val lng = item.lng?.toDouble() ?: return@forEach
 
             viewModelScope.launch(Dispatchers.IO) {
-                val addr = locationRepository.getAddressFromLatLng(lat, lng).getOrNull()
-                val fallback = String.format(Locale.US, "%.6f, %.6f", lat, lng)
-                _itemAddresses.update { it + (id to (addr ?: fallback)) }
+                val key = String.format(Locale.US, "%.6f,%.6f", lat, lng)
+                val cached = addrCache[key]
+                val text = cached ?: locationRepo.getAddressFromLatLng(lat, lng).getOrNull()
+                if (text != null) {
+                    addrCache[key] = text
+                    _addresses.update { it + (id to text) }
+                }
             }
         }
     }
+
+    private data class Params(
+        val title: String?,
+        val min: Double?, val max: Double?,
+        val center: Pair<Double, Double>?, val radiusKm: Double
+    )
 }

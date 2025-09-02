@@ -107,8 +107,13 @@ interface ApiService {
 
 
     @POST("items/search")
-    suspend fun searchItems(@Body request: ItemRequest, @Query("page") page: Int): PagedResponse<ItemResponse>
-
+    suspend fun searchItems(
+        @Body request: ItemRequest,
+        @Query("page") page: Int,
+        @Query("centerLat") centerLat: Double? = null,
+        @Query("centerLng") centerLng: Double? = null,
+        @Query("radiusKm") radiusKm: Double? = null
+    ): PagedResponse<ItemResponse>
 
 
     @GET("items/{id}")

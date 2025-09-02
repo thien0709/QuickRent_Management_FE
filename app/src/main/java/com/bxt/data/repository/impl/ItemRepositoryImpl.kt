@@ -81,4 +81,20 @@ class ItemRepositoryImpl @Inject constructor(
     override suspend fun searchItems(request: ItemRequest, page: Int): PagedResponse<ItemResponse> {
         return apiService.searchItems(request = request, page = page)
     }
+
+    override suspend fun searchItems(
+        request: ItemRequest,
+        page: Int,
+        centerLat: Double?,
+        centerLng: Double?,
+        radiusKm: Double?
+    ): PagedResponse<ItemResponse> {
+        return apiService.searchItems(
+            request = request,
+            page = page,
+            centerLat = centerLat,
+            centerLng = centerLng,
+            radiusKm = radiusKm
+        )
+    }
 }

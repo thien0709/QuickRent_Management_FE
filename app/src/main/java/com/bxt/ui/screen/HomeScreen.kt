@@ -166,65 +166,6 @@ fun HomeScreen(
                     ) { Text("Change Address", style = MaterialTheme.typography.bodySmall) }
                 }
             }
-
-            // Search + Filter
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = searchText,
-                        onValueChange = { searchText = it },
-                        placeholder = {
-                            Text(
-                                "Search",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF999999)
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                            )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent
-                        ),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        textStyle = MaterialTheme.typography.bodySmall
-                    )
-
-                    Spacer(Modifier.width(d.rowGap))
-
-                    Card(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clickable { onFilterClick() },
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = "Filter",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            }
-
             // Categories
             item {
                 Row(
@@ -265,11 +206,25 @@ fun HomeScreen(
 
             // Popular
             item {
-                Text(
-                    text = "POPULAR TODAY",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "POPULAR TODAY",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+
+                    AssistChip(
+                        onClick = onFilterClick,
+                        label = { Text("Search") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = null)
+                        }
+                    )
+                }
             }
 
             if (success.popularItems.isEmpty()) {

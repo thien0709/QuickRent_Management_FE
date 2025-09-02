@@ -44,19 +44,18 @@ class RentalServiceViewModel @Inject constructor(
 
     private enum class LoadMode { OWNER, RENTER }
 
-    // Thêm khối init để khởi tạo việc tải dữ liệu khi ViewModel được tạo
     init {
         initialLoad()
     }
 
     fun loadByRenter() {
-        if (currentMode == LoadMode.RENTER) return // Tránh tải lại khi đã ở chế độ này
+        if (currentMode == LoadMode.RENTER) return
         currentMode = LoadMode.RENTER
         initialLoad()
     }
 
     fun loadByOwner() {
-        if (currentMode == LoadMode.OWNER) return // Tránh tải lại khi đã ở chế độ này
+        if (currentMode == LoadMode.OWNER) return
         currentMode = LoadMode.OWNER
         initialLoad()
     }

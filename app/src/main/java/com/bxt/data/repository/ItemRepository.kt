@@ -34,6 +34,14 @@ interface ItemRepository {
 
     suspend fun searchItems(request: ItemRequest, page: Int): PagedResponse<ItemResponse>
 
+    suspend fun searchItems(
+        request: ItemRequest,
+        page: Int,
+        centerLat: Double?,
+        centerLng: Double?,
+        radiusKm: Double?
+    ): PagedResponse<ItemResponse>
+
     suspend fun updateItem(
         itemId: Long,
         reqPart: ItemRequest,
