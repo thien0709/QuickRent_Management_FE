@@ -19,10 +19,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.ui.components.MapboxSearchBar
 import com.bxt.ui.components.PickDateTime
+import com.bxt.ui.state.ItemDataState
 import com.bxt.ui.state.RentalState
 import com.bxt.ui.theme.LocalDimens
 import com.bxt.util.MapboxMarkerUtils
-import com.bxt.viewmodel.ItemDataState
 import com.bxt.viewmodel.RentalItemViewModel
 import com.mapbox.geojson.Point
 import com.mapbox.maps.MapboxExperimental
@@ -69,7 +69,6 @@ fun RentalItemScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Dựa vào state để hiển thị UI
             when (val state = itemDataState) {
                 is ItemDataState.Loading -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))

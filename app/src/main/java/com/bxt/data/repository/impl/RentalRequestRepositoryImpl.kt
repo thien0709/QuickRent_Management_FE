@@ -50,12 +50,33 @@ class RentalRequestRepositoryImpl(
         }
     }
 
-    override suspend fun updateRequestStatus(
-        requestId: Long,
-        newStatus: String
-    ): ApiResult<RentalRequestResponse> {
+    override suspend fun confirmRequest(requestId: Long): ApiResult<RentalRequestResponse> {
         return apiCallExecutor.execute {
-            apiService.updateRequestStatus(requestId, newStatus)
+            apiService.confirmRentalRequest(requestId)
+        }
+    }
+
+    override suspend fun rejectRequest(requestId: Long): ApiResult<RentalRequestResponse> {
+        return apiCallExecutor.execute {
+            apiService.rejectRentalRequest(requestId)
+        }
+    }
+
+    override suspend fun cancelRequest(requestId: Long): ApiResult<RentalRequestResponse> {
+        return apiCallExecutor.execute {
+            apiService.cancelRentalRequest(requestId)
+        }
+    }
+
+    override suspend fun completeRequest(requestId: Long): ApiResult<RentalRequestResponse> {
+        return apiCallExecutor.execute {
+            apiService.completeRentalRequest(requestId)
+        }
+    }
+
+    override suspend fun startRental(requestId: Long): ApiResult<RentalRequestResponse> {
+        return apiCallExecutor.execute {
+            apiService.startRentalRequest(requestId)
         }
     }
 }

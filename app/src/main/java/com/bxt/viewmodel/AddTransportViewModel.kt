@@ -63,13 +63,13 @@ class AddTransportViewModel @Inject constructor(
 
     private val http = OkHttpClient()
 
-    // Token cho các call REST (Directions/Geocoding)
+    // Token cho Directions/Geocoding
     private val mapboxToken: String by lazy {
         val id = context.resources.getIdentifier("mapbox_access_token", "string", context.packageName)
         if (id != 0) context.getString(id) else ""
     }
 
-    /* --------- Actions cơ bản --------- */
+    /* ---------------- Actions cơ bản ---------------- */
 
     fun setSelecting(target: SelectTarget) = _uiState.update { it.copy(selecting = target) }
 
@@ -77,9 +77,7 @@ class AddTransportViewModel @Inject constructor(
         _uiState.update { it.copy(currentPoint = point) }
         if (_uiState.value.fromPoint == null) {
             viewModelScope.launch {
-                val addr = addressOrNull ?: withContext(Dispatchers.IO) {
-                    reverseGeocode(point)
-                }
+                val addr = addressOrNull ?: withContext(Dispatchers.IO) { reverseGeocode(point) }
                 _uiState.update { it.copy(fromPoint = point, fromAddress = addr) }
                 updateRouteIfPossible()
             }
@@ -104,7 +102,7 @@ class AddTransportViewModel @Inject constructor(
         }
     }
 
-    // Dùng cho MapboxSearchBar
+    // MapboxSearchBar chọn địa điểm
     fun setFromBySearch(point: Point, address: String) {
         _uiState.update { it.copy(fromPoint = point, fromAddress = address) }
         updateRouteIfPossible()
@@ -114,8 +112,16 @@ class AddTransportViewModel @Inject constructor(
         updateRouteIfPossible()
     }
 
-    fun onFeeChanged(fee: String) { if (fee.all { it.isDigit() }) _uiState.update { it.copy(deliveryFee = fee) } }
-    fun onSeatsChanged(seats: String) { if (seats.all { it.isDigit() }) _uiState.update { it.copy(availableSeat = seats) } }
+    // Cho phép GÕ text trong ô địa chỉ (không đổi tọa độ)
+    fun onFromAddressTyping(text: String) { _uiState.update { it.copy(fromAddress = text) } }
+    fun onToAddressTyping(text: String)   { _uiState.update { it.copy(toAddress = text) } }
+
+    fun onFeeChanged(fee: String) {
+        if (fee.all { it.isDigit() }) _uiState.update { it.copy(deliveryFee = fee) }
+    }
+    fun onSeatsChanged(seats: String) {
+        if (seats.all { it.isDigit() }) _uiState.update { it.copy(availableSeat = seats) }
+    }
     fun onDescriptionChanged(description: String) = _uiState.update { it.copy(description = description) }
     fun onTimeChanged(time: Instant) = _uiState.update { it.copy(departTime = time) }
 
@@ -162,7 +168,7 @@ class AddTransportViewModel @Inject constructor(
         }
     }
 
-    /* --------- Directions (Mapbox) --------- */
+    /* ---------------- Directions (Mapbox) ---------------- */
 
     private fun updateRouteIfPossible() {
         val origin = _uiState.value.fromPoint ?: _uiState.value.currentPoint
@@ -194,7 +200,7 @@ class AddTransportViewModel @Inject constructor(
 
                 val json = JSONObject(body)
                 val routes = json.optJSONArray("routes")
-                if (routes == null || routes.length() == 0) error("Directions lỗi")
+                if (routes == null || routes.length() == 0) error("Không tìm thấy tuyến đường")
 
                 val first = routes.getJSONObject(0)
                 val coords = first.getJSONObject("geometry").getJSONArray("coordinates")
@@ -211,7 +217,6 @@ class AddTransportViewModel @Inject constructor(
         }
     }
 
-    /* --------- Reverse geocode --------- */
 
     private fun reverseGeocode(p: Point): String = reverseGeocode(p.latitude(), p.longitude())
 

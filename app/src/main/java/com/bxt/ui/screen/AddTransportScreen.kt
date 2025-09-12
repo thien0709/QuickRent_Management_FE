@@ -1,3 +1,4 @@
+// File: com/bxt/ui/screen/AddTransportScreen.kt
 package com.bxt.ui.screen
 
 import android.Manifest
@@ -11,6 +12,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,7 +23,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.bxt.R
 import com.bxt.ui.components.MapboxSearchBar
+import com.bxt.util.MapboxMarkerUtils
+import com.bxt.viewmodel.AddTransportUiState
 import com.bxt.viewmodel.AddTransportViewModel
 import com.bxt.viewmodel.SelectTarget
 import com.google.android.gms.location.LocationServices
@@ -28,11 +34,13 @@ import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.Style
+import com.mapbox.maps.extension.style.layers.properties.generated.IconAnchor
+import com.mapbox.maps.extension.style.layers.properties.generated.TextAnchor
 import com.mapbox.maps.plugin.annotation.annotations
-import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
-import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPolylineAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
 import com.mapbox.maps.plugin.gestures.gestures
 import java.time.Instant
 import java.time.LocalDateTime
@@ -71,7 +79,16 @@ fun AddTransportScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { TopAppBar(title = { Text("Tạo Chuyến Đi Mới") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Tạo Chuyến Đi Mới") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -87,25 +104,27 @@ fun AddTransportScreen(
                 onSelectFrom = { viewModel.setSelecting(SelectTarget.FROM) },
                 onSelectTo = { viewModel.setSelecting(SelectTarget.TO) },
                 onUseMyLocation = {
-                    permissionLauncher.launch(arrayOf(
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    ))
+                    permissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
                 }
             )
 
-            // FROM - dùng MapboxSearchBar
+            // FROM - MapboxSearchBar (cho phép gõ)
             MapboxSearchBar(
                 value = uiState.fromAddress,
-                onValueChange = { /* chỉ hiển thị; kết quả chọn sẽ set qua onPlacePicked */ },
+                onValueChange = { viewModel.onFromAddressTyping(it) },
                 proximity = uiState.currentPoint ?: uiState.fromPoint,
                 onPlacePicked = { p, addr -> viewModel.setFromBySearch(p, addr) }
             )
 
-            // TO - dùng MapboxSearchBar
+            // TO - MapboxSearchBar (cho phép gõ)
             MapboxSearchBar(
                 value = uiState.toAddress,
-                onValueChange = { /* như trên */ },
+                onValueChange = { viewModel.onToAddressTyping(it) },
                 proximity = uiState.fromPoint ?: uiState.currentPoint,
                 onPlacePicked = { p, addr -> viewModel.setToBySearch(p, addr) }
             )
@@ -142,7 +161,9 @@ fun AddTransportScreen(
             Button(
                 onClick = viewModel::createTransport,
                 enabled = !uiState.isLoading,
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
@@ -150,7 +171,9 @@ fun AddTransportScreen(
                         color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp
                     )
-                } else Text("Tạo Chuyến Đi")
+                } else {
+                    Text("Tạo Chuyến Đi")
+                }
             }
         }
     }
@@ -158,74 +181,104 @@ fun AddTransportScreen(
 
 @Composable
 private fun MapSection(
-    uiState: com.bxt.viewmodel.AddTransportUiState,
+    uiState: AddTransportUiState,
     onMapClick: (Point) -> Unit,
     onSelectFrom: () -> Unit,
     onSelectTo: () -> Unit,
     onUseMyLocation: () -> Unit
 ) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(onClick = onSelectFrom, modifier = Modifier.weight(1f)) { Text("Chọn điểm đi trên map") }
-            OutlinedButton(onClick = onSelectTo, modifier = Modifier.weight(1f)) { Text("Chọn điểm đến trên map") }
-        }
-        TextButton(onClick = onUseMyLocation) { Text("Dùng vị trí hiện tại làm điểm đi") }
+    val context = LocalContext.current
 
-        val mapView = rememberMapViewWithLifecycle()
-        // Tái sử dụng managers
-        val pointManager = remember(mapView) { mapView.annotations.createPointAnnotationManager() }
-        val lineManager = remember(mapView) { mapView.annotations.createPolylineAnnotationManager() }
-
-        AndroidView(
-            modifier = Modifier.fillMaxWidth().height(260.dp),
-            factory = {
-                mapView.getMapboxMap().loadStyleUri(Style.MAPBOX_STREETS)
-                // Đăng ký click đúng API gestures
-                mapView.gestures.addOnMapClickListener { p ->
-                    onMapClick(p)
-                    true
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onSelectFrom, modifier = Modifier.weight(1f)) {
+                    Text("Chọn điểm đi trên map")
                 }
-                mapView
-            },
-            update = { mv ->
-                val map = mv.getMapboxMap()
-
-                // Camera
-                val center = uiState.fromPoint ?: uiState.currentPoint ?: Point.fromLngLat(106.700, 10.776)
-                map.setCamera(CameraOptions.Builder().center(center).zoom(12.0).build())
-
-                // Markers
-                pointManager.deleteAll()
-                uiState.fromPoint?.let {
-                    pointManager.create(
-                        PointAnnotationOptions()
-                            .withPoint(it)
-                            .withTextField("Điểm đi")
-                    )
-                }
-                uiState.toPoint?.let {
-                    pointManager.create(
-                        PointAnnotationOptions()
-                            .withPoint(it)
-                            .withTextField("Điểm đến")
-                    )
-                }
-
-                // Polyline
-                lineManager.deleteAll()
-                if (uiState.routePoints.isNotEmpty()) {
-                    lineManager.create(
-                        PolylineAnnotationOptions()
-                            .withPoints(uiState.routePoints)
-                            .withLineColor("#3bb2d0")
-                            .withLineWidth(5.0)
-                    )
+                OutlinedButton(onClick = onSelectTo, modifier = Modifier.weight(1f)) {
+                    Text("Chọn điểm đến trên map")
                 }
             }
-        )
+            TextButton(onClick = onUseMyLocation) { Text("Dùng vị trí hiện tại làm điểm đi") }
 
-        if (uiState.isRouting) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            val mapView = rememberMapViewWithLifecycle()
+            val pointManager = remember(mapView) { mapView.annotations.createPointAnnotationManager() }
+            val lineManager  = remember(mapView) { mapView.annotations.createPolylineAnnotationManager() }
+
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp),
+                factory = {
+                    mapView.getMapboxMap().loadStyleUri(Style.MAPBOX_STREETS)
+                    mapView.gestures.addOnMapClickListener { p -> onMapClick(p); true }
+                    mapView
+                },
+                update = { mv ->
+                    val map = mv.getMapboxMap()
+
+                    // Camera
+                    val center = uiState.fromPoint ?: uiState.currentPoint
+                    ?: Point.fromLngLat(106.700, 10.776)
+                    map.setCamera(
+                        CameraOptions.Builder()
+                            .center(center)
+                            .zoom(12.0)
+                            .build()
+                    )
+
+                    // Clear & redraw
+                    pointManager.deleteAll()
+                    lineManager.deleteAll()
+
+                    // FROM pin
+                    uiState.fromPoint?.let {
+                        pointManager.create(
+                            MapboxMarkerUtils
+                                .createCustomIconMarker(
+                                    context = context,
+                                    point = it,
+                                    iconResId = R.drawable.ic_map_from,
+                                    title = "Điểm đi"
+                                )
+                                .withIconAnchor(IconAnchor.BOTTOM)
+                                .withTextAnchor(TextAnchor.TOP)
+                        )
+                    }
+                    // TO pin
+                    uiState.toPoint?.let {
+                        pointManager.create(
+                            MapboxMarkerUtils
+                                .createCustomIconMarker(
+                                    context = context,
+                                    point = it,
+                                    iconResId = R.drawable.ic_map_to,
+                                    title = "Điểm đến"
+                                )
+                                .withIconAnchor(IconAnchor.BOTTOM)
+                                .withTextAnchor(TextAnchor.TOP)
+                        )
+                    }
+
+                    // Polyline
+                    if (uiState.routePoints.isNotEmpty()) {
+                        lineManager.create(
+                            PolylineAnnotationOptions()
+                                .withPoints(uiState.routePoints)
+                                .withLineColor("#3BB2D0")
+                                .withLineWidth(5.0)
+                        )
+                    }
+                }
+            )
+
+            if (uiState.isRouting) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
         }
     }
 }

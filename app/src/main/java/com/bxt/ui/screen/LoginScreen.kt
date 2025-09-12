@@ -55,7 +55,7 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_background),
+                painter = painterResource(id = R.drawable.ic_whale),
                 contentDescription = null,
                 modifier = Modifier.size(100.dp)
             )
@@ -121,7 +121,7 @@ fun LoginScreen(
                 onClick = { viewModel.login() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(d.buttonHeight), // chỉnh trong LocalDimens nếu muốn 50dp
+                    .height(d.buttonHeight),
                 enabled = loginState !is LoginState.Loading,
                 shape = MaterialTheme.shapes.medium
             ) {

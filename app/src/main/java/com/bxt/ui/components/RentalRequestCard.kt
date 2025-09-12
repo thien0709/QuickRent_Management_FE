@@ -1,16 +1,15 @@
-// bxt/ui/components/RentalRequestCard.kt
-
 package com.bxt.ui.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.bxt.data.api.dto.response.RentalRequestResponse
@@ -27,84 +26,57 @@ fun RentalRequestCard(
     address: String?,
     isUpdating: Boolean,
     onView: () -> Unit,
-    onChangeStatus: (String) -> Unit
+    onConfirm: () -> Unit,
+    onReject: () -> Unit,
+    onCancel: () -> Unit
 ) {
-    ElevatedCard {
-        Box {
+    val status = data.status?.uppercase()
+
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onView),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Row(
-                modifier = Modifier.padding(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 AsyncImage(
-                    model = thumbnailUrl,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(RoundedCornerShape(10.dp)),
+                    model = thumbnailUrl ?: "https://via.placeholder.com/100",
+                    contentDescription = "Ảnh sản phẩm",
+                    modifier = Modifier.size(80.dp).clip(MaterialTheme.shapes.small),
                     contentScale = ContentScale.Crop
                 )
-
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Yêu cầu #${data.id ?: "-"}", style = MaterialTheme.typography.titleMedium)
-                        AssistChip(onClick = {}, label = { Text(data.status ?: "UNKNOWN") })
-                    }
-
-                    Text("Bắt đầu: ${formatInstant(data.rentalStartTime)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Kết thúc: ${formatInstant(data.rentalEndTime)}", style = MaterialTheme.typography.bodySmall)
-                    Text("Đến: ${address ?: "Đang tải..."}", style = MaterialTheme.typography.bodySmall)
-                    Text("Tổng: ${data.totalPrice ?: "-"}đ", style = MaterialTheme.typography.bodySmall)
-
-                    Spacer(Modifier.height(4.dp))
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = onView,
-                            enabled = !isUpdating
-                        ) {
-                            Text("Xem chi tiết")
-                        }
-
-                        val currentStatus = data.status?.uppercase()
-                        if (isOwnerMode) {
-                            when (currentStatus) {
-                                "PENDING" -> {
-                                    Button(onClick = { onChangeStatus("CONFIRMED") }, enabled = !isUpdating) { Text("Chấp nhận") }
-                                    Button(onClick = { onChangeStatus("REJECTED") }, enabled = !isUpdating, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("Từ chối") }
-                                }
-                                "CONFIRMED" -> {
-                                    Button(onClick = { onView() }, enabled = !isUpdating) {
-                                        Text("Chuẩn bị")
-                                    }
-                                }
-                            }
-                        } else {
-                            when (currentStatus) {
-                                "PENDING", "CONFIRMED" -> {
-                                    Button(onClick = { onChangeStatus("CANCELLED") }, enabled = !isUpdating) {
-                                        Text("Hủy yêu cầu")
-                                    }
-                                }
-                            }
-                        }
-                    }
+                Column(Modifier.weight(1f)) {
+                    Text("Yêu cầu #${data.id}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Trạng thái: $status", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    Text("Ngày thuê: ${formatInstant(data.rentalStartTime)}", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
 
             if (isUpdating) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                        .clip(CardDefaults.shape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+            } else {
+                if (isOwnerMode && status == "PENDING") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                    ) {
+                        OutlinedButton(onClick = onReject) { Text("Từ chối") }
+                        Button(onClick = onConfirm) { Text("Xác nhận") }
+                    }
+                }
+                if (status in listOf("PENDING", "CONFIRMED")) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = onCancel, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                            Text("Hủy yêu cầu")
+                        }
+                    }
                 }
             }
         }
@@ -112,13 +84,11 @@ fun RentalRequestCard(
 }
 
 private fun formatInstant(instant: Instant?): String {
-    if (instant == null) return "-"
+    if (instant == null) return "N/A"
     return try {
-        val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+        DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy")
             .withLocale(Locale("vi", "VN"))
             .withZone(ZoneId.systemDefault())
-        formatter.format(instant)
-    } catch (e: Exception) {
-        "-"
-    }
+            .format(instant)
+    } catch (e: Exception) { "Invalid date" }
 }

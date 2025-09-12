@@ -290,12 +290,29 @@ fun AppNavigation() {
                 composable(
                     route = "transaction_detail/{rentalRequestId}",
                     arguments = listOf(navArgument("rentalRequestId") { type = NavType.LongType })
-                ) { backStackEntry ->
-                    val vm: TransactionDetailViewModel = hiltViewModel(backStackEntry)
+                ) {
                     TransactionDetailScreen(
-                        viewModel = vm,
                         onBackClick = { navController.popBackStack() },
-                        onUploadSuccess = { navController.popBackStack() }
+                        onNavigateToTransport = { fromLat, fromLng, toLat, toLng ->
+                            navController.navigate(
+                                "transport_service?fromLat=$fromLat&fromLng=$fromLng&toLat=$toLat&toLng=$toLng"
+                            )
+                        }
+                    )
+                }
+
+                composable(
+                    route = "transport_service?fromLat={fromLat}&fromLng={fromLng}&toLat={toLat}&toLng={toLng}",
+                    arguments = listOf(
+                        navArgument("fromLat") { type = NavType.FloatType; defaultValue = -1f },
+                        navArgument("fromLng") { type = NavType.FloatType; defaultValue = -1f },
+                        navArgument("toLat") { type = NavType.FloatType; defaultValue = -1f },
+                        navArgument("toLng") { type = NavType.FloatType; defaultValue = -1f }
+                    )
+                ) {
+                    TransportServiceScreen(
+                        navController = navController,
+                        viewModel = hiltViewModel()
                     )
                 }
 

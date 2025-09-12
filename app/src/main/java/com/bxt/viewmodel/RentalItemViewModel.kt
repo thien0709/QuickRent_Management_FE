@@ -10,6 +10,7 @@ import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
 import com.bxt.data.repository.RentalRequestRepository
 import com.bxt.di.ApiResult
+import com.bxt.ui.state.ItemDataState
 import com.bxt.ui.state.RentalState
 import com.mapbox.geojson.Point
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,11 +20,6 @@ import java.math.BigDecimal
 import java.time.Instant
 import javax.inject.Inject
 
-sealed interface ItemDataState {
-    object Loading : ItemDataState
-    data class Success(val item: ItemResponse) : ItemDataState
-    data class Error(val message: String) : ItemDataState
-}
 
 @HiltViewModel
 class RentalItemViewModel @Inject constructor(

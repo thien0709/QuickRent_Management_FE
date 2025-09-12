@@ -10,8 +10,9 @@ import com.bxt.data.api.dto.response.TransportServiceResponse
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
 import com.bxt.di.ErrorResponse
+import com.bxt.viewmodel.Capabilities
 import com.bxt.viewmodel.ChatThreadUi
-import com.bxt.viewmodel.FullTransactionDetails
+import com.bxt.viewmodel.FullRentalDetails
 
 //import com.google.android.gms.maps.model.LatLng
 //import com.google.android.libraries.places.api.model.AutocompletePrediction
@@ -103,16 +104,10 @@ sealed interface RentalState {
     data class Error(val message: String) : RentalState
 }
 
-
-sealed interface RentalRequestsState {
-    data object Loading : RentalRequestsState // Giữ nguyên
-    data class Error(val message: ErrorResponse) : RentalRequestsState // Giữ nguyên
-
-    data class Success(
-        val data: List<RentalRequestResponse> = emptyList(),
-        val isLoadingMore: Boolean = false, // Cờ báo đang tải trang tiếp theo
-        val canLoadMore: Boolean = true     // Cờ báo còn trang để tải hay không
-    ) : RentalRequestsState
+sealed class RentalServiceState {
+    data object Loading : RentalServiceState()
+    data class Success(val requests: List<RentalRequestResponse> = emptyList()) : RentalServiceState()
+    data class Error(val message: String) : RentalServiceState()
 }
 
 sealed interface TransportServiceListState {
@@ -147,8 +142,16 @@ sealed interface ChatListUiState {
     data class Error(val message: String) : ChatListUiState
 }
 
+sealed interface ItemDataState {
+    object Loading : ItemDataState
+    data class Success(val item: ItemResponse) : ItemDataState
+    data class Error(val message: String) : ItemDataState
+}
+
 sealed interface TransactionDetailState {
     object Loading : TransactionDetailState
-    data class Success(val details: FullTransactionDetails) : TransactionDetailState
+    data class Success(val details: FullRentalDetails, val caps: Capabilities) :
+        TransactionDetailState
+
     data class Error(val message: String) : TransactionDetailState
 }

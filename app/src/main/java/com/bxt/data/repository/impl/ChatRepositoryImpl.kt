@@ -11,10 +11,6 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
 
     private val database = FirebaseDatabase.getInstance().reference
 
-    // *** BẮT ĐẦU THAY ĐỔI (1/2): THÊM HÀM MỚI ***
-    /**
-     * Chỉ tải toàn bộ lịch sử tin nhắn một lần duy nhất bằng addListenerForSingleValueEvent.
-     */
     override fun getInitialMessages(
         myUserId: String,
         otherUserId: String,
@@ -35,7 +31,6 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
                 }
             })
     }
-    // *** KẾT THÚC THAY ĐỔI (1/2) ***
 
     override fun sendMessage(
         myUserId: String,
@@ -61,10 +56,6 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
         database.updateChildren(updates)
     }
 
-    // *** BẮT ĐẦU THAY ĐỔI (2/2): SỬA LẠI HÀM NÀY ***
-    /**
-     * Lắng nghe các tin nhắn MỚI đến sau một mốc thời gian cụ thể (thời điểm hiện tại).
-     */
     override fun listenForMessages(
         myUserId: String,
         otherUserId: String,
@@ -73,7 +64,7 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
         val messagesRef = database.child("users").child(myUserId)
             .child("chats").child(otherUserId).child("messages")
             .orderByChild("timestamp")
-            .startAt((System.currentTimeMillis()).toDouble()) // Chỉ lấy các tin nhắn mới hơn
+            .startAt((System.currentTimeMillis()).toDouble())
 
         val listener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
@@ -93,7 +84,6 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
         messagesRef.addChildEventListener(listener)
         return listener
     }
-    // *** KẾT THÚC THAY ĐỔI (2/2) ***
 
 
     override fun removeMessagesListener(

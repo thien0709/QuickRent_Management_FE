@@ -139,11 +139,21 @@ interface ApiService {
     ): RentalRequestResponse
 
 
-    @PATCH("rental-requests/{id}/status")
-    suspend fun updateRequestStatus(
-        @Path("id") requestId: Long,
-        @Query("status") newStatus: String
-    ): RentalRequestResponse
+    @PATCH("rental-requests/{id}/confirm")
+    suspend fun confirmRentalRequest(@Path("id") requestId: Long): RentalRequestResponse
+
+    @PATCH("rental-requests/{id}/reject")
+    suspend fun rejectRentalRequest(@Path("id") requestId: Long):RentalRequestResponse
+
+    @PATCH("rental-requests/{id}/cancel")
+    suspend fun cancelRentalRequest(@Path("id") requestId: Long): RentalRequestResponse
+
+    @PATCH("rental-requests/{id}/start")
+    suspend fun startRentalRequest(@Path("id") requestId: Long): RentalRequestResponse
+
+    @PATCH("rental-requests/{id}/complete")
+    suspend fun completeRentalRequest(@Path("id") requestId: Long):RentalRequestResponse
+
 
     @GET("rental-requests/{id}")
     suspend fun getRentalRequestById(@Path("id") id: Long): RentalRequestResponse

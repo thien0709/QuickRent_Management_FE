@@ -1,16 +1,15 @@
 package com.bxt.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bxt.data.api.dto.response.PagedResponse
 import com.bxt.data.api.dto.response.RentalRequestResponse
 import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
 import com.bxt.data.repository.RentalRequestRepository
 import com.bxt.di.ApiResult
-import com.bxt.di.ErrorResponse
-import com.bxt.di.ErrorType
-import com.bxt.ui.state.RentalRequestsState
+import com.bxt.ui.components.ErrorPopupManager
+import com.bxt.ui.state.RentalServiceState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -23,14 +22,23 @@ class RentalServiceViewModel @Inject constructor(
     private val locationRepo: LocationRepository,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<RentalRequestsState>(RentalRequestsState.Loading)
-    val state: StateFlow<RentalRequestsState> = _state.asStateFlow()
+    companion object {
+        private const val TAG = "RentalServiceVM"
+    }
+
+    enum class LoadMode { OWNER, RENTER }
+
+    private val _uiState = MutableStateFlow<RentalServiceState>(RentalServiceState.Loading)
+    val uiState: StateFlow<RentalServiceState> = _uiState.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    private val _isLoadingMore = MutableStateFlow(false)
+    val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
 
     private val _isUpdatingStatus = MutableStateFlow<Long?>(null)
     val isUpdatingStatus: StateFlow<Long?> = _isUpdatingStatus.asStateFlow()
-
-    private val _errorEvent = MutableStateFlow<String?>(null)
-    val errorEvent: StateFlow<String?> = _errorEvent.asStateFlow()
 
     private val _thumbs = MutableStateFlow<Map<Long, String?>>(emptyMap())
     val thumbs: StateFlow<Map<Long, String?>> = _thumbs.asStateFlow()
@@ -40,151 +48,174 @@ class RentalServiceViewModel @Inject constructor(
 
     private var currentPage = 0
     private var endReached = false
-    private var currentMode: LoadMode? = null
-
-    private enum class LoadMode { OWNER, RENTER }
+    private var currentMode: LoadMode = LoadMode.OWNER
 
     init {
-        initialLoad()
-    }
-
-    fun loadByRenter() {
-        if (currentMode == LoadMode.RENTER) return
-        currentMode = LoadMode.RENTER
-        initialLoad()
-    }
-
-    fun loadByOwner() {
-        if (currentMode == LoadMode.OWNER) return
-        currentMode = LoadMode.OWNER
+        Log.d(TAG, "ViewModel init")
         initialLoad()
     }
 
     private fun initialLoad() {
+        Log.d(TAG, "initialLoad() called")
         viewModelScope.launch {
-            _state.value = RentalRequestsState.Loading
+            _uiState.value = RentalServiceState.Loading
             currentPage = 0
             endReached = false
+            Log.d(TAG, "Starting initial load - page: $currentPage, mode: $currentMode")
             fetchRequests(isInitialLoad = true)
         }
+    }
+
+    fun switchMode(mode: LoadMode) {
+        Log.d(TAG, "switchMode called: $currentMode -> $mode")
+        if (currentMode == mode && _uiState.value !is RentalServiceState.Error) {
+            Log.d(TAG, "Mode unchanged, skipping")
+            return
+        }
+        currentMode = mode
+        initialLoad()
     }
 
     fun refresh() {
+        Log.d(TAG, "refresh() called, isRefreshing: ${_isRefreshing.value}")
+        if (_isRefreshing.value) return
         viewModelScope.launch {
-            // Loại bỏ kiểm tra `currentMode == null` vì nó đã được thiết lập trong `init`
-            _state.value = RentalRequestsState.Loading
+            _isRefreshing.value = true
             currentPage = 0
             endReached = false
+            Log.d(TAG, "Starting refresh - reset to page 0")
             fetchRequests(isInitialLoad = true)
+            _isRefreshing.value = false
         }
     }
 
+    fun canLoadMore(): Boolean = !endReached && !_isLoadingMore.value
+
+    fun isEndReached(): Boolean = endReached
+
     fun loadNextPage() {
-        // Kiểm tra isLoadingMore để tránh gọi API nhiều lần
-        val currentState = _state.value
-        if (endReached || (currentState is RentalRequestsState.Success && currentState.isLoadingMore)) {
+        Log.d(TAG, "loadNextPage() called")
+        Log.d(TAG, "  - isLoadingMore: ${_isLoadingMore.value}")
+        Log.d(TAG, "  - endReached: $endReached")
+        Log.d(TAG, "  - currentPage: $currentPage")
+
+        if (_isLoadingMore.value || endReached) {
+            Log.d(TAG, "Skipping loadNextPage - already loading or end reached")
             return
         }
 
         viewModelScope.launch {
+            _isLoadingMore.value = true
+            Log.d(TAG, "Starting load next page: ${currentPage + 1}")
             fetchRequests(isInitialLoad = false)
+            _isLoadingMore.value = false
         }
     }
 
     private suspend fun fetchRequests(isInitialLoad: Boolean) {
-        if (!isInitialLoad) {
-            (_state.value as? RentalRequestsState.Success)?.let {
-                _state.value = it.copy(isLoadingMore = true)
+        Log.d(TAG, "=== fetchRequests START ===")
+        Log.d(TAG, "Parameters:")
+        Log.d(TAG, "  - currentPage: $currentPage")
+        Log.d(TAG, "  - isInitialLoad: $isInitialLoad")
+        Log.d(TAG, "  - endReached: $endReached")
+        Log.d(TAG, "  - currentMode: $currentMode")
+
+        val result = when (currentMode) {
+            LoadMode.OWNER -> {
+                Log.d(TAG, "Calling rentalRepo.getRentalRequestsByOwner($currentPage)")
+                rentalRepo.getRentalRequestsByOwner(currentPage)
+            }
+            LoadMode.RENTER -> {
+                Log.d(TAG, "Calling rentalRepo.getRentalRequestsByRenter($currentPage)")
+                rentalRepo.getRentalRequestsByRenter(currentPage)
             }
         }
 
-        val loader: suspend () -> ApiResult<PagedResponse<RentalRequestResponse>> = {
-            when (currentMode) {
-                LoadMode.OWNER -> rentalRepo.getRentalRequestsByOwner(currentPage)
-                LoadMode.RENTER -> rentalRepo.getRentalRequestsByRenter(currentPage)
-                null -> ApiResult.Error(ErrorResponse("Chế độ tải không được thiết lập.", false, ErrorType.BAD_REQUEST))
-            }
-        }
-
-        when (val result = loader()) {
+        when (result) {
             is ApiResult.Success -> {
                 val pagedData = result.data
                 val newItems = pagedData.content
-                endReached = pagedData.last
 
-                val currentItems = if (isInitialLoad) emptyList() else (_state.value as? RentalRequestsState.Success)?.data ?: emptyList()
-                val mergedItems = currentItems + newItems
+                Log.d(TAG, "=== API SUCCESS ===")
+                Log.d(TAG, "Response data:")
+                Log.d(TAG, "  - Items received: ${newItems.size}")
+                Log.d(TAG, "  - Is last page: ${pagedData.last}")
+                Log.d(TAG, "  - Total pages: ${pagedData.totalPages}")
+                Log.d(TAG, "  - Total elements: ${pagedData.totalElements}")
+                Log.d(TAG, "  - Page size: ${pagedData.size}")
 
-                _state.value = RentalRequestsState.Success(
-                    data = mergedItems,
-                    isLoadingMore = false,
-                    canLoadMore = !endReached
-                )
-
-                if (!endReached) {
-                    currentPage++
+                // **LOGIC GIỐNG HOMEVIEWMODEL**
+                if (newItems.isEmpty()) {
+                    endReached = true
+                    Log.d(TAG, "No new items, set endReached = true")
                 }
 
-                loadAdditionalData(newItems)
+                val currentState = _uiState.value as? RentalServiceState.Success
+                val allItems = if (isInitialLoad) {
+                    newItems
+                } else {
+                    currentState?.requests.orEmpty() + newItems
+                }
+
+                _uiState.value = RentalServiceState.Success(allItems)
+                Log.d(TAG, "Updated UI state with ${allItems.size} total items")
+
+                // **QUAN TRỌNG: Chỉ tăng currentPage khi có newItems**
+                if (newItems.isNotEmpty()) {
+                    currentPage++
+                    Log.d(TAG, "Incremented currentPage to: $currentPage")
+                    loadAdditionalData(newItems)
+                }
+
+                Log.d(TAG, "=== fetchRequests END (SUCCESS) ===")
             }
             is ApiResult.Error -> {
-                if (isInitialLoad) {
-                    _state.value = RentalRequestsState.Error(result.error)
-                } else {
-                    _errorEvent.value = "Lỗi khi tải thêm: ${result.error.message}"
-                    (_state.value as? RentalRequestsState.Success)?.let {
-                        _state.value = it.copy(isLoadingMore = false)
-                    }
-                }
+                Log.e(TAG, "=== API ERROR ===")
+                Log.e(TAG, "Error: ${result.error.message}")
+                val errorMessage = result.error.message
+                _uiState.value = RentalServiceState.Error(errorMessage)
+                ErrorPopupManager.showError(errorMessage, canRetry = true, onRetry = { initialLoad() })
+                Log.d(TAG, "=== fetchRequests END (ERROR) ===")
             }
         }
     }
 
-    fun errorEventConsumed() {
-        _errorEvent.value = null
-    }
+    fun confirmRequest(requestId: Long) = performAction(requestId) { rentalRepo.confirmRequest(requestId) }
+    fun rejectRequest(requestId: Long) = performAction(requestId) { rentalRepo.rejectRequest(requestId) }
+    fun cancelRequest(requestId: Long) = performAction(requestId) { rentalRepo.cancelRequest(requestId) }
 
-    fun updateStatus(
-        requestId: Long?,
-        newStatus: String,
-        onDone: () -> Unit
-    ) = viewModelScope.launch {
-        if (requestId == null) return@launch
-        _isUpdatingStatus.value = requestId
-
-        when (val result = rentalRepo.updateRequestStatus(requestId, newStatus)) {
-            is ApiResult.Success -> onDone()
-            is ApiResult.Error -> _errorEvent.value = result.error.message
+    private fun performAction(requestId: Long, apiCall: suspend () -> ApiResult<*>) {
+        viewModelScope.launch {
+            _isUpdatingStatus.value = requestId
+            when (val result = apiCall()) {
+                is ApiResult.Success -> refresh()
+                is ApiResult.Error -> ErrorPopupManager.showError(result.error.message)
+            }
+            _isUpdatingStatus.value = null
         }
-        _isUpdatingStatus.value = null
     }
 
     private fun loadAdditionalData(requests: List<RentalRequestResponse>) {
         requests.forEach { req ->
-            req.itemId?.let { id -> if (!_thumbs.value.containsKey(id)) loadThumb(id) }
-            req.id?.let { id -> if (!_addresses.value.containsKey(id)) resolveAddress(req) }
+            req.itemId?.let { id -> if (_thumbs.value[id] == null) loadThumb(id) }
+            req.id?.let { id -> if (_addresses.value[id] == null) resolveAddress(req) }
         }
     }
 
     private fun loadThumb(itemId: Long) = viewModelScope.launch {
-        val imageUrl = when (val res = itemRepo.getItemInfo(itemId)) {
-            is ApiResult.Success -> res.data.imagePrimary
-            is ApiResult.Error -> null
+        (itemRepo.getItemInfo(itemId) as? ApiResult.Success)?.data?.imagePrimary?.let { imageUrl ->
+            _thumbs.update { it + (itemId to imageUrl) }
         }
-        _thumbs.update { currentMap -> currentMap + (itemId to imageUrl) }
     }
 
     private fun resolveAddress(req: RentalRequestResponse) = viewModelScope.launch {
         val id = req.id ?: return@launch
         val lat = req.latTo?.toDouble()
         val lng = req.lngTo?.toDouble()
+        if (lat == null || lng == null) return@launch
 
-        if (lat == null || lng == null) {
-            _addresses.update { it + (id to "Tọa độ không hợp lệ") }
-            return@launch
+        locationRepo.getAddressFromLatLng(lat, lng).onSuccess { addr ->
+            _addresses.update { it + (id to addr.ifBlank { "Không rõ vị trí" }) }
         }
-        locationRepo.getAddressFromLatLng(lat, lng)
-            .onSuccess { addr -> _addresses.update { it + (id to addr.ifBlank { "Không rõ vị trí" }) } }
-            .onFailure { _addresses.update { it + (id to "Không thể lấy địa chỉ") } }
     }
 }

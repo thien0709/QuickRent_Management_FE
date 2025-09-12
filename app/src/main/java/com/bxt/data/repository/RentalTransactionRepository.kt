@@ -14,4 +14,6 @@ interface RentalTransactionRepository {
         imageType: String,
         images: List<MultipartBody.Part>
     ): ApiResult<List<TransactionImageResponse>>
+
+
 }
