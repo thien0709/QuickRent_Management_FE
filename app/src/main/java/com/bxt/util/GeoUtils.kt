@@ -1,5 +1,6 @@
 package com.bxt.util
 
+import com.mapbox.geojson.Point
 import kotlin.math.*
 
 const val EARTH_RADIUS_KM = 6371.0
@@ -45,4 +46,48 @@ fun extractDistrictOrWard(fullAddress: String?): String? {
 
     return "$district, $city"
 }
+
+fun findMinimumDistanceToPolyline(point: Point, polyline: List<Point>): Double {
+    if (polyline.size < 2) return Double.MAX_VALUE
+
+    var minDistance = Double.MAX_VALUE
+
+    for (i in 0 until polyline.size - 1) {
+        val segmentStart = polyline[i]
+        val segmentEnd = polyline[i + 1]
+
+        val pLat = Math.toRadians(point.latitude())
+        val pLon = Math.toRadians(point.longitude())
+        val sLat = Math.toRadians(segmentStart.latitude())
+        val sLon = Math.toRadians(segmentStart.longitude())
+        val eLat = Math.toRadians(segmentEnd.latitude())
+        val eLon = Math.toRadians(segmentEnd.longitude())
+
+        val segmentDist = 2 * asin(sqrt(sin((eLat - sLat) / 2).pow(2) + cos(sLat) * cos(eLat) * sin((eLon - sLon) / 2).pow(2)))
+
+        if (segmentDist == 0.0) {
+            minDistance = min(minDistance, haversineKm(point.latitude(), point.longitude(), segmentStart.latitude(), segmentStart.longitude()))
+            continue
+        }
+
+        val bearingS_P = atan2(sin(pLon - sLon) * cos(pLat), cos(sLat) * sin(pLat) - sin(sLat) * cos(pLat) * cos(pLon - sLon))
+        val bearingS_E = atan2(sin(eLon - sLon) * cos(eLat), cos(sLat) * sin(eLat) - sin(sLat) * cos(eLat) * cos(eLon - sLon))
+
+        val distS_P = haversineKm(point.latitude(), point.longitude(), segmentStart.latitude(), segmentStart.longitude())
+        val angle = bearingS_P - bearingS_E
+        val crossTrackDistance = abs(asin(sin(distS_P / EARTH_RADIUS_KM) * sin(angle))) * EARTH_RADIUS_KM
+
+        val distS_E = haversineKm(segmentStart.latitude(), segmentStart.longitude(), segmentEnd.latitude(), segmentEnd.longitude())
+        val distAlongTrack = acos(cos(distS_P / EARTH_RADIUS_KM) / cos(crossTrackDistance / EARTH_RADIUS_KM)) * EARTH_RADIUS_KM
+
+        if (distAlongTrack > distS_E) {
+            minDistance = min(minDistance, haversineKm(point.latitude(), point.longitude(), segmentEnd.latitude(), segmentEnd.longitude()))
+        } else {
+            minDistance = min(minDistance, crossTrackDistance)
+        }
+    }
+
+    return minDistance
+}
+
 

@@ -2,6 +2,7 @@
 package com.bxt.ui.screen
 
 import android.Manifest
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
@@ -18,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -52,10 +54,25 @@ fun TransportDetailScreen(
     viewModel: TransportDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current // Lấy context cho Toast
+
     val locationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) viewModel.loadAllDetails()
     }
     LaunchedEffect(Unit) { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
+
+    // NOTE: Thêm 2 LaunchedEffect này để lắng nghe sự kiện từ ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.actionResult.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.navigateBackEvent.collect {
+            navController.popBackStack()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -78,6 +95,7 @@ fun TransportDetailScreen(
     }
 }
 
+// ... (Các Composable con như ErrorContent, TransportDetailContent, v.v... giữ nguyên không thay đổi)
 @Composable
 private fun ErrorContent(message: String, onRetry: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -99,8 +117,10 @@ private fun TransportDetailContent(
     val mapView = rememberMapViewWithLifecycle()
     val deliverableAddresses by viewModel.deliverableAddresses.collectAsStateWithLifecycle()
     val serviceAddresses by viewModel.serviceAddresses.collectAsStateWithLifecycle()
-    val userLocationAddress by viewModel.userLocationAddress.collectAsStateWithLifecycle()
-    var showEditLocationDialog by remember { mutableStateOf(false) }
+    val pickupAddress by viewModel.userLocationAddress.collectAsStateWithLifecycle()
+    val dropOffAddress by viewModel.dropOffAddress.collectAsStateWithLifecycle()
+    var showEditPickupDialog by remember { mutableStateOf(false) }
+    var showEditDropOffDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -109,7 +129,13 @@ private fun TransportDetailContent(
                 details = details,
                 mode = selectedMode,
                 selectedRequest = selectedRequest,
-                onUserLocationChanged = { point -> viewModel.updateUserLocationManually(point, null) }
+                onMapClick = { point ->
+                    if (details.userLocation != null && details.dropOffPoint == null) {
+                        viewModel.updateDropOffLocationManually(point, null)
+                    } else {
+                        viewModel.updateUserLocationManually(point, null)
+                    }
+                }
             )
             ControlsOverlay(
                 mode = selectedMode,
@@ -130,8 +156,11 @@ private fun TransportDetailContent(
                 TransportMode.RIDE -> RideDetails(
                     details = details,
                     serviceAddresses = serviceAddresses,
-                    userLocationAddress = userLocationAddress,
-                    onEditLocationClick = { showEditLocationDialog = true }
+                    pickupAddress = pickupAddress,
+                    dropOffAddress = dropOffAddress,
+                    onEditPickupClick = { showEditPickupDialog = true },
+                    onEditDropOffClick = { showEditDropOffDialog = true },
+                    viewModel = viewModel
                 )
                 TransportMode.PACKAGE -> PackageDetails(
                     details = details,
@@ -140,24 +169,40 @@ private fun TransportDetailContent(
                     onItemSelected = { request ->
                         selectedRequest = request
                         viewModel.calculateDeliveryRoute(request)
-                    }
+                    },
+                    viewModel = viewModel
                 )
             }
         }
     }
 
-    if (showEditLocationDialog) {
+    if (showEditPickupDialog) {
         EditLocationPopup(
-            currentLocation = userLocationAddress ?: "",
+            currentLocation = pickupAddress ?: "",
             proximity = details.userLocation,
-            onDismiss = { showEditLocationDialog = false },
+            onDismiss = { showEditPickupDialog = false },
             onSave = { point, address ->
                 viewModel.updateUserLocationManually(point, address)
-                showEditLocationDialog = false
+                showEditPickupDialog = false
             },
             onGetCurrentLocation = {
                 viewModel.updateUserLocation()
-                showEditLocationDialog = false
+                showEditPickupDialog = false
+            }
+        )
+    }
+
+    if (showEditDropOffDialog) {
+        EditLocationPopup(
+            currentLocation = dropOffAddress ?: "",
+            proximity = details.dropOffPoint ?: details.userLocation,
+            onDismiss = { showEditDropOffDialog = false },
+            onSave = { point, address ->
+                viewModel.updateDropOffLocationManually(point, address)
+                showEditDropOffDialog = false
+            },
+            onGetCurrentLocation = {
+                showEditDropOffDialog = false
             }
         )
     }
@@ -176,7 +221,7 @@ private fun ControlsOverlay(
             modifier = Modifier.padding(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
         ) {
-            Text("💡 Nhấn vào bản đồ để chọn vị trí của bạn", Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
+            Text("💡 Nhấn vào bản đồ để chọn điểm đón của bạn", Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
         }
     }
     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -197,8 +242,11 @@ private fun ControlsOverlay(
 private fun RideDetails(
     details: FullTransportDetails,
     serviceAddresses: Pair<String, String>?,
-    userLocationAddress: String?,
-    onEditLocationClick: () -> Unit
+    pickupAddress: String?,
+    dropOffAddress: String?,
+    onEditPickupClick: () -> Unit,
+    onEditDropOffClick: () -> Unit,
+    viewModel: TransportDetailViewModel
 ) {
     val service = details.service
     val availableSeats = (service.availableSeat ?: 0) - details.passengers.size
@@ -207,36 +255,70 @@ private fun RideDetails(
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Thông tin chuyến đi", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(12.dp))
-                InfoRow("Đi từ", fromAddress)
-                InfoRow("Đi đến", toAddress)
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                InfoRow("Số chỗ còn trống", "$availableSeats")
-                InfoRow("Giá vé / người", "${service.deliveryFee} VND")
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
+                InfoRow("Lộ trình tài xế:", "${fromAddress} → ${toAddress}")
+                InfoRow("Số chỗ còn trống:", "$availableSeats")
+                InfoRow("Giá vé / người:", "${service.deliveryFee} VND")
+                HorizontalDivider(Modifier.padding(vertical = 4.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable(onClick = onEditLocationClick),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Vị trí của bạn", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (userLocationAddress != null) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(userLocationAddress, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f, fill = false))
-                            Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp).padding(start = 4.dp))
-                        }
-                    } else {
-                        Text("Chưa có vị trí", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
-                    }
+                EditableLocationRow(
+                    label = "Điểm đón của bạn",
+                    address = pickupAddress,
+                    onEditClick = onEditPickupClick
+                )
+                EditableLocationRow(
+                    label = "Điểm đến của bạn",
+                    address = dropOffAddress,
+                    onEditClick = onEditDropOffClick
+                )
+
+                details.isRouteValid?.let { isValid ->
+                    val color = if (isValid) Color(0xFF388E3C) else MaterialTheme.colorScheme.error
+                    val text = if (isValid) "Lộ trình của bạn hợp lệ." else "Lộ trình của bạn không hợp lệ (quá xa tuyến đường chính)."
+                    Text(text, color = color, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
                 }
             }
         }
         Spacer(Modifier.weight(1f))
-        Button(onClick = { /* TODO: Implement booking logic */ }, modifier = Modifier.fillMaxWidth(), enabled = availableSeats > 0 && details.userLocation != null) {
-            Text(if (details.userLocation != null) "Đặt ngay" else "Chọn vị trí để tiếp tục")
+        Button(
+            onClick = { viewModel.bookRide() },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = details.isRouteValid == true && availableSeats > 0
+        ) {
+            Text(
+                when {
+                    details.userLocation == null -> "Chọn điểm đón"
+                    details.dropOffPoint == null -> "Chọn điểm đến"
+                    details.isRouteValid != true -> "Lộ trình không hợp lệ"
+                    else -> "Đặt ngay"
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditableLocationRow(
+    label: String,
+    address: String?,
+    onEditClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onEditClick),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End, modifier = Modifier.weight(1f)) {
+            Text(
+                text = address ?: "Chưa chọn",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (address != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(end = 4.dp)
+            )
+            Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
         }
     }
 }
@@ -247,7 +329,7 @@ private fun MapSection(
     details: FullTransportDetails,
     mode: TransportMode,
     selectedRequest: DeliverableRequest?,
-    onUserLocationChanged: ((Point) -> Unit)?
+    onMapClick: ((Point) -> Unit)?
 ) {
     val map = remember(mapView) { mapView.getMapboxMap() }
     var styleLoaded by remember { mutableStateOf(false) }
@@ -258,14 +340,11 @@ private fun MapSection(
     }
 
     val pointManager = remember(mapView) { mapView.annotations.createPointAnnotationManager() }
-    val lineManager  = remember(mapView) { mapView.annotations.createPolylineAnnotationManager() }
+    val lineManager = remember(mapView) { mapView.annotations.createPolylineAnnotationManager() }
 
-    DisposableEffect(onUserLocationChanged, mapView) {
-        val listener = OnMapClickListener { point ->
-            onUserLocationChanged?.invoke(point)
-            true
-        }
-        if (onUserLocationChanged != null) mapView.gestures.addOnMapClickListener(listener)
+    DisposableEffect(onMapClick, mapView) {
+        val listener = OnMapClickListener { point -> onMapClick?.invoke(point); true }
+        if (onMapClick != null) mapView.gestures.addOnMapClickListener(listener)
         onDispose { mapView.gestures.removeOnMapClickListener(listener) }
     }
 
@@ -275,12 +354,22 @@ private fun MapSection(
         pointManager.deleteAll()
         lineManager.deleteAll()
 
-        if (details.routePoints.isNotEmpty()) {
+        if (details.driverRoutePoints.isNotEmpty()) {
             lineManager.create(
                 PolylineAnnotationOptions()
-                    .withPoints(details.routePoints)
-                    .withLineWidth(5.0)
+                    .withPoints(details.driverRoutePoints)
+                    .withLineWidth(6.0)
                     .withLineColor("#3887be")
+            )
+        }
+
+        if (mode == TransportMode.RIDE && details.passengerRoutePoints.isNotEmpty()) {
+            lineManager.create(
+                PolylineAnnotationOptions()
+                    .withPoints(details.passengerRoutePoints)
+                    .withLineWidth(4.0)
+                    .withLineColor("#FFA000")
+                    .withLinePattern("dash")
             )
         }
 
@@ -297,34 +386,36 @@ private fun MapSection(
         }}
 
         when (mode) {
-            TransportMode.RIDE -> details.userLocation?.let { p ->
-                pointsForCamera.add(p)
-                pointManager.create(MapboxMarkerUtils.createUserLocationMarker(p))
+            TransportMode.RIDE -> {
+                details.userLocation?.let { p ->
+                    pointsForCamera.add(p)
+                    pointManager.create(MapboxMarkerUtils.createUserLocationMarker(p).withTextField("Điểm đón"))
+                }
+                details.dropOffPoint?.let { p ->
+                    pointsForCamera.add(p)
+                    pointManager.create(MapboxMarkerUtils.createDeliveryMarker(p, "Điểm đến"))
+                }
             }
-            TransportMode.PACKAGE -> selectedRequest?.let { req ->
-                req.request.latFrom?.let { lat -> req.request.lngFrom?.let { lng ->
-                    val p = Point.fromLngLat(lng.toDouble(), lat.toDouble())
-                    pointsForCamera.add(p)
-                    pointManager.create(MapboxMarkerUtils.createPickupMarker(p, req.item.title ?: "..."))
-                }}
-                req.request.latTo?.let { lat -> req.request.lngTo?.let { lng ->
-                    val p = Point.fromLngLat(lng.toDouble(), lat.toDouble())
-                    pointsForCamera.add(p)
-                    pointManager.create(MapboxMarkerUtils.createDeliveryMarker(p, req.item.title ?: "..."))
-                }}
+            TransportMode.PACKAGE -> {
+                selectedRequest?.let { req ->
+                    req.request.latFrom?.let { lat -> req.request.lngFrom?.let { lng ->
+                        val p = Point.fromLngLat(lng.toDouble(), lat.toDouble())
+                        pointsForCamera.add(p)
+                        pointManager.create(MapboxMarkerUtils.createPickupMarker(p, req.item.title ?: "..."))
+                    }}
+                    req.request.latTo?.let { lat -> req.request.lngTo?.let { lng ->
+                        val p = Point.fromLngLat(lng.toDouble(), lat.toDouble())
+                        pointsForCamera.add(p)
+                        pointManager.create(MapboxMarkerUtils.createDeliveryMarker(p, req.item.title ?: "..."))
+                    }}
+                }
             }
         }
 
-        when {
-            pointsForCamera.size > 1 -> {
-                map.flyTo(map.cameraForCoordinates(pointsForCamera, EdgeInsets(120.0, 80.0, 120.0, 80.0)), null)
-            }
-            pointsForCamera.size == 1 -> {
-                map.flyTo(CameraOptions.Builder().center(pointsForCamera.first()).zoom(14.0).build(), null)
-            }
-            else -> {
-                map.flyTo(CameraOptions.Builder().center(Point.fromLngLat(106.701755, 10.776789)).zoom(10.0).build(), null)
-            }
+        if (pointsForCamera.size > 1) {
+            map.flyTo(map.cameraForCoordinates(pointsForCamera, EdgeInsets(120.0, 80.0, 120.0, 80.0)), null)
+        } else if (pointsForCamera.isNotEmpty()) {
+            map.flyTo(CameraOptions.Builder().center(pointsForCamera.first()).zoom(14.0).build(), null)
         }
     }
 
@@ -337,7 +428,8 @@ private fun PackageDetails(
     details: FullTransportDetails,
     selectedRequest: DeliverableRequest?,
     deliverableAddresses: Map<Long, Pair<String, String>>,
-    onItemSelected: (DeliverableRequest) -> Unit
+    onItemSelected: (DeliverableRequest) -> Unit,
+    viewModel: TransportDetailViewModel
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -388,7 +480,7 @@ private fun PackageDetails(
             Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Chi tiết vận chuyển", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     InfoRow("Món hàng", request.item.title ?: "N/A")
                     InfoRow("Phí vận chuyển", "${details.service.deliveryFee} VND")
                     InfoRow("Điểm lấy hàng", fromAddress)
@@ -398,7 +490,11 @@ private fun PackageDetails(
         }
 
         Spacer(modifier = Modifier.weight(1f))
-        Button(onClick = { /* TODO: Implement package delivery logic */ }, modifier = Modifier.fillMaxWidth(), enabled = selectedRequest != null) {
+        Button(
+            onClick = { selectedRequest?.let { viewModel.acceptPackageDelivery(it) } },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = selectedRequest != null
+        ) {
             Text("Nhận vận chuyển hàng này")
         }
     }
