@@ -11,6 +11,8 @@ import com.bxt.data.repository.ChatRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
 import com.bxt.data.repository.RentalRequestRepository
+import com.bxt.data.repository.TransportPackageRepository
+import com.bxt.data.repository.TransportPassengerRepository
 import com.bxt.data.repository.UserRepository
 import com.bxt.data.repository.impl.* // Import tất cả các implementation
 import dagger.Module
@@ -111,5 +113,24 @@ object RepositoryModule {
         locationRepository: LocationRepository
     ): AddressRepository {
         return AddressRepositoryImpl(userRepository, locationRepository)
+    }
+
+
+    @Singleton
+    @Provides
+    fun provideTransportPackageRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): TransportPackageRepository {
+        return TransportPackageRepositoryImpl(apiService, apiCallExecutor)
+    }
+
+    @Singleton
+    @Provides
+    fun provideTransportPassengerRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): TransportPassengerRepository {
+        return TransportPassengerRepositoryImpl(apiService, apiCallExecutor)
     }
 }

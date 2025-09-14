@@ -57,7 +57,8 @@ fun AppNavigation() {
         "rent_item/",
         "chat_screen/",
         "add_item",
-        "add_transport_service"
+        "add_transport_service",  "transport_detail/",
+        "transaction_detail/"
     )
 
     val hideBottomBar = routesToHideBottomBar.any { routePrefix ->
@@ -162,6 +163,10 @@ fun AppNavigation() {
                 composable("profile") {
                     ProfileScreen(navController)
                 }
+
+                composable("edit_profile") {
+                    EditProfileScreen(navController = navController)
+                }
                 composable(
                     route = "category?categoryId={categoryId}",
                     arguments = listOf(navArgument("categoryId") {
@@ -230,21 +235,33 @@ fun AppNavigation() {
                 composable("rental_service") {
                     RentalServiceScreen(
                         onBackClick = { navController.popBackStack() },
-                        onRentalClick = { id -> navController.navigate("rental_detail/$id") }
+                        onRentalClick = { requestId ->
+                            if (requestId != null) navController.navigate("transaction_detail/$requestId")
+                        }
                     )
                 }
-
-                composable("transactions") {
-                    // TransactionsScreen khi có
+                composable("transaction_detail/{rentalRequestId}", arguments = listOf(navArgument("rentalRequestId") { type = NavType.LongType })) {
+                    TransactionDetailScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onNavigateToTransport = { fromLat, fromLng, toLat, toLng ->
+                            navController.navigate("add_transport_service")
+                        }
+                    )
                 }
 
                 composable("transport_service") {
-                    val viewModel: TransportServiceViewModel = hiltViewModel()
                     TransportServiceScreen(
                         navController = navController,
-                        viewModel = hiltViewModel(),
+                        viewModel = hiltViewModel<TransportServiceViewModel>(),
+                        onServiceClick = { serviceId ->
+                            navController.navigate("transport_detail/$serviceId")
+                        }
                     )
                 }
+                composable("transport_detail/{serviceId}", arguments = listOf(navArgument("serviceId") { type = NavType.LongType })) {
+                    TransportDetailScreen(navController = navController)
+                }
+
 
                 composable("add_transport_service") {
                     AddTransportScreen(
@@ -312,7 +329,10 @@ fun AppNavigation() {
                 ) {
                     TransportServiceScreen(
                         navController = navController,
-                        viewModel = hiltViewModel()
+                        viewModel = hiltViewModel(),
+                        onServiceClick = { serviceId ->
+                            navController.navigate("transport_detail/$serviceId")
+                        }
                     )
                 }
 

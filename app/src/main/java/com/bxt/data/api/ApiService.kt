@@ -6,8 +6,10 @@ import com.bxt.data.api.dto.request.LoginRequest
 import com.bxt.data.api.dto.request.RefreshTokenRequest
 import com.bxt.data.api.dto.request.RegisterRequest
 import com.bxt.data.api.dto.request.RentalRequestRequest
+import com.bxt.data.api.dto.request.TransportPackageRequest
+import com.bxt.data.api.dto.request.TransportPassengerRequest
 import com.bxt.data.api.dto.request.TransportServiceRequest
-import com.bxt.data.api.dto.request.UpdateUserRequest
+import com.bxt.data.api.dto.request.UpdateProfileRequest
 import com.bxt.data.api.dto.response.*
 import com.bxt.di.ApiResult
 import okhttp3.MultipartBody
@@ -43,7 +45,7 @@ interface ApiService {
     @Multipart
     @PATCH("users/profile")
     suspend fun updateUserInfo(
-        @Part("request") request: UpdateUserRequest,
+        @Part("request") request: UpdateProfileRequest,
         @Part avatar: MultipartBody.Part?
     ): RegisterResponse
 
@@ -132,6 +134,9 @@ interface ApiService {
     @GET("rental-requests/renter")
     suspend fun getRentalRequestsByRenter(@Query("page") page: Int): PagedResponse<RentalRequestResponse>
 
+    @GET("rental-requests/renter/on-confirm")
+    suspend fun getRentalRequestsByRenterOnConfirm(): List<RentalRequestResponse>
+
     @PATCH("rental-requests/{id}")
     suspend fun updateRentalRequest(
         @Path("id") id: Long,
@@ -212,5 +217,17 @@ interface ApiService {
         @Part images: List<MultipartBody.Part>
     ): List<TransactionImageResponse>
 
+    // Transport Service
+    @POST("transport-packages")
+    suspend fun createTransportPackage(@Body request: TransportPackageRequest): TransportPackageResponse
+
+    @GET("transport-services/{serviceId}/packages")
+    suspend fun getTransportPackagesByServiceId(@Path("serviceId") serviceId: Long): List<TransportPackageResponse>
+
+    @POST("transport-passengers")
+    suspend fun createTransportPassenger(@Body request: TransportPassengerRequest): TransportPassengerResponse
+
+    @GET("transport-services/{serviceId}/passengers")
+    suspend fun getTransportPassengersByServiceId(@Path("serviceId") serviceId: Long): List<TransportPassengerResponse>
 
 }

@@ -79,4 +79,10 @@ class RentalRequestRepositoryImpl(
             apiService.startRentalRequest(requestId)
         }
     }
+
+    override suspend fun getRentalRequestsByRenterOnConfirm(): ApiResult<List<RentalRequestResponse>> {
+        return apiCallExecutor.execute {
+            apiService.getRentalRequestsByRenterOnConfirm()
+        }
+    }
 }

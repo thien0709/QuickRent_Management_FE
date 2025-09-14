@@ -1,4 +1,4 @@
-// screen/ProfileScreen.kt
+// bxt/ui/screen/ProfileScreen.kt
 package com.bxt.ui.screen
 
 import androidx.compose.foundation.layout.*
@@ -6,16 +6,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox // ✅ THÊM IMPORT
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.stringResource // Gợi ý: Dùng cho app thực tế
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
 import com.bxt.ui.components.ExpandableFab
@@ -26,12 +29,13 @@ import com.bxt.viewmodel.UserViewModel
 
 private const val DEFAULT_AVATAR_URL = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,
     viewModel: UserViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.userProfileState.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.shouldNavigateToLogin) {
         if (uiState.shouldNavigateToLogin) {
@@ -43,9 +47,13 @@ fun ProfileScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    PullToRefreshBox(
+        isRefreshing = uiState.isLoading,
+        onRefresh = { viewModel.fetchUserProfile() },
+        modifier = Modifier.fillMaxSize()
+    ) {
         when {
-            uiState.isLoading -> LoadingIndicator()
+            uiState.isLoading && uiState.user == null -> LoadingIndicator()
 
             uiState.error != null -> ErrorState(errorMessage = uiState.error!!)
 
@@ -63,7 +71,6 @@ fun ProfileScreen(
                 ErrorState(errorMessage = errorMessage)
             }
         }
-
         ExpandableFab(actions = FabActions.profile(navController))
     }
 }
@@ -85,8 +92,18 @@ private fun ProfileContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(d.sectionGap)
     ) {
+        val imageUrlWithCacheBuster = remember(userData.avatarUrl) {
+            val baseUrl = userData.avatarUrl?.takeIf { it.isNotBlank() } ?: DEFAULT_AVATAR_URL
+            "$baseUrl?t=${System.currentTimeMillis()}"
+        }
+
+        val imageRequest = ImageRequest.Builder(LocalContext.current)
+            .data(imageUrlWithCacheBuster)
+            .crossfade(true)
+            .build()
+
         AsyncImage(
-            model = userData.avatarUrl?.takeIf { it.isNotBlank() } ?: DEFAULT_AVATAR_URL,
+            model = imageRequest,
             contentDescription = "User Avatar",
             modifier = Modifier
                 .size(d.imageSize * 1.25f)
@@ -108,7 +125,6 @@ private fun ProfileContent(
                 ProfileItem("Số điện thoại", userData.phoneNumber)
             }
         }
-
         Button(
             onClick = onLogout,
             modifier = Modifier
@@ -122,7 +138,6 @@ private fun ProfileContent(
         ) {
             Text("Đăng xuất", style = MaterialTheme.typography.titleSmall)
         }
-
         OutlinedButton(
             onClick = onEditProfile,
             modifier = Modifier
@@ -136,39 +151,20 @@ private fun ProfileContent(
 }
 
 @Composable
-private fun ProfileItem(
-    label: String,
-    value: String?,
-    modifier: Modifier = Modifier
-) {
+private fun ProfileItem(label: String, value: String?, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value?.takeIf { it.isNotBlank() } ?: "Chưa cập nhật",
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = value?.takeIf { it.isNotBlank() } ?: "Chưa cập nhật", style = MaterialTheme.typography.bodyLarge)
     }
 }
 
 @Composable
-private fun ErrorState(
-    errorMessage: String,
-    modifier: Modifier = Modifier
-) {
+private fun ErrorState(errorMessage: String, modifier: Modifier = Modifier) {
     val d = LocalDimens.current
     Box(
         modifier = modifier.fillMaxSize().padding(d.pagePadding),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = errorMessage,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
-            textAlign = TextAlign.Center
-        )
+        Text(text = errorMessage, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
     }
 }

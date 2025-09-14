@@ -38,7 +38,8 @@ import com.bxt.viewmodel.TransportServiceViewModel
 fun TransportServiceScreen(
     navController: NavController,
     viewModel: TransportServiceViewModel,
-    locationViewModel: LocationViewModel = hiltViewModel()
+    locationViewModel: LocationViewModel = hiltViewModel(),
+    onServiceClick: (Long) -> Unit
 ) {
     val d = LocalDimens.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -218,7 +219,7 @@ fun TransportServiceScreen(
                                         service = item,
                                         fromAddress = pair?.first ?: "Đang lấy địa chỉ…",
                                         toAddress = pair?.second ?: "Đang lấy địa chỉ…",
-                                        onClick = { /* mở chi tiết */ }
+                                        onClick = { item.id?.let { id -> onServiceClick(id) } }
                                     )
                                 }
                             }

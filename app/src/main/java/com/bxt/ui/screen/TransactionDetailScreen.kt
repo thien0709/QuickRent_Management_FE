@@ -1,5 +1,6 @@
 package com.bxt.ui.screen
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,6 +32,10 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
+import android.content.ActivityNotFoundException
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -234,6 +239,7 @@ private fun RenterActions(
     var renterReturnUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     val renterReturnPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { renterReturnUris = it.orEmpty() }
     var pickupChoice by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     Section(title = "Hành động của bạn (Người thuê)") {
 
@@ -245,7 +251,29 @@ private fun RenterActions(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
-                        onClick = { pickupChoice = "SELF" },
+                        onClick = {
+                            pickupChoice = "SELF"
+                            val pickupLat = details.request.latFrom
+                            val pickupLng = details.request.lngFrom
+
+                            if (pickupLat != null && pickupLng != null) {
+                                val gmmIntentUri =
+                                    "google.navigation:q=$pickupLat,$pickupLng".toUri()
+
+                                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                                mapIntent.setPackage("com.google.android.apps.maps")
+
+                                try {
+                                    context.startActivity(mapIntent)
+                                } catch (e: ActivityNotFoundException) {
+                                    Toast.makeText(context, "Vui lòng cài đặt Google Maps để sử dụng tính năng này.", Toast.LENGTH_LONG).show()
+                                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/dir/?api=1&origin=lat,lng&destination=lat,lng"))
+                                    context.startActivity(browserIntent)
+                                }
+                            } else {
+                                Toast.makeText(context, "Không tìm thấy địa chỉ cửa hàng.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         colors = if (pickupChoice == "SELF") ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer) else ButtonDefaults.outlinedButtonColors()
                     ) {

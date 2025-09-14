@@ -17,4 +17,5 @@ interface RentalRequestRepository {
     suspend fun cancelRequest(requestId: Long): ApiResult<RentalRequestResponse>
     suspend fun completeRequest(requestId: Long): ApiResult<RentalRequestResponse>
     suspend fun startRental(requestId: Long): ApiResult<RentalRequestResponse>
+    suspend fun getRentalRequestsByRenterOnConfirm(): ApiResult<List<RentalRequestResponse>>
 }

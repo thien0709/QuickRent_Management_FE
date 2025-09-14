@@ -5,14 +5,13 @@ import com.bxt.data.api.dto.response.ItemDetail
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.api.dto.response.RentalRequestResponse
-import com.bxt.data.api.dto.response.RentalTransactionResponse
 import com.bxt.data.api.dto.response.TransportServiceResponse
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
-import com.bxt.di.ErrorResponse
 import com.bxt.viewmodel.Capabilities
 import com.bxt.viewmodel.ChatThreadUi
 import com.bxt.viewmodel.FullRentalDetails
+import com.bxt.viewmodel.FullTransportDetails
 
 //import com.google.android.gms.maps.model.LatLng
 //import com.google.android.libraries.places.api.model.AutocompletePrediction
@@ -52,7 +51,14 @@ data class UserState(
     val user: ApiResult<UserResponse>? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val shouldNavigateToLogin: Boolean = false
+    val shouldNavigateToLogin: Boolean = false,
+    val updateSuccess: Boolean = false
+)
+
+data class UpdateProfileState(
+    val isLoading: Boolean = false,
+    val isSuccess: Boolean = false,
+    val error: String? = null
 )
 
 sealed interface CategoryState {
@@ -154,4 +160,11 @@ sealed interface TransactionDetailState {
         TransactionDetailState
 
     data class Error(val message: String) : TransactionDetailState
+}
+
+
+sealed interface TransportDetailState {
+    object Loading : TransportDetailState
+    data class Success(val details: FullTransportDetails) : TransportDetailState
+    data class Error(val message: String) : TransportDetailState
 }
