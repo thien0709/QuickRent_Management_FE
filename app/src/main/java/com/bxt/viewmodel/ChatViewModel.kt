@@ -5,6 +5,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bxt.data.api.ApiService
+import com.bxt.data.api.dto.request.PromptRequest
+import com.bxt.data.api.dto.response.ChatResponse
 import com.bxt.data.local.DataStoreManager
 import com.bxt.data.repository.ChatRepository
 import com.google.firebase.database.ChildEventListener

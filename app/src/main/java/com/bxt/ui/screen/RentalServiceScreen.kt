@@ -47,7 +47,6 @@ fun RentalServiceScreen(
 
     val listState = rememberLazyListState()
 
-    // **SỬ DỤNG CÙNG LOGIC NHƯ HOMESCREEN**
     val pullUpConnection = rememberPullUpToLoadMore(
         listState = listState,
         isLoadingMore = isLoadingMore,
@@ -80,7 +79,7 @@ fun RentalServiceScreen(
                 onRefresh = viewModel::refresh,
                 modifier = Modifier
                     .fillMaxSize()
-                    .nestedScroll(pullUpConnection) // **THÊM NESTED SCROLL**
+                    .nestedScroll(pullUpConnection)
             ) {
                 when (val state = uiState) {
                     is RentalServiceState.Loading -> {
@@ -117,7 +116,6 @@ fun RentalServiceScreen(
                                     )
                                 }
 
-                                // **LOADING INDICATOR GIỐNG HOMESCREEN**
                                 if (isLoadingMore) {
                                     item {
                                         Row(

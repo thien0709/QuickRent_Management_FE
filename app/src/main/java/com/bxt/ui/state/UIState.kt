@@ -12,6 +12,7 @@ import com.bxt.viewmodel.Capabilities
 import com.bxt.viewmodel.ChatThreadUi
 import com.bxt.viewmodel.FullRentalDetails
 import com.bxt.viewmodel.FullTransportDetails
+import com.bxt.viewmodel.TransportTransactionDetails
 
 //import com.google.android.gms.maps.model.LatLng
 //import com.google.android.libraries.places.api.model.AutocompletePrediction
@@ -167,4 +168,10 @@ sealed interface TransportDetailState {
     object Loading : TransportDetailState
     data class Success(val details: FullTransportDetails) : TransportDetailState
     data class Error(val message: String) : TransportDetailState
+}
+
+sealed class TransportTransactionState {
+    object Loading : TransportTransactionState()
+    data class Success(val details: TransportTransactionDetails) : TransportTransactionState()
+    data class Error(val message: String) : TransportTransactionState()
 }

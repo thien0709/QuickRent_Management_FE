@@ -68,12 +68,11 @@ class TransportDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<TransportDetailState>(TransportDetailState.Loading)
     val uiState: StateFlow<TransportDetailState> = _uiState.asStateFlow()
 
-    // NOTE: Thêm 2 SharedFlow để gửi sự kiện một lần tới UI
     private val _actionResult = MutableSharedFlow<String>()
-    val actionResult = _actionResult.asSharedFlow() // Gửi thông báo (Toast)
+    val actionResult = _actionResult.asSharedFlow()
 
     private val _navigateBackEvent = MutableSharedFlow<Unit>()
-    val navigateBackEvent = _navigateBackEvent.asSharedFlow() // Gửi tín hiệu điều hướng
+    val navigateBackEvent = _navigateBackEvent.asSharedFlow()
 
     private val _deliverableAddresses = MutableStateFlow<Map<Long, Pair<String, String>>>(emptyMap())
     val deliverableAddresses: StateFlow<Map<Long, Pair<String, String>>> = _deliverableAddresses.asStateFlow()

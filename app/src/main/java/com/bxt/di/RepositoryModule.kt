@@ -8,6 +8,7 @@ import com.bxt.data.repository.AddressRepository
 import com.bxt.data.repository.AuthRepository
 import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ChatRepository
+import com.bxt.data.repository.FcmRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
 import com.bxt.data.repository.RentalRequestRepository
@@ -132,5 +133,22 @@ object RepositoryModule {
         apiCallExecutor: ApiCallExecutor
     ): TransportPassengerRepository {
         return TransportPassengerRepositoryImpl(apiService, apiCallExecutor)
+    }
+
+    @Singleton
+    @Provides
+    fun provideFcmRepository(
+        apiService: ApiService
+    ): FcmRepository {
+        return FcmRepositoryImpl(apiService)
+    }
+
+    @Singleton
+    @Provides
+    fun provideChatGeminiRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): com.bxt.data.repository.ChatGeminiRepository {
+        return ChatGeminiRepositoryImpl(apiService)
     }
 }

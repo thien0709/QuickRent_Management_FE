@@ -46,7 +46,6 @@ data class AddTransportUiState(
     val error: String? = null,
     val selecting: SelectTarget = SelectTarget.NONE,
 
-    // Tuyến đường Mapbox
     val routePoints: List<Point> = emptyList(),
     val isRouting: Boolean = false
 )
@@ -63,13 +62,10 @@ class AddTransportViewModel @Inject constructor(
 
     private val http = OkHttpClient()
 
-    // Token cho Directions/Geocoding
     private val mapboxToken: String by lazy {
         val id = context.resources.getIdentifier("mapbox_access_token", "string", context.packageName)
         if (id != 0) context.getString(id) else ""
     }
-
-    /* ---------------- Actions cơ bản ---------------- */
 
     fun setSelecting(target: SelectTarget) = _uiState.update { it.copy(selecting = target) }
 
@@ -168,7 +164,6 @@ class AddTransportViewModel @Inject constructor(
         }
     }
 
-    /* ---------------- Directions (Mapbox) ---------------- */
 
     private fun updateRouteIfPossible() {
         val origin = _uiState.value.fromPoint ?: _uiState.value.currentPoint

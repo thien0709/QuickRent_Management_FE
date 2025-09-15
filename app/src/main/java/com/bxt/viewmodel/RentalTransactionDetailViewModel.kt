@@ -76,7 +76,6 @@ data class DetailUiState(
     val error: String? = null
 )
 
-// --- ViewModel ---
 
 @HiltViewModel
 class TransactionDetailViewModel @Inject constructor(
@@ -159,9 +158,6 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
-    /**
-     * CẬP NHẬT: Tính toán các quyền mới, bao gồm cả quyền lựa chọn phương thức nhận hàng.
-     */
     private fun computeCapabilities(
         step: RentalStep,
         isOwner: Boolean,
@@ -177,7 +173,6 @@ class TransactionDetailViewModel @Inject constructor(
             ownerCanUploadPickupImages = isOwner && step == RentalStep.CONFIRMED,
             ownerCanComplete = isOwner && step == RentalStep.RETURNED,
 
-            // Logic mới cho người thuê
             renterCanChoosePickupOrDelivery = isRenter && step == RentalStep.READY_FOR_PICKUP,
 
             renterCanUploadReturnImages = isRenter && !hasReturnImages && (step == RentalStep.RENTING || step == RentalStep.AWAITING_RETURN),
@@ -185,8 +180,6 @@ class TransactionDetailViewModel @Inject constructor(
         )
     }
 
-
-    // --- Action Functions ---
 
     fun ownerConfirmRequest() = performAction { requestRepo.confirmRequest(requestId) }
     fun ownerRejectRequest() = performAction { requestRepo.rejectRequest(requestId) }

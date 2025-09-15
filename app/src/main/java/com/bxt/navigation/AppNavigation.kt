@@ -25,17 +25,14 @@ import com.bxt.ui.components.BottomNavItem
 import com.bxt.ui.components.BottomNavigationBar
 import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.screen.*
-import com.bxt.viewmodel.RentalServiceViewModel
-import com.bxt.viewmodel.TransactionDetailViewModel
 import com.bxt.viewmodel.TransportServiceViewModel
 import com.bxt.viewmodel.WelcomeViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.first
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-
 @Composable
-fun AppNavigation() {
+fun AppNavigation(
+    initialDeeplinkRoute: String? = null
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -48,6 +45,13 @@ fun AppNavigation() {
         val isFirstTime = welcomeViewModel.dataStoreManager.isFirstTime.first()
         startDestination = if (isFirstTime) "welcome" else "home"
     }
+    LaunchedEffect(startDestination, initialDeeplinkRoute) {
+        if (startDestination != null && !initialDeeplinkRoute.isNullOrBlank()) {
+            navController.navigate(initialDeeplinkRoute) {
+                launchSingleTop = true
+            }
+        }
+    }
 
     val routesToHideBottomBar = listOf(
         "welcome",
@@ -56,6 +60,7 @@ fun AppNavigation() {
         "item_detail/",
         "rent_item/",
         "chat_screen/",
+        "chat_gemini",
         "add_item",
         "add_transport_service",  "transport_detail/",
         "transaction_detail/"
@@ -281,6 +286,9 @@ fun AppNavigation() {
                         viewModel = hiltViewModel()
                     )
                 }
+                composable("chat_gemini") {
+                    ChatGeminiScreen()
+                }
 
                 composable(
                     route = "chat_screen/{otherUserId}?attachableJson={attachableJson}",
@@ -335,6 +343,10 @@ fun AppNavigation() {
                         }
                     )
                 }
+                composable("transport_requests") {
+                    TransportRequestScreen(navController = navController)
+                }
+
 
             }
             ErrorPopupManager.ErrorPopup()

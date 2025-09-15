@@ -19,7 +19,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.bxt.ui.components.ExpandableFab
 import com.bxt.ui.state.ChatListUiState
+import com.bxt.util.FabActions
 import com.bxt.viewmodel.ChatListViewModel
 import com.bxt.viewmodel.ChatThreadUi
 import java.text.SimpleDateFormat
@@ -50,6 +52,7 @@ fun ChatListScreen(
             )
         }
     }
+    ExpandableFab(actions = FabActions.chat(navController))
 }
 
 @Composable

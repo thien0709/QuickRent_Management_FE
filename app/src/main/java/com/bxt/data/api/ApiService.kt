@@ -3,8 +3,10 @@ package com.bxt.data.api
 import android.graphics.pdf.PdfDocument.Page
 import com.bxt.data.api.dto.request.ItemRequest
 import com.bxt.data.api.dto.request.LoginRequest
+import com.bxt.data.api.dto.request.PromptRequest
 import com.bxt.data.api.dto.request.RefreshTokenRequest
 import com.bxt.data.api.dto.request.RegisterRequest
+import com.bxt.data.api.dto.request.RegisterTokenRequest
 import com.bxt.data.api.dto.request.RentalRequestRequest
 import com.bxt.data.api.dto.request.TransportPackageRequest
 import com.bxt.data.api.dto.request.TransportPassengerRequest
@@ -143,7 +145,6 @@ interface ApiService {
         @Body request: RentalRequestRequest
     ): RentalRequestResponse
 
-
     @PATCH("rental-requests/{id}/confirm")
     suspend fun confirmRentalRequest(@Path("id") requestId: Long): RentalRequestResponse
 
@@ -167,11 +168,15 @@ interface ApiService {
     @GET("transport-services")
     suspend fun getTransportServices(): List<TransportServiceResponse>
 
-    @GET("transport-services/owner")
-    suspend fun getTransportServicesByOwner(): List<TransportServiceResponse>
+    @GET("transport-services/driver")
+    suspend fun getTransportServicesByDriver(
+        @Query("page") page: Int
+    ): PagedResponse<TransportServiceResponse>
 
-    @GET("transport-services/renter")
-    suspend fun getTransportServicesByRenter(): List<TransportServiceResponse>
+    @GET("transport-services/participant")
+    suspend fun getTransportServicesByParticipant(
+        @Query("page") page: Int
+    ): PagedResponse<TransportServiceResponse>
 
     @GET("transport-services/{id}")
     suspend fun getTransportServiceById(@Path("id") id: Long): TransportServiceResponse
@@ -186,13 +191,27 @@ interface ApiService {
     ): TransportServiceResponse
 
     @DELETE("transport-services/{id}")
-    suspend fun deleteTransportService(id: Long)
+    suspend fun deleteTransportService(@Path("id") id: Long)
 
     @PATCH("transport-services/{id}/status")
     suspend fun updateServiceStatus(
         @Path("id") serviceId: Long,
         @Body newStatus: String
     ): TransportServiceResponse
+
+    // --- Transport Packages & Passengers ---
+    @POST("transport-packages")
+    suspend fun createTransportPackage(@Body request: TransportPackageRequest): TransportPackageResponse
+
+    @GET("transport-services/{serviceId}/packages")
+    suspend fun getTransportPackagesByServiceId(@Path("serviceId") serviceId: Long): List<TransportPackageResponse>
+
+    @POST("transport-passengers")
+    suspend fun createTransportPassenger(@Body request: TransportPassengerRequest): TransportPassengerResponse
+
+    @GET("transport-services/{serviceId}/passengers")
+    suspend fun getTransportPassengersByServiceId(@Path("serviceId") serviceId: Long): List<TransportPassengerResponse>
+
 
     // Rental Transactions
     @GET("rental-transactions/{transactionId}/images")
@@ -217,17 +236,15 @@ interface ApiService {
         @Part images: List<MultipartBody.Part>
     ): List<TransactionImageResponse>
 
-    // Transport Service
-    @POST("transport-packages")
-    suspend fun createTransportPackage(@Body request: TransportPackageRequest): TransportPackageResponse
+    // Firebase Cloud Messaging Token
+    @POST("fcm/register")
+    suspend fun register(@Body body: RegisterTokenRequest): Unit
 
-    @GET("transport-services/{serviceId}/packages")
-    suspend fun getTransportPackagesByServiceId(@Path("serviceId") serviceId: Long): List<TransportPackageResponse>
+    @DELETE("fcm/register")
+    suspend fun unregister(@Query("token") token: String): Unit
 
-    @POST("transport-passengers")
-    suspend fun createTransportPassenger(@Body request: TransportPassengerRequest): TransportPassengerResponse
-
-    @GET("transport-services/{serviceId}/passengers")
-    suspend fun getTransportPassengersByServiceId(@Path("serviceId") serviceId: Long): List<TransportPassengerResponse>
+    // Chat With AI
+    @POST("chat-gemini")
+    suspend fun chatWithGemini(@Body request: PromptRequest): ChatResponse
 
 }

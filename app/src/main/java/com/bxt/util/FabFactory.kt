@@ -52,8 +52,12 @@ object FabActions {
 
     fun transport(nav: NavController) = listOf(
         FabAction("Add item ", { Icon(Icons.Default.Add, null) }) { nav.navigate("add_transport_service") },
-        FabAction("See request", { Icon(Icons.Default.Assignment, null) }) { nav.navigate("transport_service") },
-        FabAction("See transaction", { Icon(Icons.Default.Receipt, null) }) { nav.navigate("transactions_transport") },
+        FabAction("See requests", { Icon(Icons.Default.Assignment, null) }) { nav.navigate("transport_requests") }
+    )
+
+    fun chat(nav: NavController) = listOf(
+        FabAction("Chat", { Icon(Icons.Default.Chat, null) }) { nav.navigate("chat_list") },
+        FabAction("Chat with AI", { Icon(Icons.Default.SmartToy, null) }) { nav.navigate("chat_gemini") }
     )
 
 

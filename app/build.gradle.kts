@@ -122,14 +122,16 @@ dependencies {
 //    implementation("com.google.maps.android:maps-compose:2.11.4")
 //    implementation("com.google.android.libraries.places:places:3.3.0")
 
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 
 
     //Firebase
-    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+    implementation(libs.firebase.bom)
 
-    implementation("com.google.firebase:firebase-database-ktx")
-    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-database:22.0.0")
+    implementation("com.google.firebase:firebase-database-ktx:21.0.0")
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation("com.google.firebase:firebase-messaging:25.0.0")
 
     implementation(libs.gson)
     //Mapbox
