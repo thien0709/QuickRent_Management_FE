@@ -24,10 +24,11 @@ class AppFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         scope.launch {
-            val userId = dataStore.userId.firstOrNull()
+            val userId = dataStore.userId.firstOrNull() ?: return@launch
             runCatching { repo.registerToken(token, userId) }
         }
     }
+
 
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     override fun onMessageReceived(message: RemoteMessage) {
@@ -55,5 +56,4 @@ class AppFirebaseMessagingService : FirebaseMessagingService() {
             referenceId = refId
         )
     }
-
 }

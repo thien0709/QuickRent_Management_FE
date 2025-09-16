@@ -46,7 +46,13 @@ fun TransportRequestScreen(
     }
 
     LaunchedEffect(selectedTab) {
-        val mode = if (selectedTab == 0) TransportRequestViewModel.LoadMode.DRIVER else TransportRequestViewModel.LoadMode.PARTICIPANT
+        val mode = when(selectedTab) {
+            0 -> TransportRequestViewModel.LoadMode.DRIVER
+            1 -> TransportRequestViewModel.LoadMode.PARTICIPANT
+            2 -> TransportRequestViewModel.LoadMode.SENDER
+            3 -> TransportRequestViewModel.LoadMode.RECEIVER
+            else -> TransportRequestViewModel.LoadMode.DRIVER
+        }
         viewModel.switchMode(mode)
     }
 
@@ -63,6 +69,8 @@ fun TransportRequestScreen(
             TabRow(selectedTabIndex = selectedTab) {
                 Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Chuyến đi của tôi") })
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Chuyến đi tham gia") })
+                Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Gói hàng đã gửi") })
+                Tab(selected = selectedTab == 3, onClick = { selectedTab = 3 }, text = { Text("Gói hàng đã nhận") })
             }
 
             PullToRefreshBox(

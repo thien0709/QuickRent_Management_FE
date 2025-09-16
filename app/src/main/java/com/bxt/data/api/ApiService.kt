@@ -178,6 +178,22 @@ interface ApiService {
         @Query("page") page: Int
     ): PagedResponse<TransportServiceResponse>
 
+
+    @GET("transport-services/sender")
+    suspend fun getTransportServicesBySender(
+        @Query("page") page: Int
+    ): PagedResponse<TransportServiceResponse>
+
+    @GET("transport-services/receiver")
+    suspend fun getTransportServicesByReceiver(
+        @Query("page") page: Int
+    ): PagedResponse<TransportServiceResponse>
+
+    @GET("transport-services/passenger")
+    suspend fun getTransportServicesAsPassenger(
+        @Query("page") page: Int
+    ): PagedResponse<TransportServiceResponse>
+
     @GET("transport-services/{id}")
     suspend fun getTransportServiceById(@Path("id") id: Long): TransportServiceResponse
 

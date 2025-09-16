@@ -28,7 +28,7 @@ class TransportRequestViewModel @Inject constructor(
     private val locationRepo: LocationRepository,
 ) : ViewModel() {
 
-    enum class LoadMode { DRIVER, PARTICIPANT }
+    enum class LoadMode { DRIVER, PARTICIPANT, SENDER, RECEIVER }
 
     private val _uiState = MutableStateFlow<TransportRequestState>(TransportRequestState.Loading)
     val uiState: StateFlow<TransportRequestState> = _uiState.asStateFlow()
@@ -89,6 +89,8 @@ class TransportRequestViewModel @Inject constructor(
         val result = when (currentMode) {
             LoadMode.DRIVER -> transportRepo.getTransportServicesByDriver(currentPage)
             LoadMode.PARTICIPANT -> transportRepo.getTransportServicesByParticipant(currentPage)
+            LoadMode.SENDER -> transportRepo.getTransportServicesBySender(currentPage)
+            LoadMode.RECEIVER -> transportRepo.getTransportServicesByReceiver(currentPage)
         }
 
         when (result) {

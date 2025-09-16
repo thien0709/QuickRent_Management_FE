@@ -350,6 +350,13 @@ fun AppNavigation(
                     TransportRequestScreen(navController = navController)
                 }
 
+                composable(
+                    route = "transport_management/{serviceId}",
+                    arguments = listOf(navArgument("serviceId") { type = NavType.LongType })
+                ) {
+                    // Điều hướng đến màn hình quản lý chuyến đi
+                    TransportManagementScreen(navController = navController)
+                }
 
             }
             ErrorPopupManager.ErrorPopup()

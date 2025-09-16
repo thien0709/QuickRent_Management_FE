@@ -6,10 +6,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.bxt.viewmodel.FcmRegistrationViewModel
 
 @Composable
-fun FcmRegistrationGate(
-    vm: FcmRegistrationViewModel = hiltViewModel()
-) {
-    LaunchedEffect(Unit) {
-        vm.registerIfLoggedIn()
-    }
+fun FcmRegistrationGate(vm: FcmRegistrationViewModel = hiltViewModel()) {
+    LaunchedEffect(Unit) { vm.registerIfLoggedIn() }
 }

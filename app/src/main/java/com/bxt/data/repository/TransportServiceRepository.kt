@@ -14,4 +14,7 @@ interface TransportServiceRepository {
     suspend fun updateServiceStatus(serviceId: Long, newStatus: String): ApiResult<TransportServiceResponse>
     suspend fun getTransportServicesByDriver(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>>
     suspend fun getTransportServicesByParticipant(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>>
+    suspend fun getTransportServicesBySender(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>>
+    suspend fun getTransportServicesByReceiver(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>>
+    suspend fun getTransportServicesAsPassenger(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>>
 }

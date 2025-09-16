@@ -25,6 +25,7 @@ import com.bxt.ui.components.ExpandableFab
 import com.bxt.ui.components.LoadingIndicator
 import com.bxt.ui.theme.LocalDimens
 import com.bxt.util.FabActions
+import com.bxt.viewmodel.FcmRegistrationViewModel
 import com.bxt.viewmodel.UserViewModel
 
 private const val DEFAULT_AVATAR_URL = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
@@ -80,7 +81,8 @@ private fun ProfileContent(
     userData: UserResponse,
     onLogout: () -> Unit,
     onEditProfile: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    fcmVM: FcmRegistrationViewModel = hiltViewModel()
 ) {
     val d = LocalDimens.current
 
@@ -126,7 +128,10 @@ private fun ProfileContent(
             }
         }
         Button(
-            onClick = onLogout,
+            onClick = {
+                onLogout()
+                fcmVM.cleanupOnLogout()
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(d.buttonHeight),

@@ -66,4 +66,24 @@ class TransportServiceRepositoryImpl(
         }
     }
 
+    // Phương thức mới để lấy danh sách chuyến đi mà người dùng là người gửi
+    override suspend fun getTransportServicesBySender(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>> {
+        return apiCallExecutor.execute {
+            apiService.getTransportServicesBySender(currentPage)
+        }
+    }
+
+    // Phương thức mới để lấy danh sách chuyến đi mà người dùng là người nhận
+    override suspend fun getTransportServicesByReceiver(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>> {
+        return apiCallExecutor.execute {
+            apiService.getTransportServicesByReceiver(currentPage)
+        }
+    }
+
+    // Phương thức mới để lấy danh sách chuyến đi mà người dùng là hành khách
+    override suspend fun getTransportServicesAsPassenger(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>> {
+        return apiCallExecutor.execute {
+            apiService.getTransportServicesAsPassenger(currentPage)
+        }
+    }
 }

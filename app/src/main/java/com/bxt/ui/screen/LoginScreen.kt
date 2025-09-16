@@ -24,13 +24,15 @@ import com.bxt.R
 import com.bxt.ui.state.LoginState
 import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.AuthViewModel
+import com.bxt.viewmodel.FcmRegistrationViewModel
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onSignUpClick: () -> Unit,
     onForgotPasswordClick: () -> Unit,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    fcmVM: FcmRegistrationViewModel= hiltViewModel()
 ) {
     val d = LocalDimens.current
 
@@ -41,6 +43,7 @@ fun LoginScreen(
     LaunchedEffect(loginState) {
         if (loginState is LoginState.Success) {
             onLoginSuccess()
+            fcmVM.registerIfLoggedIn()
             viewModel.resetLoginState()
         }
     }
