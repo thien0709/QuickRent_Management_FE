@@ -68,7 +68,9 @@ fun EditProfileScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(paddingValues)
+                .windowInsetsPadding(WindowInsets.ime)
+                .verticalScroll(rememberScrollState()),
             contentAlignment = Alignment.Center
         ) {
             when {

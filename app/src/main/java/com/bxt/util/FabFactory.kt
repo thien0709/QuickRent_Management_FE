@@ -56,8 +56,7 @@ object FabActions {
     )
 
     fun chat(nav: NavController) = listOf(
-        FabAction("Chat", { Icon(Icons.Default.Chat, null) }) { nav.navigate("chat_list") },
-        FabAction("Chat with AI", { Icon(Icons.Default.SmartToy, null) }) { nav.navigate("chat_gemini") }
+       FabAction("Chat with AI", { Icon(Icons.Default.SmartToy, null) }) { nav.navigate("chat_gemini") }
     )
 
 

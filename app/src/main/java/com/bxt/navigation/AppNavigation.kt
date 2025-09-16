@@ -287,7 +287,10 @@ fun AppNavigation(
                     )
                 }
                 composable("chat_gemini") {
-                    ChatGeminiScreen()
+                    ChatGeminiScreen(
+                        navController = navController,
+                        viewModel = hiltViewModel()
+                    )
                 }
 
                 composable(

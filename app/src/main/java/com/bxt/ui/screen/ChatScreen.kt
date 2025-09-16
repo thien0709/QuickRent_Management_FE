@@ -94,7 +94,6 @@ fun ChatScreen(
                     onTextChange = { text = it },
                     onSendClicked = {
                         if (text.isNotBlank()) {
-                            // Về đáy ngay lập tức để thấy message mới gửi
                             scope.launch { listState.scrollToItem(0) }
                             viewModel.sendMessage(text)
                             text = ""
@@ -118,7 +117,6 @@ fun ChatScreen(
                     Text("Vui lòng đăng nhập để sử dụng tính năng này.")
                 }
             } else {
-                // Danh sách tin nhắn
                 LazyColumn(
                     state = listState,
                     reverseLayout = true,
@@ -139,6 +137,7 @@ fun ChatScreen(
         }
     }
 }
+
 private fun messageKey(m: Map<String, Any?>): Any =
     m["id"] ?: m["messageId"] ?: m["timestamp"] ?: m.hashCode()
 
@@ -186,6 +185,7 @@ private fun MessageBubble(
                             isMyMessage = isMyMessage
                         )
                     }
+
                     textContent != null -> {
                         Text(
                             text = textContent,
@@ -236,14 +236,21 @@ private fun IntegratedMessageCard(
                 val title = attachableMap["title"] as? String
                 val subtitle = attachableMap["subtitle"] as? String
                 val decodedTitle = remember(title) {
-                    try { URLDecoder.decode(title, StandardCharsets.UTF_8.name()) }
-                    catch (_: Exception) { title ?: "Sản phẩm" }
+                    try {
+                        URLDecoder.decode(title, StandardCharsets.UTF_8.name())
+                    } catch (_: Exception) {
+                        title ?: "Sản phẩm"
+                    }
                 }
-                Text(decodedTitle, fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyMedium, color = textColor)
+                Text(
+                    decodedTitle, fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium, color = textColor
+                )
                 subtitle?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall,
-                        color = textColor.copy(alpha = 0.8f))
+                    Text(
+                        it, style = MaterialTheme.typography.bodySmall,
+                        color = textColor.copy(alpha = 0.8f)
+                    )
                 }
             }
         }
@@ -260,7 +267,7 @@ private fun MessageInput(
     onTextChange: (String) -> Unit,
     onSendClicked: () -> Unit
 ) {
-    Surface(tonalElevation = 4.dp) {
+    Surface(tonalElevation = 4.dp, color = Color.Transparent) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
