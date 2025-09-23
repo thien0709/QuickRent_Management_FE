@@ -54,36 +54,30 @@ class TransportServiceRepositoryImpl(
         }
     }
 
-    override suspend fun getTransportServicesByDriver(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>> {
+    override suspend fun confirmTransportService(id: Long): ApiResult<TransportServiceResponse> {
         return apiCallExecutor.execute {
-            apiService.getTransportServicesByDriver(currentPage)
+            apiService.confirmTransportService(id)
         }
     }
 
-    override suspend fun getTransportServicesByParticipant(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>> {
+    override suspend fun startTransportService(id: Long): ApiResult<TransportServiceResponse> {
         return apiCallExecutor.execute {
-            apiService.getTransportServicesByParticipant(currentPage)
+            apiService.startTransportService(id)
         }
     }
 
-    // Phương thức mới để lấy danh sách chuyến đi mà người dùng là người gửi
-    override suspend fun getTransportServicesBySender(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>> {
+    override suspend fun completeTransportService(id: Long): ApiResult<TransportServiceResponse> {
         return apiCallExecutor.execute {
-            apiService.getTransportServicesBySender(currentPage)
+            apiService.completeTransportService(id)
         }
     }
 
-    // Phương thức mới để lấy danh sách chuyến đi mà người dùng là người nhận
-    override suspend fun getTransportServicesByReceiver(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>> {
+    override suspend fun cancelTransportService(
+        id: Long,
+        reason: String?
+    ): ApiResult<TransportServiceResponse> {
         return apiCallExecutor.execute {
-            apiService.getTransportServicesByReceiver(currentPage)
-        }
-    }
-
-    // Phương thức mới để lấy danh sách chuyến đi mà người dùng là hành khách
-    override suspend fun getTransportServicesAsPassenger(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>> {
-        return apiCallExecutor.execute {
-            apiService.getTransportServicesAsPassenger(currentPage)
+            apiService.cancelTransportService(id, reason)
         }
     }
 }

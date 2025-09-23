@@ -1,47 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
+    android:width="56dp"
+    android:height="56dp"
     android:viewportWidth="100"
     android:viewportHeight="100">
 
-    <group
-        android:strokeWidth="2.5"
-        android:strokeColor="#FF000000">
+    <!-- Gợi ý: tăng/giảm strokeWidth 3.2–4.4 theo kích thước dùng thực tế -->
+    <!-- Màu có thể đổi sang @color/... -->
+    <group android:pivotX="50" android:pivotY="50">
 
+        <!-- (1) BỤNG DƯỚI — UNDER (vẽ trước) -->
         <path
-            android:pathData="M50,85 C 85,85 100,70 100,50 C 100,30 85,15 50,15 L 50,85 Z"
-            android:fillColor="#00000000" />
+            android:pathData="M12,64 C22,74 38,82 56,84 C70,86 83,81 92,72"
+            android:strokeColor="#14BBD6"
+            android:strokeWidth="3.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeMiterLimit="1"
+            android:fillColor="#00000000"
+            android:strokeAlpha="0.85"/>
 
+        <!-- (2) NHÁNH N xiên — UNDER -->
         <path
-            android:pathData="M 58,15 L 58,85" />
+            android:pathData="M30,24 L47,60"
+            android:strokeColor="#14BBD6"
+            android:strokeWidth="3.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeMiterLimit="1"
+            android:fillColor="#00000000"
+            android:strokeAlpha="0.85"/>
 
+        <!-- (3) ĐUÔI thân dưới — UNDER -->
         <path
-            android:pathData="M 40,55 L 58,65 L 68,85 L 75,85" />
+            android:pathData="M92,72 C96,66 98,60 98,55 C98,50 96,45 93,41"
+            android:strokeColor="#14BBD6"
+            android:strokeWidth="3.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeMiterLimit="1"
+            android:fillColor="#00000000"
+            android:strokeAlpha="0.85"/>
 
+        <!-- (4) DẢI RIBBON CHÍNH từ bụng lên lưng — OVER -->
+        <!-- có khoảng hở rất nhỏ ở gần (47,60) để không “dính” vào nhánh N -->
         <path
-            android:pathData="M 40,55 L 58,15" />
+            android:pathData="M12,64 C16,57 21,54 25,54 C32,54 40,59 49,65 C61,73 75,78 92,72"
+            android:strokeColor="#14BBD6"
+            android:strokeWidth="3.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeMiterLimit="1"
+            android:fillColor="#00000000"/>
 
+        <!-- (5) VÒNG ĐẦU → LƯNG — OVER -->
         <path
-            android:pathData="M 40,55 L 25,55" />
-        <path
-            android:pathData="M 25,55 L 5,35" />
+            android:pathData="M31,24 C41,18 52,16 62,16 C78,16 90,27 90,40"
+            android:strokeColor="#14BBD6"
+            android:strokeWidth="3.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeMiterLimit="1"
+            android:fillColor="#00000000"/>
 
+        <!-- (6) LƯNG HẠ VỀ THÂN + CHUYỂN VỀ ĐUÔI — OVER -->
         <path
-            android:pathData="M 5,35 L 0,50" />
-        <path
-            android:pathData="M 5,35 L 0,20 L 10,5 L 10,20" />
+            android:pathData="M90,40 C90,52 79,60 66,60 C59,60 55,56 55,52 C55,48 58,45 63,43 C73,39 81,42 85,50"
+            android:strokeColor="#14BBD6"
+            android:strokeWidth="3.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeMiterLimit="1"
+            android:fillColor="#00000000"/>
 
+        <!-- (7) LÁ ĐUÔI đôi — OVER -->
         <path
-            android:pathData="M 25,55 L 18,75" />
+            android:pathData="M85,62 C91,62 95,58 97,54 C95,54 91,54 87,56"
+            android:strokeColor="#14BBD6"
+            android:strokeWidth="3.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeMiterLimit="1"
+            android:fillColor="#00000000"/>
         <path
-            android:pathData="M 18,75 L 5,60" />
-        <path
-            android:pathData="M 18,75 L 28,85 L 18,95 L 18,85" />
+            android:pathData="M85,62 C91,66 95,70 97,74 C93,74 89,72 85,68"
+            android:strokeColor="#14BBD6"
+            android:strokeWidth="3.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeMiterLimit="1"
+            android:fillColor="#00000000"/>
 
+        <!-- (8) CẰM DƯỚI + 2 chữ I — OVER -->
+        <path
+            android:pathData="M61,16 C65,22 68,28 68,36"
+            android:strokeColor="#14BBD6"
+            android:strokeWidth="3.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeMiterLimit="1"
+            android:fillColor="#00000000"/>
+        <path
+            android:pathData="M61,20 L61,52"
+            android:strokeColor="#14BBD6"
+            android:strokeWidth="3.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeMiterLimit="1"
+            android:fillColor="#00000000"/>
+        <path
+            android:pathData="M49,34 L49,66"
+            android:strokeColor="#14BBD6"
+            android:strokeWidth="3.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeMiterLimit="1"
+            android:fillColor="#00000000"/>
+
+        <!-- mắt -->
+        <path
+            android:pathData="M73,36 a2,2 0 1,1 -4,0 a2,2 0 1,1 4,0"
+            android:fillColor="#14BBD6"/>
     </group>
-
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M 88,48 a 2,2 0 1,1 -4,0 a 2,2 0 1,1 4,0" />
-
 </vector>

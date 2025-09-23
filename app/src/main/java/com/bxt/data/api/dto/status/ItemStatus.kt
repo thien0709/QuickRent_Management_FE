@@ -12,6 +12,5 @@ enum class AvailabilityStatus(val label: String) {
     UNAVAILABLE("Unavailable")
 }
 
-// (tuỳ chọn) list cho dropdown:
 val CONDITION_OPTIONS = ConditionStatus.entries.toList()
 val AVAILABILITY_OPTIONS = AvailabilityStatus.entries.toList()

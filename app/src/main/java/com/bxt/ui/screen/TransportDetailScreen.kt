@@ -61,7 +61,6 @@ fun TransportDetailScreen(
     }
     LaunchedEffect(Unit) { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
 
-    // NOTE: Thêm 2 LaunchedEffect này để lắng nghe sự kiện từ ViewModel
     LaunchedEffect(Unit) {
         viewModel.actionResult.collect { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -95,7 +94,6 @@ fun TransportDetailScreen(
     }
 }
 
-// ... (Các Composable con như ErrorContent, TransportDetailContent, v.v... giữ nguyên không thay đổi)
 @Composable
 private fun ErrorContent(message: String, onRetry: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {

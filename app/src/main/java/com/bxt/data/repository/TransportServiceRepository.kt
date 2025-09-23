@@ -12,9 +12,10 @@ interface TransportServiceRepository {
     suspend fun updateTransportService(id: Long, request: TransportServiceRequest): ApiResult<TransportServiceResponse>
     suspend fun deleteTransportService(id: Long): ApiResult<Unit>
     suspend fun updateServiceStatus(serviceId: Long, newStatus: String): ApiResult<TransportServiceResponse>
-    suspend fun getTransportServicesByDriver(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>>
-    suspend fun getTransportServicesByParticipant(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>>
-    suspend fun getTransportServicesBySender(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>>
-    suspend fun getTransportServicesByReceiver(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>>
-    suspend fun getTransportServicesAsPassenger(currentPage: Int): ApiResult<PagedResponse<TransportServiceResponse>>
+
+    suspend fun confirmTransportService(id: Long): ApiResult<TransportServiceResponse>
+    suspend fun startTransportService(id: Long): ApiResult<TransportServiceResponse>
+    suspend fun completeTransportService(id: Long): ApiResult<TransportServiceResponse>
+    suspend fun cancelTransportService(id: Long, reason: String? = null): ApiResult<TransportServiceResponse>
+
 }

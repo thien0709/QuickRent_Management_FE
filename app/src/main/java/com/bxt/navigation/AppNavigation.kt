@@ -159,7 +159,6 @@ fun AppNavigation(
                     SearchItemScreen(
                         onNavigateBack = { navController.popBackStack() },
                         onItemClick = { item ->
-                            // Điều hướng đến màn hình chi tiết sản phẩm
                             navController.navigate("item_detail/${item.id}")
                         }
                     )
@@ -306,6 +305,7 @@ fun AppNavigation(
                 ) { backStackEntry ->
                     ChatScreen(navController = navController)
                 }
+
                 composable("rental_service") {
                     RentalServiceScreen(
                         onBackClick = { navController.popBackStack() },
@@ -351,12 +351,18 @@ fun AppNavigation(
                 }
 
                 composable(
-                    route = "transport_management/{serviceId}",
-                    arguments = listOf(navArgument("serviceId") { type = NavType.LongType })
+                    route = "transport_service_detail/{serviceId}?entity={entity}&entityId={entityId}&asOwner={asOwner}",
+                    arguments = listOf(
+                        navArgument("serviceId") { type = NavType.LongType },                 // bắt buộc
+                        navArgument("entity")   { type = NavType.StringType; defaultValue = "" }, // optional -> "" nếu không truyền
+                        navArgument("entityId") { type = NavType.LongType;  defaultValue = -1L }, // optional -> -1L làm sentinel
+                        navArgument("asOwner")  { type = NavType.BoolType;  defaultValue = false } // optional -> false
+                    )
                 ) {
-                    // Điều hướng đến màn hình quản lý chuyến đi
-                    TransportManagementScreen(navController = navController)
+                    TransportServiceDetailScreen(navController = navController)
                 }
+
+
 
             }
             ErrorPopupManager.ErrorPopup()

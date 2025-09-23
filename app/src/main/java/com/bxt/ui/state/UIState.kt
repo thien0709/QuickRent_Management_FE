@@ -5,6 +5,8 @@ import com.bxt.data.api.dto.response.ItemDetail
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.api.dto.response.RentalRequestResponse
+import com.bxt.data.api.dto.response.TransportPackageResponse
+import com.bxt.data.api.dto.response.TransportPassengerResponse
 import com.bxt.data.api.dto.response.TransportServiceResponse
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
@@ -12,10 +14,8 @@ import com.bxt.viewmodel.Capabilities
 import com.bxt.viewmodel.ChatThreadUi
 import com.bxt.viewmodel.FullRentalDetails
 import com.bxt.viewmodel.FullTransportDetails
-import com.bxt.viewmodel.TransportTransactionDetails
+import com.bxt.viewmodel.UnifiedTrip
 
-//import com.google.android.gms.maps.model.LatLng
-//import com.google.android.libraries.places.api.model.AutocompletePrediction
 
 sealed class LoginState {
     object Idle : LoginState()
@@ -170,8 +170,51 @@ sealed interface TransportDetailState {
     data class Error(val message: String) : TransportDetailState
 }
 
-sealed class TransportTransactionState {
-    object Loading : TransportTransactionState()
-    data class Success(val details: TransportTransactionDetails) : TransportTransactionState()
-    data class Error(val message: String) : TransportTransactionState()
+//data class TransportServiceDetails(
+//    val service: TransportServiceResponse,
+//    val passengers: List<TransportPassengerResponse>,
+//    val packages: List<TransportPackageResponse>
+//)
+//
+//sealed interface TransportTransactionState {
+//    data object Loading : TransportTransactionState
+//    data class Error(val message: String) : TransportTransactionState
+//    data class Success(val details: TransportServiceDetails) : TransportTransactionState
+//}
+
+
+data class Permissions(
+    // Quyền của chủ chuyến đi
+    val canConfirm: Boolean = false,
+    val canStart: Boolean = false,
+    val canComplete: Boolean = false,
+    val canCancelTrip: Boolean = false,
+
+    // Quyền của người thuê
+    val canCancelMyBooking: Boolean = false
+)
+
+// Dữ liệu chi tiết về chuyến đi
+data class TransportServiceDetails(
+    val service: TransportServiceResponse,
+    val passengers: List<TransportPassengerResponse>,
+    val packages: List<TransportPackageResponse> // Vẫn giữ lại để hiển thị nếu cần
+)
+
+// Trạng thái của màn hình chi tiết, đóng gói tất cả thông tin cần thiết
+sealed interface TransportTransactionState {
+    data object Loading : TransportTransactionState
+    data class Error(val message: String) : TransportTransactionState
+    data class Success(
+        val details: TransportServiceDetails,
+        val isOwner: Boolean, // Vai trò của người dùng hiện tại
+        val myPassenger: TransportPassengerResponse?, // Thông tin đặt chỗ của người dùng
+        val permissions: Permissions // Các quyền đã được tính toán
+    ) : TransportTransactionState
+}
+
+sealed class TransportRequestState {
+    object Loading : TransportRequestState()
+    data class Success(val items: List<UnifiedTrip>) : TransportRequestState()
+    data class Error(val message: String) : TransportRequestState()
 }

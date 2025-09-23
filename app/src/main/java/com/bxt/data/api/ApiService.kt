@@ -165,70 +165,6 @@ interface ApiService {
     suspend fun getRentalRequestById(@Path("id") id: Long): RentalRequestResponse
 
     // Transport Services
-    @GET("transport-services")
-    suspend fun getTransportServices(): List<TransportServiceResponse>
-
-    @GET("transport-services/driver")
-    suspend fun getTransportServicesByDriver(
-        @Query("page") page: Int
-    ): PagedResponse<TransportServiceResponse>
-
-    @GET("transport-services/participant")
-    suspend fun getTransportServicesByParticipant(
-        @Query("page") page: Int
-    ): PagedResponse<TransportServiceResponse>
-
-
-    @GET("transport-services/sender")
-    suspend fun getTransportServicesBySender(
-        @Query("page") page: Int
-    ): PagedResponse<TransportServiceResponse>
-
-    @GET("transport-services/receiver")
-    suspend fun getTransportServicesByReceiver(
-        @Query("page") page: Int
-    ): PagedResponse<TransportServiceResponse>
-
-    @GET("transport-services/passenger")
-    suspend fun getTransportServicesAsPassenger(
-        @Query("page") page: Int
-    ): PagedResponse<TransportServiceResponse>
-
-    @GET("transport-services/{id}")
-    suspend fun getTransportServiceById(@Path("id") id: Long): TransportServiceResponse
-
-    @POST("transport-services")
-    suspend fun createTransportService(@Body request: TransportServiceRequest): TransportServiceResponse
-
-    @PATCH("transport-services/{id}")
-    suspend fun updateTransportService(
-        @Path("id") id: Long,
-        @Body request: TransportServiceRequest
-    ): TransportServiceResponse
-
-    @DELETE("transport-services/{id}")
-    suspend fun deleteTransportService(@Path("id") id: Long)
-
-    @PATCH("transport-services/{id}/status")
-    suspend fun updateServiceStatus(
-        @Path("id") serviceId: Long,
-        @Body newStatus: String
-    ): TransportServiceResponse
-
-    // --- Transport Packages & Passengers ---
-    @POST("transport-packages")
-    suspend fun createTransportPackage(@Body request: TransportPackageRequest): TransportPackageResponse
-
-    @GET("transport-services/{serviceId}/packages")
-    suspend fun getTransportPackagesByServiceId(@Path("serviceId") serviceId: Long): List<TransportPackageResponse>
-
-    @POST("transport-passengers")
-    suspend fun createTransportPassenger(@Body request: TransportPassengerRequest): TransportPassengerResponse
-
-    @GET("transport-services/{serviceId}/passengers")
-    suspend fun getTransportPassengersByServiceId(@Path("serviceId") serviceId: Long): List<TransportPassengerResponse>
-
-
     // Rental Transactions
     @GET("rental-transactions/{transactionId}/images")
     suspend fun getTransactionImages(
@@ -262,5 +198,165 @@ interface ApiService {
     // Chat With AI
     @POST("chat-gemini")
     suspend fun chatWithGemini(@Body request: PromptRequest): ChatResponse
+
+    @GET("transport-services")
+    suspend fun getTransportServices(): List<TransportServiceResponse>
+
+    @GET("transport-services/{id}")
+    suspend fun getTransportServiceById(@Path("id") id: Long): TransportServiceResponse
+
+    @POST("transport-services")
+    suspend fun createTransportService(@Body request: TransportServiceRequest): TransportServiceResponse
+
+    @PATCH("transport-services/{id}")
+    suspend fun updateTransportService(
+        @Path("id") id: Long,
+        @Body request: TransportServiceRequest
+    ): TransportServiceResponse
+
+    @DELETE("transport-services/{id}")
+    suspend fun deleteTransportService(@Path("id") id: Long)
+
+    // ✅ ĐÚNG với backend: POST + @Query("status")
+    @POST("transport-services/{id}/status")
+    suspend fun updateServiceStatus(
+        @Path("id") serviceId: Long,
+        @Query("status") status: String
+    ): TransportServiceResponse
+
+    // Hành động lifecycle
+    @POST("transport-services/{id}/confirm")
+    suspend fun confirmTransportService(@Path("id") id: Long): TransportServiceResponse
+
+    @POST("transport-services/{id}/start")
+    suspend fun startTransportService(@Path("id") id: Long): TransportServiceResponse
+
+    @POST("transport-services/{id}/complete")
+    suspend fun completeTransportService(@Path("id") id: Long): TransportServiceResponse
+
+    @POST("transport-services/{id}/cancel")
+    suspend fun cancelTransportService(
+        @Path("id") id: Long,
+        @Query("reason") reason: String? = null
+    ): TransportServiceResponse
+
+    @GET("transport-services/{id}/bookings-info")
+    suspend fun getServiceBookingsInfo(
+        @Path("id") id: Long
+    ): Map<String, @JvmSuppressWildcards Any>
+
+    @GET("transport-services/{serviceId}/packages")
+    suspend fun getTransportPackagesByServiceId(
+        @Path("serviceId") serviceId: Long
+    ): List<TransportPackageResponse>
+
+    @GET("transport-services/{serviceId}/passengers")
+    suspend fun getTransportPassengersByServiceId(
+        @Path("serviceId") serviceId: Long
+    ): List<TransportPassengerResponse>
+
+
+
+// --- TRANSPORT PASSENGERS ---
+
+    @POST("transport-passengers")
+    suspend fun createTransportPassenger(
+        @Body request: TransportPassengerRequest
+    ): TransportPassengerResponse
+
+    @GET("transport-passengers/{id}")
+    suspend fun getTransportPassengerById(@Path("id") id: Long): TransportPassengerResponse
+
+    @PATCH("transport-passengers/{id}")
+    suspend fun updateTransportPassenger(
+        @Path("id") id: Long,
+        @Body request: TransportPassengerRequest
+    ): TransportPassengerResponse
+
+    @DELETE("transport-passengers/{id}")
+    suspend fun deleteTransportPassenger(@Path("id") id: Long): Map<String, String>
+
+    // Danh sách của tôi (owner) & tôi tham gia (rental)
+    @GET("transport-passengers/owner")
+    suspend fun getTransportPassengersOwner(
+        @Query("page") page: Int
+    ): PagedResponse<TransportPassengerResponse>
+
+    @GET("transport-passengers/rental")
+    suspend fun getTransportPassengersRental(
+        @Query("page") page: Int
+    ): PagedResponse<TransportPassengerResponse>
+
+    // Đặt xe
+    @POST("transport-passengers/book")
+    suspend fun bookRide(
+        @Body request: TransportPassengerRequest
+    ): TransportPassengerResponse
+
+    // ✅ HỦY BOOKING: đúng endpoint là POST /{id}/cancel-booking
+    @POST("transport-passengers/{id}/cancel-booking")
+    suspend fun cancelRideBooking(
+        @Path("id") bookingId: Long
+    ): Map<String, String>
+
+    // (A) GIỮ NGUYÊN THEO BACKEND BẠN DÁN: PATCH + @RequestParam
+    @PATCH("transport-passengers/{id}/status")
+    suspend fun updateTransportPassengerStatusPatch(
+        @Path("id") id: Long,
+        @Query("status") status: String
+    ): TransportServiceResponse // (type đang lạ ở backend)
+
+
+// --- TRANSPORT PACKAGES ---
+
+    @GET("transport-packages")
+    suspend fun getAllTransportPackages(): List<TransportPackageResponse>
+
+    @GET("transport-packages/{id}")
+    suspend fun getTransportPackageById(@Path("id") id: Long): TransportPackageResponse
+
+    @POST("transport-packages")
+    suspend fun createTransportPackage(
+        @Body request: TransportPackageRequest
+    ): TransportPackageResponse
+
+    @PATCH("transport-packages/{id}")
+    suspend fun updateTransportPackage(
+        @Path("id") id: Long,
+        @Body request: TransportPackageRequest
+    ): TransportPackageResponse
+
+    @DELETE("transport-packages/{id}")
+    suspend fun deleteTransportPackage(@Path("id") id: Long): Map<String, String>
+
+    @GET("transport-packages/owner")
+    suspend fun getTransportPackagesOwner(
+        @Query("page") page: Int
+    ): PagedResponse<TransportPackageResponse>
+
+    @GET("transport-packages/rental")
+    suspend fun getTransportPackagesRental(
+        @Query("page") page: Int
+    ): PagedResponse<TransportPackageResponse>
+
+    // ✅ ĐÚNG PATH backend: /request-delivery
+    @POST("transport-packages/request-delivery")
+    suspend fun requestPackageDelivery(
+        @Body request: TransportPackageRequest
+    ): TransportPackageResponse
+
+    // ✅ HỦY YÊU CẦU: POST /{id}/cancel-delivery
+    @POST("transport-packages/{id}/cancel-delivery")
+    suspend fun cancelPackageDelivery(
+        @Path("id") packageId: Long
+    ): Map<String, String>
+
+    // (A) GIỮ NGUYÊN THEO BACKEND BẠN DÁN: PATCH + @RequestParam
+    @PATCH("transport-packages/{id}/status")
+    suspend fun updateTransportPackageStatusPatch(
+        @Path("id") id: Long,
+        @Query("status") status: String
+    ): TransportServiceResponse
+
 
 }
