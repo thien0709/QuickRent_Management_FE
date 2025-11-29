@@ -2,6 +2,7 @@ package com.bxt.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bxt.R
 import com.bxt.data.local.DataStoreManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +14,7 @@ import javax.inject.Inject
 data class OnboardingPage(
     val title: String,
     val description: String,
-    val imageRes: Int? = null
+    val imageRes: Int
 )
 
 data class WelcomeUiState(
@@ -32,22 +33,27 @@ class WelcomeViewModel @Inject constructor(
 
     private val onboardingPages = listOf(
         OnboardingPage(
-            title = "Welcome to BXT App",
-            description = "An app that helps you manage your work efficiently and effortlessly."
+            imageRes = R.drawable.ic_launcher_logo,
+            title = "Welcome to QuickRent",
+            description = "A shared-economy platform where you can rent items and share rides to save money every day."
         ),
         OnboardingPage(
-            title = "Effortless Management",
-            description = "Track progress, set goals, and complete tasks in a smart, organized way."
+            imageRes = R.drawable.ic_launcher_foreground,
+            title = "Share idle items, earn extra income",
+            description = "List cameras, laptops, travel gear and more when you don’t use them, and turn idle things into extra money."
         ),
         OnboardingPage(
-            title = "Sync Everywhere",
-            description = "Your data stays synced and secure across all your devices."
+            imageRes = R.drawable.ic_map_to,
+            title = "Rent what you need, only when you need it",
+            description = "Find nearby items for short-term use with clear prices and secure deposits, so you only pay for the time you really need."
         ),
         OnboardingPage(
-            title = "Get Started",
-            description = "Create an account or sign in to begin your experience."
+            imageRes = R.drawable.ic_launcher_foreground,
+            title = "Share rides, save money and emissions",
+            description = "Match with people going the same way to split fuel costs, reduce traffic and travel more sustainably."
         )
     )
+
 
     init {
         _uiState.value = _uiState.value.copy(

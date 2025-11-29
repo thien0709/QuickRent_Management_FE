@@ -362,6 +362,16 @@ fun AppNavigation(
                     TransportServiceDetailScreen(navController = navController)
                 }
 
+                composable(
+                    route = "notifications"
+                ) {
+                    NotificationScreen(
+                        navController = navController,
+                        viewModel = hiltViewModel()
+                    )
+
+                }
+
 
 
             }

@@ -11,6 +11,7 @@ import com.bxt.data.repository.ChatRepository
 import com.bxt.data.repository.FcmRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
+import com.bxt.data.repository.NotificationRepository
 import com.bxt.data.repository.RentalRequestRepository
 import com.bxt.data.repository.TransportPackageRepository
 import com.bxt.data.repository.TransportPassengerRepository
@@ -150,5 +151,14 @@ object RepositoryModule {
         apiCallExecutor: ApiCallExecutor
     ): com.bxt.data.repository.ChatGeminiRepository {
         return ChatGeminiRepositoryImpl(apiService)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): NotificationRepository {
+        return NotificationRepositoryImpl(apiService, apiCallExecutor)
     }
 }

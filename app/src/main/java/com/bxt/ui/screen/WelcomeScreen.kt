@@ -1,5 +1,6 @@
 package com.bxt.ui.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -12,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -54,7 +57,7 @@ fun WelcomeScreen(
                     viewModel.skipOnboarding()
                     onCompleteWelcome()
                 }) {
-                    Text("Bỏ qua")
+                    Text("Skip")
                 }
             }
         } else {
@@ -75,16 +78,43 @@ fun WelcomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Fake image
-                Box(
+//                // Fake image
+//                Box(
+//                    modifier = Modifier
+//                        .size(200.dp)
+//                        .clip(RoundedCornerShape(12.dp))
+//                        .background(Color.LightGray),
+//                    contentAlignment = Alignment.Center
+//                ) {
+//                    Text("Hello world", fontSize = 64.sp)
+//                }
+//
+//                Spacer(modifier = Modifier.height(24.dp))
+//
+//                Text(
+//                    page.title,
+//                    fontSize = 24.sp,
+//                    fontWeight = FontWeight.Bold,
+//                    textAlign = TextAlign.Center
+//                )
+//
+//                Spacer(modifier = Modifier.height(12.dp))
+//
+//                Text(
+//                    page.description,
+//                    fontSize = 16.sp,
+//                    textAlign = TextAlign.Center,
+//                    color = Color.Gray
+//                )
+                // ==== ĐOẠN SỬA Ở ĐÂY ==== //
+                Image(
+                    painter = painterResource(id = page.imageRes),
+                    contentDescription = page.title,
                     modifier = Modifier
-                        .size(200.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.LightGray),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("📱", fontSize = 64.sp)
-                }
+                        .size(240.dp)
+                        .clip(RoundedCornerShape(24.dp)),
+                    contentScale = ContentScale.Crop
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -134,7 +164,7 @@ fun WelcomeScreen(
         ) {
             if (uiState.currentPage > 0) {
                 OutlinedButton(onClick = { viewModel.previousPage() }) {
-                    Text("Quay lại")
+                    Text("Return")
                 }
             } else {
                 Spacer(modifier = Modifier.width(8.dp))
@@ -148,7 +178,7 @@ fun WelcomeScreen(
                     viewModel.nextPage()
                 }
             }) {
-                Text(if (uiState.isLastPage) "Bắt đầu" else "Tiếp theo")
+                Text(if (uiState.isLastPage) "Start" else "Next")
             }
         }
     }

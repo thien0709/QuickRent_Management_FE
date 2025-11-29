@@ -40,10 +40,7 @@ fun NotificationIcon(count: Int = 0) {
 
 object FabActions {
     fun profile(nav: NavController) = listOf(
-        FabAction("Thông báo", { NotificationIcon(1) }) { nav.navigate("notifications") },
-        FabAction("Vận chuyển", { Icon(Icons.Default.GridView, null) }) { nav.navigate("transport") },
-        FabAction("Thuê xe", { Icon(Icons.Default.Edit, null) }) { nav.navigate("rental") }
-    )
+        FabAction("Thông báo", { NotificationIcon(1) }) { nav.navigate("notifications") })
 
     fun rental(nav: NavController) = listOf(
         FabAction("Add item ", { Icon(Icons.Default.Add, null) }) { nav.navigate("add_item") },

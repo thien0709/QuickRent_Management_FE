@@ -1,19 +1,7 @@
 package com.bxt.data.api
 
-import android.graphics.pdf.PdfDocument.Page
-import com.bxt.data.api.dto.request.ItemRequest
-import com.bxt.data.api.dto.request.LoginRequest
-import com.bxt.data.api.dto.request.PromptRequest
-import com.bxt.data.api.dto.request.RefreshTokenRequest
-import com.bxt.data.api.dto.request.RegisterRequest
-import com.bxt.data.api.dto.request.RegisterTokenRequest
-import com.bxt.data.api.dto.request.RentalRequestRequest
-import com.bxt.data.api.dto.request.TransportPackageRequest
-import com.bxt.data.api.dto.request.TransportPassengerRequest
-import com.bxt.data.api.dto.request.TransportServiceRequest
-import com.bxt.data.api.dto.request.UpdateProfileRequest
+import com.bxt.data.api.dto.request.*
 import com.bxt.data.api.dto.response.*
-import com.bxt.di.ApiResult
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.http.*
@@ -21,7 +9,6 @@ import java.math.BigDecimal
 
 interface ApiService {
 
-    // User Authentication
     @POST("login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 
@@ -63,26 +50,20 @@ interface ApiService {
 
     @Multipart
     @PATCH("users/avatar")
-    suspend fun updateUserAvatar(
-        @Part avatar: MultipartBody.Part
-    ): RegisterResponse
+    suspend fun updateUserAvatar(@Part avatar: MultipartBody.Part): RegisterResponse
 
     @DELETE("users/account")
     suspend fun deleteUserAccount(): Unit
 
     @PATCH("users/location")
-    suspend fun updateLocation(
-        @Body location: Map<String, Double>
-    ): Unit
+    suspend fun updateLocation(@Body location: Map<String, Double>): Unit
 
-    // Category
     @GET("categories")
     suspend fun getCategories(): List<CategoryResponse>
 
     @GET("categories/{id}")
     suspend fun getCategoryById(@Path("id") id: Long): CategoryResponse
 
-    // Items
     @GET("items")
     suspend fun getItems(): List<ItemResponse>
 
@@ -94,21 +75,16 @@ interface ApiService {
     ): ItemResponse
 
     @GET("items/available")
-    suspend fun getAvailableItems(
-        @Query("page") page: Int = 0
-    ): PagedResponse<ItemResponse>
+    suspend fun getAvailableItems(@Query("page") page: Int = 0): PagedResponse<ItemResponse>
 
     @GET("items/owner")
-    suspend fun getItemsByUser(
-        @Query("page") page: Int = 0
-    ): PagedResponse<ItemResponse>
+    suspend fun getItemsByUser(@Query("page") page: Int = 0): PagedResponse<ItemResponse>
 
     @GET("items/categories/{categoryId}")
     suspend fun getItemsByCategory(
         @Path("categoryId") categoryId: Long,
         @Query("page") page: Int = 0
     ): PagedResponse<ItemResponse>
-
 
     @POST("items/search")
     suspend fun searchItems(
@@ -119,14 +95,12 @@ interface ApiService {
         @Query("radiusKm") radiusKm: Double? = null
     ): PagedResponse<ItemResponse>
 
-
     @GET("items/{id}")
     suspend fun getItemDetail(@Path("id") id: Long): ItemResponse
 
     @GET("items/{id}/images")
     suspend fun getItemImages(@Path("id") id: Long): List<String>
 
-    // Rental Services
     @POST("rental-requests")
     suspend fun createRentalRequest(@Body request: RentalRequestRequest): RentalRequestResponse
 
@@ -149,7 +123,7 @@ interface ApiService {
     suspend fun confirmRentalRequest(@Path("id") requestId: Long): RentalRequestResponse
 
     @PATCH("rental-requests/{id}/reject")
-    suspend fun rejectRentalRequest(@Path("id") requestId: Long):RentalRequestResponse
+    suspend fun rejectRentalRequest(@Path("id") requestId: Long): RentalRequestResponse
 
     @PATCH("rental-requests/{id}/cancel")
     suspend fun cancelRentalRequest(@Path("id") requestId: Long): RentalRequestResponse
@@ -158,14 +132,11 @@ interface ApiService {
     suspend fun startRentalRequest(@Path("id") requestId: Long): RentalRequestResponse
 
     @PATCH("rental-requests/{id}/complete")
-    suspend fun completeRentalRequest(@Path("id") requestId: Long):RentalRequestResponse
-
+    suspend fun completeRentalRequest(@Path("id") requestId: Long): RentalRequestResponse
 
     @GET("rental-requests/{id}")
     suspend fun getRentalRequestById(@Path("id") id: Long): RentalRequestResponse
 
-    // Transport Services
-    // Rental Transactions
     @GET("rental-transactions/{transactionId}/images")
     suspend fun getTransactionImages(
         @Path("transactionId") transactionId: Long
@@ -178,7 +149,9 @@ interface ApiService {
     ): RentalTransactionResponse
 
     @GET("rental-transactions/by-request/{requestId}")
-    suspend fun getRentalTransactionByRequestId(@Path("requestId") requestId: Long): RentalTransactionResponse
+    suspend fun getRentalTransactionByRequestId(
+        @Path("requestId") requestId: Long
+    ): RentalTransactionResponse
 
     @Multipart
     @POST("rental-transactions/{transactionId}/images")
@@ -188,14 +161,12 @@ interface ApiService {
         @Part images: List<MultipartBody.Part>
     ): List<TransactionImageResponse>
 
-    // Firebase Cloud Messaging Token
     @POST("fcm/register")
     suspend fun register(@Body body: RegisterTokenRequest): Unit
 
     @DELETE("fcm/register")
     suspend fun unregister(@Query("token") token: String): Unit
 
-    // Chat With AI
     @POST("chat-gemini")
     suspend fun chatWithGemini(@Body request: PromptRequest): ChatResponse
 
@@ -217,14 +188,12 @@ interface ApiService {
     @DELETE("transport-services/{id}")
     suspend fun deleteTransportService(@Path("id") id: Long)
 
-    // ✅ ĐÚNG với backend: POST + @Query("status")
     @POST("transport-services/{id}/status")
     suspend fun updateServiceStatus(
         @Path("id") serviceId: Long,
         @Query("status") status: String
     ): TransportServiceResponse
 
-    // Hành động lifecycle
     @POST("transport-services/{id}/confirm")
     suspend fun confirmTransportService(@Path("id") id: Long): TransportServiceResponse
 
@@ -255,10 +224,6 @@ interface ApiService {
         @Path("serviceId") serviceId: Long
     ): List<TransportPassengerResponse>
 
-
-
-// --- TRANSPORT PASSENGERS ---
-
     @POST("transport-passengers")
     suspend fun createTransportPassenger(
         @Body request: TransportPassengerRequest
@@ -276,7 +241,6 @@ interface ApiService {
     @DELETE("transport-passengers/{id}")
     suspend fun deleteTransportPassenger(@Path("id") id: Long): Map<String, String>
 
-    // Danh sách của tôi (owner) & tôi tham gia (rental)
     @GET("transport-passengers/owner")
     suspend fun getTransportPassengersOwner(
         @Query("page") page: Int
@@ -287,27 +251,17 @@ interface ApiService {
         @Query("page") page: Int
     ): PagedResponse<TransportPassengerResponse>
 
-    // Đặt xe
     @POST("transport-passengers/book")
-    suspend fun bookRide(
-        @Body request: TransportPassengerRequest
-    ): TransportPassengerResponse
+    suspend fun bookRide(@Body request: TransportPassengerRequest): TransportPassengerResponse
 
-    // ✅ HỦY BOOKING: đúng endpoint là POST /{id}/cancel-booking
     @POST("transport-passengers/{id}/cancel-booking")
-    suspend fun cancelRideBooking(
-        @Path("id") bookingId: Long
-    ): Map<String, String>
+    suspend fun cancelRideBooking(@Path("id") bookingId: Long): Map<String, String>
 
-    // (A) GIỮ NGUYÊN THEO BACKEND BẠN DÁN: PATCH + @RequestParam
     @PATCH("transport-passengers/{id}/status")
     suspend fun updateTransportPassengerStatusPatch(
         @Path("id") id: Long,
         @Query("status") status: String
-    ): TransportServiceResponse // (type đang lạ ở backend)
-
-
-// --- TRANSPORT PACKAGES ---
+    ): TransportServiceResponse
 
     @GET("transport-packages")
     suspend fun getAllTransportPackages(): List<TransportPackageResponse>
@@ -339,19 +293,14 @@ interface ApiService {
         @Query("page") page: Int
     ): PagedResponse<TransportPackageResponse>
 
-    // ✅ ĐÚNG PATH backend: /request-delivery
     @POST("transport-packages/request-delivery")
     suspend fun requestPackageDelivery(
         @Body request: TransportPackageRequest
     ): TransportPackageResponse
 
-    // ✅ HỦY YÊU CẦU: POST /{id}/cancel-delivery
     @POST("transport-packages/{id}/cancel-delivery")
-    suspend fun cancelPackageDelivery(
-        @Path("id") packageId: Long
-    ): Map<String, String>
+    suspend fun cancelPackageDelivery(@Path("id") packageId: Long): Map<String, String>
 
-    // (A) GIỮ NGUYÊN THEO BACKEND BẠN DÁN: PATCH + @RequestParam
     @PATCH("transport-packages/{id}/status")
     suspend fun updateTransportPackageStatusPatch(
         @Path("id") id: Long,
@@ -359,4 +308,12 @@ interface ApiService {
     ): TransportServiceResponse
 
 
+    @GET("notifications/{id}")
+    suspend fun getNotifications(): List<NotificationResponse>
+
+    @PATCH("notifications/{id}/read")
+    suspend fun markNotificationAsRead(@Path("id") notificationId: Long): Unit
+
+    @PATCH("notifications/read-all")
+    suspend fun markAllNotificationsAsRead(): Unit
 }

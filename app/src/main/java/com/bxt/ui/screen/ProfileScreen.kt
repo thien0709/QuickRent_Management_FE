@@ -121,10 +121,10 @@ private fun ProfileContent(
                 modifier = Modifier.padding(d.pagePadding),
                 verticalArrangement = Arrangement.spacedBy(d.rowGap)
             ) {
-                ProfileItem("Tên người dùng", userData.username)
+                ProfileItem("Username", userData.username)
                 ProfileItem("Email", userData.email)
-                ProfileItem("Họ và tên", userData.fullName)
-                ProfileItem("Số điện thoại", userData.phoneNumber)
+                ProfileItem("Full Name", userData.fullName)
+                ProfileItem("Phone", userData.phoneNumber)
             }
         }
         Button(

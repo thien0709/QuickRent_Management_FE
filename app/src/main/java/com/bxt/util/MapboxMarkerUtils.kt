@@ -21,8 +21,6 @@ object MapboxMarkerUtils {
     // Cache để tăng hiệu năng cho các marker mới
     private val bitmapCache = LruCache<String, Bitmap>(5)
 
-    // --- CÁC HÀM MỚI ĐƯỢC BỔ SUNG ---
-
     fun createStartMarker(point: Point): PointAnnotationOptions {
         val bitmap = bitmapCache.get("start") ?: createColoredCircleBitmap("#4CAF50").also {
             bitmapCache.put("start", it)
@@ -57,8 +55,6 @@ object MapboxMarkerUtils {
         }
         return createBaseOptions(point, bitmap, "🚚 Giao: $itemName")
     }
-
-    // --- CÁC HÀM CŨ CỦA BẠN (GIỮ NGUYÊN) ---
 
     fun createSimpleMarker(
         context: Context,
@@ -133,9 +129,6 @@ object MapboxMarkerUtils {
         return bitmap
     }
 
-    /**
-     * Sửa lại hàm cũ của bạn để không bị crash và hoạt động ổn định.
-     */
     private fun createBitmapFromDrawable(context: Context, @DrawableRes drawableId: Int): Bitmap {
         val drawable = AppCompatResources.getDrawable(context, drawableId)
             ?: throw IllegalArgumentException("Drawable resource not found!")
