@@ -31,8 +31,8 @@ private fun formatVnd(amount: BigDecimal?): String {
 @Composable
 fun PopularItemCard(
     item: ItemResponse,
-    locationText: String?,   // Địa chỉ rút gọn (nếu có)
-    distanceKm: Double?,     // Khoảng cách (km) (nếu có)
+    locationText: String?,
+    distanceKm: Double?,
     onClick: () -> Unit
 ) {
     val fallback = item.lat?.toDouble()?.let { la ->
@@ -95,7 +95,7 @@ fun PopularItemCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Filled.LocationOn,
-                            contentDescription = "Địa chỉ",
+                            contentDescription = "Location",
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -115,7 +115,7 @@ fun PopularItemCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Filled.NearMe,
-                            contentDescription = "Khoảng cách",
+                            contentDescription = "Distance",
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )

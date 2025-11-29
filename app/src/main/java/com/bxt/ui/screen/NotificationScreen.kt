@@ -38,12 +38,12 @@ fun NotificationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Thông báo") },
+                title = { Text("Notification") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Quay lại"
+                            contentDescription = "Back"
                         )
                     }
                 },
@@ -54,7 +54,7 @@ fun NotificationScreen(
 
                         if (hasUnread) {
                             TextButton(onClick = { viewModel.markAllAsRead() }) {
-                                Text("Đọc tất cả")
+                                Text("Read all")
                             }
                         }
                     }
@@ -130,7 +130,7 @@ private fun ErrorContent(
                 style = MaterialTheme.typography.bodyMedium
             )
             Button(onClick = onRetry) {
-                Text("Thử lại")
+                Text("Try again")
             }
         }
     }
@@ -155,12 +155,12 @@ private fun EmptyContent() {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Chưa có thông báo",
+                text = "Don't have any notifications",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Bạn sẽ nhận được thông báo ở đây",
+                text = "Notifications will appear here",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )

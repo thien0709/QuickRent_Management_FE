@@ -70,7 +70,7 @@ fun SearchItemScreen(
                     TextField(
                         value = q,
                         onValueChange = vm::setQuery,
-                        placeholder = { Text("Nhập tên sản phẩm để tìm…") },
+                        placeholder = { Text("Enter item name to search…") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         modifier = Modifier.fillMaxWidth(),
@@ -124,7 +124,7 @@ fun SearchItemScreen(
                         }
                         PopularItemCard(
                             item = item,
-                            locationText = addresses[item.id], // đã prefetch -> không còn hiện lat/lng
+                            locationText = addresses[item.id],
                             distanceKm = dKm,
                             onClick = { onItemClick(item) }
                         )
@@ -139,7 +139,7 @@ fun SearchItemScreen(
                         Row(
                             Modifier.fillMaxWidth().padding(12.dp),
                             horizontalArrangement = Arrangement.Center
-                        ) { Text("Đã hiển thị hết kết quả") }
+                        ) { Text("All results shown") }
                     }
                 }
             }
@@ -185,16 +185,16 @@ private fun PriceLocationFilterSheet(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Bộ lọc", style = MaterialTheme.typography.titleSmall)
+            Text("Filter", style = MaterialTheme.typography.titleSmall)
 
             OutlinedTextField(
                 value = min, onValueChange = { min = it },
-                label = { Text("Giá tối thiểu") }, singleLine = true,
+                label = { Text("Minimum price") }, singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
             OutlinedTextField(
                 value = max, onValueChange = { max = it },
-                label = { Text("Giá tối đa") }, singleLine = true,
+                label = { Text("Maximum price") }, singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
@@ -203,13 +203,13 @@ private fun PriceLocationFilterSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Gần tôi")
+                Text("Near me")
                 Switch(checked = near, onCheckedChange = { near = it })
             }
             if (near) {
                 OutlinedTextField(
                     value = radius, onValueChange = { radius = it },
-                    label = { Text("Bán kính (km)") }, singleLine = true,
+                    label = { Text("Radius (km)") }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
@@ -218,7 +218,7 @@ private fun PriceLocationFilterSheet(
                 OutlinedButton(
                     onClick = { min = ""; max = ""; near = false; radius = "5"; onClear() },
                     modifier = Modifier.weight(1f)
-                ) { Text("Xoá") }
+                ) { Text("Delete") }
                 Button(
                     onClick = {
                         onApply(
@@ -229,7 +229,7 @@ private fun PriceLocationFilterSheet(
                         )
                     },
                     modifier = Modifier.weight(1f)
-                ) { Text("Áp dụng") }
+                ) { Text("Apply") }
             }
             Spacer(Modifier.height(8.dp))
         }

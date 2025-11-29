@@ -80,11 +80,11 @@ fun HomeScreen(
     val locationState by locationViewModel.locationState.collectAsState()
 
     val deliveryText = when (val s = locationState) {
-        is LocationState.Loading -> "Đang lấy địa chỉ..."
-        is LocationState.Success -> s.address ?: "Vị trí hiện tại"
-        is LocationState.Error -> "Lỗi: ${s.message}"
-        is LocationState.PermissionRequired -> "Cần cấp quyền vị trí"
-        is LocationState.GpsDisabled -> "GPS đang tắt"
+        is LocationState.Loading -> "Fetching address..."
+        is LocationState.Success -> s.address ?: "Current location"
+        is LocationState.Error -> "Error: ${s.message}"
+        is LocationState.PermissionRequired -> "Location permission required"
+        is LocationState.GpsDisabled -> "GPS is off"
     }
     val currentAddressText = (locationState as? LocationState.Success)?.address.orEmpty()
     val isGettingCurrent = locationState is LocationState.Loading

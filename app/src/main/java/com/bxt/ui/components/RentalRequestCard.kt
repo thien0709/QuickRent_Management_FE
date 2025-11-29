@@ -46,14 +46,14 @@ fun RentalRequestCard(
             ) {
                 AsyncImage(
                     model = thumbnailUrl ?: "https://via.placeholder.com/100",
-                    contentDescription = "Ảnh sản phẩm",
+                    contentDescription = "Thumbnail",
                     modifier = Modifier.size(80.dp).clip(MaterialTheme.shapes.small),
                     contentScale = ContentScale.Crop
                 )
                 Column(Modifier.weight(1f)) {
-                    Text("Yêu cầu #${data.id}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("Trạng thái: $status", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-                    Text("Ngày thuê: ${formatInstant(data.rentalStartTime)}", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("Request #${data.id}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Status: $status", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    Text("Rental date: ${formatInstant(data.rentalStartTime)}", style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
 
@@ -67,14 +67,14 @@ fun RentalRequestCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                     ) {
-                        OutlinedButton(onClick = onReject) { Text("Từ chối") }
-                        Button(onClick = onConfirm) { Text("Xác nhận") }
+                        OutlinedButton(onClick = onReject) { Text("Reject") }
+                        Button(onClick = onConfirm) { Text("Confirm") }
                     }
                 }
                 if (status in listOf("PENDING", "CONFIRMED")) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = onCancel, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
-                            Text("Hủy yêu cầu")
+                            Text("Cancel")
                         }
                     }
                 }

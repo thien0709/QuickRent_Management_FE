@@ -43,7 +43,7 @@ fun TransportRequestScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Quản lý chuyến đi") },
+                title = { Text("Trip management") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
@@ -62,12 +62,12 @@ fun TransportRequestScreen(
                 Tab(
                     selected = tab == RequestTab.OWNER,
                     onClick = { viewModel.switchMode(RequestTab.OWNER) },
-                    text = { Text("Tôi lái") }
+                    text = { Text("I’m driving") }
                 )
                 Tab(
                     selected = tab == RequestTab.RENTER,
                     onClick = { viewModel.switchMode(RequestTab.RENTER) },
-                    text = { Text("Tôi tham gia") }
+                    text = { Text("I participate") }
                 )
             }
 
@@ -84,7 +84,7 @@ fun TransportRequestScreen(
                     }
                     is com.bxt.ui.state.TransportRequestState.Error -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Lỗi: ${state.message}")
+                            Text("Error: ${state.message}")
                         }
                     }
                     is com.bxt.ui.state.TransportRequestState.Success -> {
@@ -122,8 +122,8 @@ fun TransportRequestScreen(
                                         ParticipationKind.PKG_RECV -> "K:${row.pkg?.id}"
                                     }
                                     val addr = addresses[addrKey]
-                                    val fromText = addr?.first ?: "Đang lấy địa chỉ…"
-                                    val toText   = addr?.second ?: "Đang lấy địa chỉ…"
+                                    val fromText = addr?.first ?: "Fetching address…"
+                                    val toText   = addr?.second ?: "Fetching address…"
 
                                     TripCard(
                                         row = row,
@@ -131,7 +131,6 @@ fun TransportRequestScreen(
                                         toText = toText
                                     ) {
                                         val sid = row.service.id ?: return@TripCard
-                                        // Điều hướng theo serviceId + entity cho VM biết bảng nào + id nào
                                         when (row.kind) {
                                             ParticipationKind.OWNER -> {
                                                 navController.navigate(
@@ -172,7 +171,6 @@ fun TransportRequestScreen(
     }
 }
 
-/* ---------- UI nhỏ gọn ---------- */
 
 @Composable
 private fun TripCard(
@@ -185,7 +183,7 @@ private fun TripCard(
         Column(Modifier.padding(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
-                    "Chuyến #${row.service.id ?: "-"}",
+                    "Trip #${row.service.id ?: "-"}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -205,8 +203,8 @@ private fun TripCard(
 
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                MetaPill("Phí dự kiến", row.service.deliveryFee?.toPlainString() ?: "-")
-                MetaPill("Chỗ còn", row.service.availableSeat?.toString() ?: "-")
+                MetaPill("Estimated fee", row.service.deliveryFee?.toPlainString() ?: "-")
+                MetaPill("Available seats", row.service.availableSeat?.toString() ?: "-")
             }
         }
     }
@@ -215,9 +213,9 @@ private fun TripCard(
 @Composable
 private fun EmptyState(tab: RequestTab) {
     val msg = if (tab == RequestTab.OWNER)
-        "Bạn chưa có chuyến nào là chủ xe."
+        "You have no trips as the car owner."
     else
-        "Bạn chưa tham gia chuyến nào."
+        "You haven’t participated in any trips."
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(msg, style = MaterialTheme.typography.bodyLarge)
     }

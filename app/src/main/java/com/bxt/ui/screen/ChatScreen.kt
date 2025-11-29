@@ -75,7 +75,7 @@ fun ChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(recipientName ?: "Đang tải...") },
+                title = { Text(recipientName ?: "Loading...") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
@@ -114,7 +114,7 @@ fun ChatScreen(
 
             if (!isUserLoggedIn) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Vui lòng đăng nhập để sử dụng tính năng này.")
+                    Text("Please log in to use this feature.")
                 }
             } else {
                 LazyColumn(
@@ -239,7 +239,7 @@ private fun IntegratedMessageCard(
                     try {
                         URLDecoder.decode(title, StandardCharsets.UTF_8.name())
                     } catch (_: Exception) {
-                        title ?: "Sản phẩm"
+                        title ?: "Items"
                     }
                 }
                 Text(
@@ -280,7 +280,7 @@ private fun MessageInput(
                 value = text,
                 onValueChange = onTextChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Nhập tin nhắn...") },
+                placeholder = { Text("Type a message...") },
                 shape = CircleShape,
                 colors = TextFieldDefaults.colors(
                     focusedIndicatorColor = Color.Transparent,
@@ -300,7 +300,7 @@ private fun MessageInput(
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
                 )
-            ) { Icon(Icons.Default.Send, contentDescription = "Gửi") }
+            ) { Icon(Icons.Default.Send, contentDescription = "Send") }
         }
     }
 }

@@ -78,35 +78,6 @@ fun WelcomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-//                // Fake image
-//                Box(
-//                    modifier = Modifier
-//                        .size(200.dp)
-//                        .clip(RoundedCornerShape(12.dp))
-//                        .background(Color.LightGray),
-//                    contentAlignment = Alignment.Center
-//                ) {
-//                    Text("Hello world", fontSize = 64.sp)
-//                }
-//
-//                Spacer(modifier = Modifier.height(24.dp))
-//
-//                Text(
-//                    page.title,
-//                    fontSize = 24.sp,
-//                    fontWeight = FontWeight.Bold,
-//                    textAlign = TextAlign.Center
-//                )
-//
-//                Spacer(modifier = Modifier.height(12.dp))
-//
-//                Text(
-//                    page.description,
-//                    fontSize = 16.sp,
-//                    textAlign = TextAlign.Center,
-//                    color = Color.Gray
-//                )
-                // ==== ĐOẠN SỬA Ở ĐÂY ==== //
                 Image(
                     painter = painterResource(id = page.imageRes),
                     contentDescription = page.title,

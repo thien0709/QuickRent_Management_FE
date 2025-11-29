@@ -201,7 +201,7 @@ private fun LottieTypingIndicator() {
 
     if (composition == null) {
         Text(
-            text = "Đang soạn…",
+            text = "Typing…",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 14.sp
         )

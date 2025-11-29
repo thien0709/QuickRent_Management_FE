@@ -62,16 +62,16 @@ fun RentalServiceScreen(
     Scaffold { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             TopAppBar(
-                title = { Text("Quản lý thuê") },
+                title = { Text("Rental management") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Quay lại")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 }
             )
             TabRow(selectedTabIndex = selectedTab) {
-                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Đơn của tôi") })
-                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Đơn tôi thuê") })
+                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("My orders") })
+                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("My rental order") })
             }
 
             PullToRefreshBox(
@@ -87,13 +87,13 @@ fun RentalServiceScreen(
                     }
                     is RentalServiceState.Error -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Lỗi: ${state.message}")
+                            Text("Error: ${state.message}")
                         }
                     }
                     is RentalServiceState.Success -> {
                         if (state.requests.isEmpty()) {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("Chưa có yêu cầu nào")
+                                Text("No requests available")
                             }
                         } else {
                             LazyColumn(
@@ -153,11 +153,10 @@ private fun rememberPullUpToLoadMore(
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 if (source == NestedScrollSource.Drag && !listState.canScrollForward) {
                     val dy = available.y
-                    if (dy < 0f) { // Scroll xuống
+                    if (dy < 0f) {
                         accumulated += -dy
                         if (accumulated >= triggerPx && !isLoadingMore) {
                             accumulated = 0f
-                            println("🚀 PULL UP: Triggering load more")
                             onLoadMore()
                         }
                     } else {

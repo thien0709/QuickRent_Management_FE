@@ -141,7 +141,7 @@ private fun ProfileContent(
                 contentColor = MaterialTheme.colorScheme.onErrorContainer
             )
         ) {
-            Text("Đăng xuất", style = MaterialTheme.typography.titleSmall)
+            Text("Logout ", style = MaterialTheme.typography.titleSmall)
         }
         OutlinedButton(
             onClick = onEditProfile,
@@ -150,7 +150,7 @@ private fun ProfileContent(
                 .height(d.buttonHeight),
             shape = MaterialTheme.shapes.medium
         ) {
-            Text("Chỉnh sửa thông tin", style = MaterialTheme.typography.titleSmall)
+            Text("Edit details", style = MaterialTheme.typography.titleSmall)
         }
     }
 }
@@ -159,7 +159,7 @@ private fun ProfileContent(
 private fun ProfileItem(label: String, value: String?, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
         Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = value?.takeIf { it.isNotBlank() } ?: "Chưa cập nhật", style = MaterialTheme.typography.bodyLarge)
+        Text(text = value?.takeIf { it.isNotBlank() } ?: "Not updated", style = MaterialTheme.typography.bodyLarge)
     }
 }
 

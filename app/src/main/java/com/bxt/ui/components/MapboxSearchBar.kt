@@ -89,7 +89,7 @@ fun MapboxSearchBar(
                     showSuggestions = it.length >= 3
                 }
             },
-            label = { Text("Tìm địa chỉ (Mapbox)…") },
+            label = { Text("Search address (Mapbox)…") },
             leadingIcon = {
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)

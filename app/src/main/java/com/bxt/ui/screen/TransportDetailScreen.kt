@@ -76,7 +76,7 @@ fun TransportDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Chi tiết chuyến đi") },
+                title = { Text("Trip Details") },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Quay lại") } }
             )
         }
@@ -219,18 +219,18 @@ private fun ControlsOverlay(
             modifier = Modifier.padding(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
         ) {
-            Text("💡 Nhấn vào bản đồ để chọn điểm đón của bạn", Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
+            Text("💡Tap the map to choose your pickup point", Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
         }
     }
     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (mode == TransportMode.RIDE) {
             FloatingActionButton(onClick = onUpdateUserLocation, modifier = Modifier.size(48.dp), containerColor = MaterialTheme.colorScheme.primary) {
-                Icon(Icons.Default.MyLocation, "Cập nhật vị trí GPS", tint = MaterialTheme.colorScheme.onPrimary)
+                Icon(Icons.Default.MyLocation, "Refresh GPS location", tint = MaterialTheme.colorScheme.onPrimary)
             }
         }
         if (mode == TransportMode.PACKAGE && selectedRequest != null) {
             FloatingActionButton(onClick = onResetRoute, modifier = Modifier.size(48.dp), containerColor = MaterialTheme.colorScheme.secondary) {
-                Icon(Icons.Default.Refresh, "Xem route gốc", tint = MaterialTheme.colorScheme.onSecondary)
+                Icon(Icons.Default.Refresh, "View original route", tint = MaterialTheme.colorScheme.onSecondary)
             }
         }
     }
@@ -248,33 +248,33 @@ private fun RideDetails(
 ) {
     val service = details.service
     val availableSeats = (service.availableSeat ?: 0) - details.passengers.size
-    val fromAddress = serviceAddresses?.first ?: "Đang tải..."
-    val toAddress = serviceAddresses?.second ?: "Đang tải..."
+    val fromAddress = serviceAddresses?.first ?: "Loading..."
+    val toAddress = serviceAddresses?.second ?: "Loading..."
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Thông tin chuyến đi", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Text("Trip details", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(4.dp))
-                InfoRow("Lộ trình tài xế:", "${fromAddress} → ${toAddress}")
-                InfoRow("Số chỗ còn trống:", "$availableSeats")
-                InfoRow("Giá vé / người:", "${service.deliveryFee} VND")
+                InfoRow("Driver’s route:", "${fromAddress} → ${toAddress}")
+                InfoRow("Available seats:", "$availableSeats")
+                InfoRow("Ticket price / person:", "${service.deliveryFee} VND")
                 HorizontalDivider(Modifier.padding(vertical = 4.dp))
 
                 EditableLocationRow(
-                    label = "Điểm đón của bạn",
+                    label = "Your pickup location",
                     address = pickupAddress,
                     onEditClick = onEditPickupClick
                 )
                 EditableLocationRow(
-                    label = "Điểm đến của bạn",
+                    label = "Your travel destination",
                     address = dropOffAddress,
                     onEditClick = onEditDropOffClick
                 )
 
                 details.isRouteValid?.let { isValid ->
                     val color = if (isValid) Color(0xFF388E3C) else MaterialTheme.colorScheme.error
-                    val text = if (isValid) "Lộ trình của bạn hợp lệ." else "Lộ trình của bạn không hợp lệ (quá xa tuyến đường chính)."
+                    val text = if (isValid) "Your route is valid." else "Your route is invalid (too far from the main route)."
                     Text(text, color = color, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
                 }
             }
@@ -287,10 +287,10 @@ private fun RideDetails(
         ) {
             Text(
                 when {
-                    details.userLocation == null -> "Chọn điểm đón"
-                    details.dropOffPoint == null -> "Chọn điểm đến"
-                    details.isRouteValid != true -> "Lộ trình không hợp lệ"
-                    else -> "Đặt ngay"
+                    details.userLocation == null -> "Select pickup location"
+                    details.dropOffPoint == null -> "Select destination"
+                    details.isRouteValid != true -> "Invalid route"
+                    else -> "Book now"
                 }
             )
         }
@@ -311,7 +311,7 @@ private fun EditableLocationRow(
         Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End, modifier = Modifier.weight(1f)) {
             Text(
-                text = address ?: "Chưa chọn",
+                text = address ?: "Not selected",
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (address != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(end = 4.dp)
@@ -430,24 +430,39 @@ private fun PackageDetails(
     viewModel: TransportDetailViewModel
 ) {
     var expanded by remember { mutableStateOf(false) }
-
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Chọn hàng hóa vận chuyển", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    "Select goods for delivery",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
                 Spacer(modifier = Modifier.height(12.dp))
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                     OutlinedTextField(
-                        value = selectedRequest?.item?.title ?: "Chọn món đồ bạn muốn gửi",
+                        value = selectedRequest?.item?.title ?: "Choose the item you want to send",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Món đồ") },
+                        label = { Text("Item") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
                     ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         if (details.deliverableRequests.isEmpty()) {
-                            DropdownMenuItem(text = { Text("Chưa có yêu cầu vận chuyển nào") }, onClick = { expanded = false })
+                            DropdownMenuItem(
+                                text = { Text("No delivery requests yet") },
+                                onClick = { expanded = false }
+                            )
                         } else {
                             details.deliverableRequests.forEach { req ->
                                 DropdownMenuItem(
@@ -455,8 +470,8 @@ private fun PackageDetails(
                                         Column {
                                             Text(req.item.title ?: "N/A")
                                             Text(
-                                                text = "Từ (${req.request.latFrom?.let { "%.4f".format(it) }}, ${req.request.lngFrom?.let { "%.4f".format(it) }}) " +
-                                                        "đến (${req.request.latTo?.let { "%.4f".format(it) }}, ${req.request.lngTo?.let { "%.4f".format(it) }})",
+                                                text = "From (${req.request.latFrom?.let { "%.4f".format(it) }}, ${req.request.lngFrom?.let { "%.4f".format(it) }}) " +
+                                                        "to (${req.request.latTo?.let { "%.4f".format(it) }}, ${req.request.lngTo?.let { "%.4f".format(it) }})",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -473,16 +488,23 @@ private fun PackageDetails(
 
         selectedRequest?.let { request ->
             val addresses = request.request.id?.let { deliverableAddresses[it] }
-            val fromAddress = addresses?.first ?: "Đang tải địa chỉ..."
-            val toAddress = addresses?.second ?: "Đang tải địa chỉ..."
-            Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
+            val fromAddress = addresses?.first ?: "Loading address..."
+            val toAddress = addresses?.second ?: "Loading address..."
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Chi tiết vận chuyển", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Delivery details",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
-                    InfoRow("Món hàng", request.item.title ?: "N/A")
-                    InfoRow("Phí vận chuyển", "${details.service.deliveryFee} VND")
-                    InfoRow("Điểm lấy hàng", fromAddress)
-                    InfoRow("Điểm giao hàng", toAddress)
+                    InfoRow("Item", request.item.title ?: "N/A")
+                    InfoRow("Delivery fee", "${details.service.deliveryFee} VND")
+                    InfoRow("Pickup location", fromAddress)
+                    InfoRow("Drop-off location", toAddress)
                 }
             }
         }
@@ -493,9 +515,10 @@ private fun PackageDetails(
             modifier = Modifier.fillMaxWidth(),
             enabled = selectedRequest != null
         ) {
-            Text("Nhận vận chuyển hàng này")
+            Text("Accept this delivery")
         }
     }
+
 }
 
 @Composable

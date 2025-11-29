@@ -67,7 +67,7 @@ fun CategoryScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Lỗi: ${s.message}",
+                    text = "Error: ${s.message}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -149,7 +149,7 @@ private fun CategoryContent(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Vui lòng chọn một danh mục bên trái",
+                                text = "Please select a category on the left",
                                 textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -170,7 +170,7 @@ private fun CategoryContent(
                                     modifier = Modifier.size(120.dp)
                                 )
                                 Text(
-                                    text = "Chưa có sản phẩm nào",
+                                    text = "No items available",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

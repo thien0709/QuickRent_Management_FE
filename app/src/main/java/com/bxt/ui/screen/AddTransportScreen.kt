@@ -81,7 +81,7 @@ fun AddTransportScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Tạo Chuyến Đi Mới") },
+                title = { Text("“Create New Trip") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -132,7 +132,7 @@ fun AddTransportScreen(
             OutlinedTextField(
                 value = uiState.deliveryFee,
                 onValueChange = viewModel::onFeeChanged,
-                label = { Text("Phí chia sẻ (VND)") },
+                label = { Text("Sharing fee (VND)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -140,7 +140,7 @@ fun AddTransportScreen(
             OutlinedTextField(
                 value = uiState.availableSeat,
                 onValueChange = viewModel::onSeatsChanged,
-                label = { Text("Số ghế trống") },
+                label = { Text("Available seats") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -153,7 +153,7 @@ fun AddTransportScreen(
             OutlinedTextField(
                 value = uiState.description,
                 onValueChange = viewModel::onDescriptionChanged,
-                label = { Text("Mô tả (tùy chọn)") },
+                label = { Text("Description (optional)") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
@@ -172,7 +172,7 @@ fun AddTransportScreen(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Tạo Chuyến Đi")
+                    Text("Create Trip")
                 }
             }
         }
@@ -197,13 +197,13 @@ private fun MapSection(
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onSelectFrom, modifier = Modifier.weight(1f)) {
-                    Text("Chọn điểm đi trên map")
+                    Text("Choose starting point on map")
                 }
                 OutlinedButton(onClick = onSelectTo, modifier = Modifier.weight(1f)) {
-                    Text("Chọn điểm đến trên map")
+                    Text("Choose destination on map")
                 }
             }
-            TextButton(onClick = onUseMyLocation) { Text("Dùng vị trí hiện tại làm điểm đi") }
+            TextButton(onClick = onUseMyLocation) { Text("Use current location") }
 
             val mapView = rememberMapViewWithLifecycle()
             val pointManager = remember(mapView) { mapView.annotations.createPointAnnotationManager() }
@@ -243,7 +243,7 @@ private fun MapSection(
                                     context = context,
                                     point = it,
                                     iconResId = R.drawable.ic_map_from,
-                                    title = "Điểm đi"
+                                    title = "Starting point"
                                 )
                                 .withIconAnchor(IconAnchor.BOTTOM)
                                 .withTextAnchor(TextAnchor.TOP)
@@ -257,7 +257,7 @@ private fun MapSection(
                                     context = context,
                                     point = it,
                                     iconResId = R.drawable.ic_map_to,
-                                    title = "Điểm đến"
+                                    title = "Destination"
                                 )
                                 .withIconAnchor(IconAnchor.BOTTOM)
                                 .withTextAnchor(TextAnchor.TOP)
@@ -337,10 +337,10 @@ fun TimeSelectionSection(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("Thời gian: ${localDateTime.format(DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy"))}")
+        Text("Time: ${localDateTime.format(DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy"))}")
         Row {
-            TextButton(onClick = { onTimeSelected(Instant.now()) }) { Text("Bây giờ") }
-            TextButton(onClick = { datePickerDialog.show() }) { Text("Chọn giờ") }
+            TextButton(onClick = { onTimeSelected(Instant.now()) }) { Text("Now") }
+            TextButton(onClick = { datePickerDialog.show() }) { Text("Select time") }
         }
     }
 }

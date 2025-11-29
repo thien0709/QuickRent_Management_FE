@@ -11,17 +11,17 @@ import com.mapbox.geojson.Point
 @Composable
 fun EditLocationPopup(
     currentLocation: String,
-    proximity: Point?,                         // gợi ý quanh vị trí hiện tại; có thể null
+    proximity: Point?,
     onDismiss: () -> Unit,
-    onSave: (point: Point?, fullAddress: String) -> Unit, // ⬅️ trả về Point? + địa chỉ
-    onGetCurrentLocation: () -> Unit,         // nút lấy địa chỉ hiện tại (GPS)
-    isGettingCurrent: Boolean = false         // hiển thị loading/disable khi đang lấy
+    onSave: (point: Point?, fullAddress: String) -> Unit,
+    onGetCurrentLocation: () -> Unit,
+    isGettingCurrent: Boolean = false
 ) {
     var query by remember { mutableStateOf(currentLocation) }
     var selectedPoint by remember { mutableStateOf<Point?>(null) }
     var selectedAddress by remember { mutableStateOf("") }
 
-    // Nếu parent cập nhật currentLocation (sau khi bấm "Lấy địa chỉ hiện tại")
+
     LaunchedEffect(currentLocation) {
         if (currentLocation.isNotBlank()) {
             query = currentLocation
@@ -32,16 +32,16 @@ fun EditLocationPopup(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Chỉnh sửa địa chỉ") },
+        title = { Text("Change address") },
         text = {
             Column {
-                // ⬇️ thanh search + gợi ý Mapbox
+
                 MapboxSearchBar(
                     value = query,
                     onValueChange = { q ->
                         query = q
                         if (q != selectedAddress) {
-                            selectedPoint = null  // người dùng đang sửa tay
+                            selectedPoint = null
                             selectedAddress = ""
                         }
                     },
@@ -55,9 +55,9 @@ fun EditLocationPopup(
                 Spacer(Modifier.height(8.dp))
                 Text(
                     if (selectedPoint == null)
-                        "Nhập địa chỉ hoặc chọn một gợi ý trong danh sách."
+                        "Type address or pick suggestion"
                     else
-                        "Đã chọn: $selectedAddress",
+                        "Selected: $selectedAddress",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -68,7 +68,7 @@ fun EditLocationPopup(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextButton(onClick = onDismiss) {
-                    Text("Hủy")
+                    Text("Cancel")
                 }
                 Spacer(Modifier.weight(1f))
                 OutlinedButton(
@@ -83,7 +83,7 @@ fun EditLocationPopup(
                         Spacer(Modifier.width(8.dp))
                     }
                     Text(
-                        "Lấy vị trí",
+                        "Current",
                         maxLines = 1,
                         softWrap = false,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -97,7 +97,7 @@ fun EditLocationPopup(
                     },
                     enabled = query.isNotBlank()
                 ) {
-                    Text("Lưu", maxLines = 1)
+                    Text("Save", maxLines = 1)
                 }
             }
         }

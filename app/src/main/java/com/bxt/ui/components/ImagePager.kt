@@ -68,7 +68,7 @@ fun ImagePager(
             }
         } else {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Không có hình ảnh")
+                Text("No image")
             }
         }
     }

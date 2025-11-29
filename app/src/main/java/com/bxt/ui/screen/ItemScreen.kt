@@ -43,10 +43,10 @@ fun ItemScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Chi tiết sản phẩm", style = MaterialTheme.typography.titleSmall) },
+                title = { Text("Item details", style = MaterialTheme.typography.titleSmall) },
                 navigationIcon = {
                     IconButton(onClick = onClickBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Quay lại")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -62,7 +62,7 @@ fun ItemScreen(
                 }
                 is ItemState.Error -> {
                     ErrorStateContent(
-                        message = state.message ?: "Đã có lỗi xảy ra",
+                        message = state.message ?: "An error occurred",
                         onRetry = { viewModel.load(itemId) }
                     )
                 }
@@ -78,7 +78,7 @@ fun ItemScreen(
                         )
                     } else {
                         ErrorStateContent(
-                            message = "Không tìm thấy dữ liệu sản phẩm.",
+                            message = "Item data not found",
                             onRetry = { viewModel.load(itemId) }
                         )
                     }
@@ -117,7 +117,7 @@ private fun ItemDetailContent(
     ) {
         ImagePager(
             photos = photos,
-            contentDescription = item.title ?: "Hình ảnh sản phẩm"
+            contentDescription = item.title ?: "Item images",
         )
 
         Column(Modifier.padding(d.pagePadding)) {
@@ -147,17 +147,17 @@ private fun ItemDetailContent(
             ) {
                 Column(Modifier.padding(d.pagePadding)) {
                     Text(
-                        "Giá & Đặt cọc",
+                        "Price & Deposit",
                         style = MaterialTheme.typography.titleSmall
                     )
                     Spacer(Modifier.height(d.rowGap))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Giá theo giờ", style = MaterialTheme.typography.bodySmall)
+                        Text("Price per hour", style = MaterialTheme.typography.bodySmall)
                         Text(money(item.rentalPricePerHour), style = MaterialTheme.typography.bodySmall)
                     }
                     Spacer(Modifier.height((d.rowGap - 2.dp).coerceAtLeast(2.dp)))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Tiền đặt cọc", style = MaterialTheme.typography.bodySmall)
+                        Text("Deposit", style = MaterialTheme.typography.bodySmall)
                         Text(money(item.depositAmount), style = MaterialTheme.typography.bodySmall)
                     }
                 }
@@ -180,7 +180,7 @@ private fun ItemDetailContent(
                     OutlinedButton(
                         onClick = {
                             val attachableInfo = mapOf(
-                                "title" to (item.title ?: "Sản phẩm"),
+                                "title" to (item.title ?: "Item"),
                                 "subtitle" to money(item.rentalPricePerHour),
                                 "image" to (item.imagePrimary ?: "")
                             )
@@ -200,7 +200,7 @@ private fun ItemDetailContent(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text("Chat ngay", style = MaterialTheme.typography.bodySmall)
+                        Text("Chat now", style = MaterialTheme.typography.bodySmall)
                     }
 
                     Button(
@@ -213,7 +213,7 @@ private fun ItemDetailContent(
                         shape = MaterialTheme.shapes.medium,
                          enabled = item.rentalPricePerHour != null
                     ) {
-                        Text("Thuê ngay", style = MaterialTheme.typography.bodySmall)
+                        Text("Rent now", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -244,7 +244,7 @@ private fun ErrorStateContent(message: String, onRetry: () -> Unit) {
             Text(message, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(d.rowGap))
             Button(onClick = onRetry, shape = MaterialTheme.shapes.medium) {
-                Text("Thử lại", style = MaterialTheme.typography.bodySmall)
+                Text("Try again", style = MaterialTheme.typography.bodySmall)
             }
         }
     }

@@ -34,7 +34,6 @@ fun TransportServiceDetailScreen(
     val mySent by viewModel.myPackagesSent.collectAsStateWithLifecycle()
     val myRecv by viewModel.myPackagesReceived.collectAsStateWithLifecycle()
 
-    // địa chỉ đã resolve
     val serviceAddr by viewModel.serviceAddr.collectAsStateWithLifecycle()
     val passengerAddrs by viewModel.passengerAddrs.collectAsStateWithLifecycle()
     val packageAddrs by viewModel.packageAddrs.collectAsStateWithLifecycle()
@@ -51,7 +50,7 @@ fun TransportServiceDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Chi tiết chuyến #${viewModel.serviceId}") },
+                title = { Text("Trip details #${viewModel.serviceId}") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
@@ -90,10 +89,10 @@ fun TransportServiceDetailScreen(
 
                             // Hành khách
                             item(key = "passenger_header") {
-                                SectionTitle("Hành khách (${details.passengers.size})")
+                                SectionTitle("Passenger (${details.passengers.size})")
                             }
                             if (details.passengers.isEmpty()) {
-                                item(key = "passenger_empty") { Text("Chưa có hành khách nào.") }
+                                item(key = "passenger_empty") { Text("No passengers available") }
                             } else {
                                 items(
                                     details.passengers,
@@ -110,10 +109,10 @@ fun TransportServiceDetailScreen(
 
                             // Gói hàng toàn chuyến
                             item(key = "pkg_header") {
-                                SectionTitle("Gói hàng trong chuyến (${details.packages.size})")
+                                SectionTitle("Package in delivery (${details.packages.size})")
                             }
                             if (details.packages.isEmpty()) {
-                                item(key = "pkg_empty") { Text("Chưa có gói hàng nào.") }
+                                item(key = "pkg_empty") { Text("No packages available.") }
                             } else {
                                 items(
                                     details.packages,
@@ -125,7 +124,7 @@ fun TransportServiceDetailScreen(
                                     val to = addr?.second
                                         ?: coordsLabel(pkg.toLatitude, pkg.toLongitude)
                                     PackageRow(
-                                        title = "Gói #${pkg.id ?: "-"}",
+                                        title = "Package #${pkg.id ?: "-"}",
                                         fromText = from,
                                         toText = to
                                     )
@@ -147,10 +146,10 @@ fun TransportServiceDetailScreen(
                             }
 
                             item(key = "pkg_sent_header") {
-                                SectionTitle("Gói tôi gửi (${mySent.size})")
+                                SectionTitle("Package I sent (${mySent.size})")
                             }
                             if (mySent.isEmpty()) {
-                                item(key = "pkg_sent_empty") { Text("Không có gói đang gửi trong chuyến này.") }
+                                item(key = "pkg_sent_empty") { Text("No packages in this trip.") }
                             } else {
                                 items(
                                     mySent,
@@ -167,17 +166,17 @@ fun TransportServiceDetailScreen(
                                         toText = to
                                     ) {
                                         OutlinedButton(onClick = { p.id?.let(viewModel::cancelMyPackage) }) {
-                                            Text("Huỷ")
+                                            Text("Cancel")
                                         }
                                     }
                                 }
                             }
 
                             item(key = "pkg_recv_header") {
-                                SectionTitle("Gói tôi nhận (${myRecv.size})")
+                                SectionTitle("Package I received (${myRecv.size})")
                             }
                             if (myRecv.isEmpty()) {
-                                item(key = "pkg_recv_empty") { Text("Không có gói cần nhận trong chuyến này.") }
+                                item(key = "pkg_recv_empty") { Text("No packages to receive in this trip") }
                             } else {
                                 items(
                                     myRecv,
@@ -189,12 +188,12 @@ fun TransportServiceDetailScreen(
                                     val to = addr?.second
                                         ?: coordsLabel(p.toLatitude, p.toLongitude)
                                     PackageRow(
-                                        title = "Nhận #${p.id ?: "-"}",
+                                        title = "Receive #${p.id ?: "-"}",
                                         fromText = from,
                                         toText = to
                                     ) {
                                         OutlinedButton(onClick = { p.id?.let(viewModel::cancelMyPackage) }) {
-                                            Text("Huỷ")
+                                            Text("Cancel")
                                         }
                                     }
                                 }

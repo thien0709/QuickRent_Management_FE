@@ -79,7 +79,7 @@ fun TransportServiceScreen(
 
         return filter { s ->
             val searchText = buildString {
-                append("Chuyến đi #${s.id ?: ""} ")
+                append("Trip #${s.id ?: ""} ")
                 append(s.description.orEmpty())
             }
             val price = s.deliveryFee?.toDouble() ?: 0.0
@@ -130,7 +130,7 @@ fun TransportServiceScreen(
                 OutlinedTextField(
                     value = q,
                     onValueChange = { q = it },
-                    label = { Text("Tìm kiếm dịch vụ…", style = MaterialTheme.typography.labelSmall) },
+                    label = { Text("Search service…", style = MaterialTheme.typography.labelSmall) },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     trailingIcon = {
                         if (q.isNotEmpty()) {
@@ -154,13 +154,13 @@ fun TransportServiceScreen(
                                 addrQ.isNotEmpty() || (nearMe && radiusKmStr.isNotBlank())
                     }
                     Text(
-                        "Bộ lọc: ${if (applied) "Đã áp dụng" else "Chưa áp dụng"}",
+                        "Filter: ${if (applied) "Applied" else "Not applied"}",
                         style = MaterialTheme.typography.bodySmall
                     )
                     TextButton(onClick = { showFilter = true }) {
                         Icon(Icons.Default.FilterList, null)
                         Spacer(Modifier.width(4.dp))
-                        Text("Bộ lọc", style = MaterialTheme.typography.bodySmall)
+                        Text("Filter", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -193,15 +193,15 @@ fun TransportServiceScreen(
                                             || maxPrice.isNotBlank() || addrQ.isNotBlank()
                                             || (nearMe && radiusKmStr.isNotBlank())
                                     Text(
-                                        text = if (hasFilter) "Không tìm thấy kết quả phù hợp."
-                                        else "Chưa có dịch vụ.",
+                                        text = if (hasFilter) "No matching results found."
+                                        else "No services available.",
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                     if (hasFilter) {
                                         TextButton(onClick = {
                                             q = ""; minPrice = ""; maxPrice = ""; addrQ = ""
                                             nearMe = false; radiusKmStr = "15"
-                                        }) { Text("Xóa bộ lọc") }
+                                        }) { Text("Clear filter") }
                                     }
                                 }
                             }
@@ -217,8 +217,8 @@ fun TransportServiceScreen(
                                     val pair = item.id?.let { addressMap[it] }
                                     TransportServiceCard(
                                         service = item,
-                                        fromAddress = pair?.first ?: "Đang lấy địa chỉ…",
-                                        toAddress = pair?.second ?: "Đang lấy địa chỉ…",
+                                        fromAddress = pair?.first ?: "Fetching address…",
+                                        toAddress = pair?.second ?: "Fetching address…",
                                         onClick = { item.id?.let { id -> onServiceClick(id) } }
                                     )
                                 }
@@ -233,7 +233,7 @@ fun TransportServiceScreen(
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("Có lỗi khi tải dữ liệu", style = MaterialTheme.typography.bodySmall)
+                            Text("Error loading data", style = MaterialTheme.typography.bodySmall)
                             Spacer(Modifier.height(d.rowGap))
                             Button(
                                 onClick = { viewModel.loadTransportServices() },
@@ -241,7 +241,7 @@ fun TransportServiceScreen(
                                     .fillMaxWidth()
                                     .height(d.buttonHeight),
                                 shape = MaterialTheme.shapes.medium
-                            ) { Text("Thử lại") }
+                            ) { Text("Try again") }
                         }
                     }
                 }

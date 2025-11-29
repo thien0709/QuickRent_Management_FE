@@ -55,7 +55,7 @@ fun RentalItemScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Tạo yêu cầu thuê", style = MaterialTheme.typography.titleSmall) },
+                title = { Text("Create rental request", style = MaterialTheme.typography.titleSmall) },
                 navigationIcon = {
                     IconButton(onClick = onClickBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -142,7 +142,7 @@ private fun RentalItemContent(
     LaunchedEffect(rentalState) {
         if (rentalState is RentalState.Success) {
             val rentalId = (rentalState as RentalState.Success).id
-            val message = "Yêu cầu thuê (ID: $rentalId) đã được gửi."
+            val message = "Rental request (ID: $rentalId) has been sent."
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             viewModel.resetRentalState()
             onRentalSuccess()
@@ -218,7 +218,7 @@ private fun RentalItemContent(
             modifier = Modifier.fillMaxWidth().height(d.buttonHeight),
             shape = MaterialTheme.shapes.medium
         ) {
-            Text("Xác nhận thuê", style = MaterialTheme.typography.bodySmall)
+            Text("Confirm rental", style = MaterialTheme.typography.bodySmall)
         }
 
         if (rentalState is RentalState.Submitting) {
@@ -241,7 +241,7 @@ private fun MapboxAddressSelection(
     val context = LocalContext.current
 
     Column(verticalArrangement = Arrangement.spacedBy(d.rowGap)) {
-        Text("Chọn địa chỉ giao hàng", style = MaterialTheme.typography.titleSmall)
+        Text("Select delivery address", style = MaterialTheme.typography.titleSmall)
 
         MapboxSearchBar(
             value = address,
@@ -257,7 +257,7 @@ private fun MapboxAddressSelection(
             }
         )
 
-        Text("Hoặc chọn trên bản đồ:", style = MaterialTheme.typography.bodySmall)
+        Text("Or select on map:", style = MaterialTheme.typography.bodySmall)
 
         Box(modifier = Modifier.fillMaxWidth().height(d.imageSize * 3.2f)) {
             MapboxMap(
@@ -277,7 +277,7 @@ private fun MapboxAddressSelection(
                     annotations = listOf(
                         MapboxMarkerUtils.createSimpleMarker(
                             point = selectedPoint,
-                            title = "Vị trí giao hàng",
+                            title = "Delivery address",
                             isDraggable = true,
                             context = context
                         )
@@ -300,13 +300,13 @@ private fun TimeSelection(
     val dtFmt = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm") }
 
     Column(verticalArrangement = Arrangement.spacedBy(d.rowGap)) {
-        Text("Chọn thời gian thuê", style = MaterialTheme.typography.titleSmall)
+        Text("Select rental time", style = MaterialTheme.typography.titleSmall)
         OutlinedButton(
             onClick = { PickDateTime(context, startAt, onStartAtChange) },
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.medium
         ) {
-            Text("Bắt đầu: " + (startAt?.format(dtFmt) ?: "Chọn thời gian"), style = MaterialTheme.typography.bodySmall)
+            Text("Start: " + (startAt?.format(dtFmt) ?: "Select time"), style = MaterialTheme.typography.bodySmall)
         }
         OutlinedButton(
             onClick = { PickDateTime(context, endAt, onEndAtChange) },
@@ -314,7 +314,7 @@ private fun TimeSelection(
             enabled = startAt != null,
             shape = MaterialTheme.shapes.medium
         ) {
-            Text("Kết thúc: " + (endAt?.format(dtFmt) ?: "Chọn thời gian"), style = MaterialTheme.typography.bodySmall)
+            Text("Finish: " + (endAt?.format(dtFmt) ?: "Select time"), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -325,10 +325,10 @@ private fun PaymentMethodSelector(
     onMethodSelected: (String) -> Unit
 ) {
     val d = LocalDimens.current
-    val paymentOptions = remember { mapOf("CASH" to "Thanh toán khi nhận hàng (COD)", "VNPAY" to "Thanh toán qua VNPay") }
+    val paymentOptions = remember { mapOf("CASH" to "Cash on delivery (COD)", "VNPAY" to "Pay via VNPay") }
 
     Column(verticalArrangement = Arrangement.spacedBy(d.rowGap / 2)) {
-        Text("Phương thức thanh toán", style = MaterialTheme.typography.titleSmall)
+        Text("Payments method", style = MaterialTheme.typography.titleSmall)
         paymentOptions.forEach { (key, displayText) ->
             Row(
                 modifier = Modifier
@@ -358,24 +358,24 @@ private fun RentalSummary(
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Giá mỗi giờ", style = MaterialTheme.typography.bodySmall)
+            Text("Price per hour", style = MaterialTheme.typography.bodySmall)
             Text(money(pricePerHour), style = MaterialTheme.typography.bodySmall)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Số giờ tính phí", style = MaterialTheme.typography.bodySmall)
+            Text("Charged hours", style = MaterialTheme.typography.bodySmall)
             Text(if (canCalculate) "$chargeableHours giờ" else "—", style = MaterialTheme.typography.bodySmall)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Tiền thuê dự kiến", style = MaterialTheme.typography.bodySmall)
+            Text("Estimated rental fee", style = MaterialTheme.typography.bodySmall)
             Text(money(rentalTotal), style = MaterialTheme.typography.bodySmall)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Tiền đặt cọc", style = MaterialTheme.typography.bodySmall)
+            Text("Deposit", style = MaterialTheme.typography.bodySmall)
             Text(money(depositAmount), style = MaterialTheme.typography.bodySmall)
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Tổng tiền thanh toán", style = MaterialTheme.typography.titleSmall)
+            Text("Total payment", style = MaterialTheme.typography.titleSmall)
             Text(money(finalTotal), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         }
     }

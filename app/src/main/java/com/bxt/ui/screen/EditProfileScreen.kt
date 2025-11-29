@@ -43,7 +43,7 @@ fun EditProfileScreen(
 
     LaunchedEffect(updateState) {
         if (updateState.isSuccess) {
-            Toast.makeText(context, "Cập nhật thành công!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Update successful!", Toast.LENGTH_SHORT).show()
             navController.popBackStack()
             viewModel.resetUpdateState()
         }
@@ -56,7 +56,7 @@ fun EditProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Chỉnh sửa thông tin") },
+                title = { Text("Edit details") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -231,7 +231,7 @@ private fun AvatarSection(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Nhấn để thay đổi ảnh đại diện",
+            text = "Tap to change profile picture",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary
         )
@@ -263,7 +263,7 @@ private fun ProfileInputFields(
     OutlinedTextField(
         value = fullName,
         onValueChange = onFullNameChange,
-        label = { Text("Họ và tên") },
+        label = { Text("Full Name") },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         enabled = !isUpdating,
@@ -283,7 +283,7 @@ private fun ProfileInputFields(
     OutlinedTextField(
         value = phone,
         onValueChange = onPhoneChange,
-        label = { Text("Số điện thoại") },
+        label = { Text("Phone") },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         enabled = !isUpdating
@@ -311,10 +311,10 @@ private fun SaveButton(
                     modifier = Modifier.size(16.dp),
                     color = MaterialTheme.colorScheme.onPrimary
                 )
-                Text("Đang lưu...")
+                Text("Saving...")
             }
         } else {
-            Text("Lưu thay đổi")
+            Text("Apply changes")
         }
     }
 }
