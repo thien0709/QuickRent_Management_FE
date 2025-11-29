@@ -4,12 +4,17 @@ import android.content.Context
 import com.bxt.data.api.ApiCallExecutor // Import lớp mới
 import com.bxt.data.api.ApiService
 import com.bxt.data.local.DataStoreManager
+import com.bxt.data.repository.AddressRepository
 import com.bxt.data.repository.AuthRepository
 import com.bxt.data.repository.CategoryRepository
 import com.bxt.data.repository.ChatRepository
+import com.bxt.data.repository.FcmRepository
 import com.bxt.data.repository.ItemRepository
 import com.bxt.data.repository.LocationRepository
+import com.bxt.data.repository.NotificationRepository
 import com.bxt.data.repository.RentalRequestRepository
+import com.bxt.data.repository.TransportPackageRepository
+import com.bxt.data.repository.TransportPassengerRepository
 import com.bxt.data.repository.UserRepository
 import com.bxt.data.repository.impl.* // Import tất cả các implementation
 import dagger.Module
@@ -101,5 +106,59 @@ object RepositoryModule {
         apiCallExecutor: ApiCallExecutor
     ): com.bxt.data.repository.RentalTransactionRepository {
         return RentalTransactionRepositoryImpl(apiService, apiCallExecutor)
+    }
+
+    @Singleton
+    @Provides
+    fun provideAddressRepository(
+        userRepository: UserRepository,
+        locationRepository: LocationRepository
+    ): AddressRepository {
+        return AddressRepositoryImpl(userRepository, locationRepository)
+    }
+
+
+    @Singleton
+    @Provides
+    fun provideTransportPackageRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): TransportPackageRepository {
+        return TransportPackageRepositoryImpl(apiService, apiCallExecutor)
+    }
+
+    @Singleton
+    @Provides
+    fun provideTransportPassengerRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): TransportPassengerRepository {
+        return TransportPassengerRepositoryImpl(apiService, apiCallExecutor)
+    }
+
+    @Singleton
+    @Provides
+    fun provideFcmRepository(
+        apiService: ApiService
+    ): FcmRepository {
+        return FcmRepositoryImpl(apiService)
+    }
+
+    @Singleton
+    @Provides
+    fun provideChatGeminiRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): com.bxt.data.repository.ChatGeminiRepository {
+        return ChatGeminiRepositoryImpl(apiService)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationRepository(
+        apiService: ApiService,
+        apiCallExecutor: ApiCallExecutor
+    ): NotificationRepository {
+        return NotificationRepositoryImpl(apiService, apiCallExecutor)
     }
 }

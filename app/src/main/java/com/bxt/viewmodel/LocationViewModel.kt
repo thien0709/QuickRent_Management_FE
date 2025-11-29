@@ -1,3 +1,4 @@
+// com/bxt/viewmodel/LocationViewModel.kt
 package com.bxt.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -9,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
 @HiltViewModel
 class LocationViewModel @Inject constructor(
     private val locationRepository: LocationRepository,
@@ -26,9 +28,7 @@ class LocationViewModel @Inject constructor(
         observeLocationChanges()
     }
 
-
-
-    private fun observeLocationChanges() {
+     private fun observeLocationChanges() {
         viewModelScope.launch {
             combine(
                 dataStoreManager.userId,
@@ -53,15 +53,14 @@ class LocationViewModel @Inject constructor(
             }.onFailure { e ->
                 _locationState.value = LocationState.Error(
                     message = e.localizedMessage ?: "Unable to fetch location",
-                    location = Pair(0.0, 0.0)
+                    location = 0.0 to 0.0
                 )
             }
         }
     }
-
     fun onNewLocation(lat: Double, lng: Double) {
         viewModelScope.launch {
-            _locationState.value = LocationState.Success(location = Pair(lat, lng))
+            _locationState.value = LocationState.Success(location = lat to lng)
             dataStoreManager.saveCurrentLocation(lat, lng)
             dataStoreManager.savePendingLocation(lat, lng)
             fetchAddress(lat, lng)
@@ -72,14 +71,11 @@ class LocationViewModel @Inject constructor(
         val address = locationRepository.getAddressFromLatLng(lat, lng).getOrNull()
         if (address != null) {
             dataStoreManager.saveCurrentLocation(lat, lng, address)
-            _locationState.value = LocationState.Success(
-                location = Pair(lat, lng),
-                address = address
-            )
+            _locationState.value = LocationState.Success(location = lat to lng, address = address)
         } else {
             _locationState.value = LocationState.Error(
                 message = "Could not fetch address",
-                location = Pair(lat, lng)
+                location = lat to lng
             )
         }
     }
@@ -88,13 +84,13 @@ class LocationViewModel @Inject constructor(
         if (_isUploading.value) return
         _isUploading.value = true
         try {
-            locationRepository.setLocationUser( lat, lng)
+            locationRepository.setLocationUser(lat, lng)
             dataStoreManager.clearPendingLocation()
             fetchAddress(lat, lng)
         } catch (e: Exception) {
             _locationState.value = LocationState.Error(
                 message = "Upload failed: ${e.localizedMessage}",
-                location = Pair(lat, lng)
+                location = lat to lng
             )
         } finally {
             _isUploading.value = false
@@ -104,9 +100,9 @@ class LocationViewModel @Inject constructor(
     fun retryUpload() {
         viewModelScope.launch {
             val userId = dataStoreManager.userId.firstOrNull()
-            val pendingLocation = dataStoreManager.pendingLocation.firstOrNull()
-            if (userId != null && pendingLocation != null) {
-                uploadLocationToServer(pendingLocation.first, pendingLocation.second)
+            val pending = dataStoreManager.pendingLocation.firstOrNull()
+            if (userId != null && pending != null) {
+                uploadLocationToServer(pending.first, pending.second)
             }
         }
     }
@@ -124,6 +120,35 @@ class LocationViewModel @Inject constructor(
             fetchCurrentLocation()
         } else {
             _locationState.value = LocationState.GpsDisabled(false)
+        }
+    }
+
+    fun setManualAddress(address: String) {
+        viewModelScope.launch {
+            val lastLatLng: Pair<Double, Double>? = when (val cur = _locationState.value) {
+                is LocationState.Success -> cur.location
+                is LocationState.Error -> cur.location
+                else -> null
+            }
+            if (lastLatLng != null) {
+                val (lat, lng) = lastLatLng
+                dataStoreManager.saveCurrentLocation(lat, lng, address)
+                _locationState.value = LocationState.Success(location = lastLatLng, address = address)
+                dataStoreManager.savePendingLocation(lat, lng)
+                uploadLocationToServer(lat, lng)
+            } else {
+                _locationState.value = LocationState.Success(address = address)
+            }
+        }
+    }
+
+    fun setManualLocation(lat: Double, lng: Double, address: String? = null) {
+        viewModelScope.launch {
+            _locationState.value = LocationState.Success(location = lat to lng, address = address)
+            if (address != null) dataStoreManager.saveCurrentLocation(lat, lng, address)
+            else dataStoreManager.saveCurrentLocation(lat, lng)
+            dataStoreManager.savePendingLocation(lat, lng)
+            uploadLocationToServer(lat, lng)
         }
     }
 }

@@ -9,6 +9,12 @@ interface ChatRepository {
         messageMap: Map<String, Any?>
     )
 
+    fun getInitialMessages(
+        myUserId: String,
+        otherUserId: String,
+        onResult: (List<Map<String, Any?>>) -> Unit
+    )
+
     fun listenForMessages(
         myUserId: String,
         otherUserId: String,

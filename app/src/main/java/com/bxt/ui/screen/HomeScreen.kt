@@ -25,7 +25,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
@@ -36,6 +35,7 @@ import com.bxt.R
 import com.bxt.data.api.dto.response.CategoryResponse
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.ui.components.CategoryCard
+import com.bxt.ui.components.EditLocationPopup
 import com.bxt.ui.components.LoadingIndicator
 import com.bxt.ui.components.LocationPermissionHandler
 import com.bxt.ui.components.PopularItemCard
@@ -44,6 +44,9 @@ import com.bxt.ui.state.LocationState
 import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.HomeViewModel
 import com.bxt.viewmodel.LocationViewModel
+import com.mapbox.geojson.Point
+import com.bxt.util.haversineKm
+import com.bxt.util.extractDistrictOrWard
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -57,17 +60,19 @@ fun HomeScreen(
 ) {
     val d = LocalDimens.current
     var searchText by remember { mutableStateOf("") }
-
+    val addresses by viewModel.itemAddresses.collectAsState()
     val homeState by viewModel.homeState.collectAsState()
+
     val isDarkModeEnabled by viewModel.isDarkModeEnabled.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val isLoadingMore by viewModel.isLoadingMore.collectAsState()
 
-    // Lottie (giữ nguyên hiệu ứng trống)
     val empty by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.empty))
-    val progress by animateLottieCompositionAsState(empty, iterations = LottieConstants.IterateForever)
+    val progress by animateLottieCompositionAsState(
+        composition = empty,
+        iterations = LottieConstants.IterateForever
+    )
 
-    // Quyền vị trí
     LocationPermissionHandler(
         onPermissionGranted = { locationViewModel.fetchCurrentLocation() },
         onPermissionDenied = {}
@@ -75,37 +80,41 @@ fun HomeScreen(
     val locationState by locationViewModel.locationState.collectAsState()
 
     val deliveryText = when (val s = locationState) {
-        is LocationState.Loading -> "Đang lấy địa chỉ..."
-        is LocationState.Success -> s.address ?: "Vị trí hiện tại"
-        is LocationState.Error -> "Lỗi: ${s.message}"
-        is LocationState.PermissionRequired -> "Cần cấp quyền vị trí"
-        is LocationState.GpsDisabled -> "GPS đang tắt"
+        is LocationState.Loading -> "Fetching address..."
+        is LocationState.Success -> s.address ?: "Current location"
+        is LocationState.Error -> "Error: ${s.message}"
+        is LocationState.PermissionRequired -> "Location permission required"
+        is LocationState.GpsDisabled -> "GPS is off"
     }
+    val currentAddressText = (locationState as? LocationState.Success)?.address.orEmpty()
+    val isGettingCurrent = locationState is LocationState.Loading
 
     val hasAllData = homeState is HomeState.Success && locationState !is LocationState.Loading
     if (!hasAllData) {
         Box(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center
         ) { LoadingIndicator() }
         return
     }
     val success = homeState as HomeState.Success
 
-    // Pull-down refresh
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
         onRefresh = { viewModel.refresh() }
     )
 
-    // Chạm đáy rồi kéo thêm để load-more
     val listState = rememberLazyListState()
     val pullUpConnection = rememberPullUpToLoadMore(
         listState = listState,
         isLoadingMore = isLoadingMore,
-        trigger = 96.dp, // kéo thêm ~96dp ở đáy sẽ gọi loadNextPage()
+        trigger = 96.dp,
         onLoadMore = { viewModel.loadNextPage() }
     )
+
+    var showEditLocation by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -122,8 +131,7 @@ fun HomeScreen(
             contentPadding = PaddingValues(d.pagePadding),
             verticalArrangement = Arrangement.spacedBy(d.sectionGap)
         ) {
-            // ====== GIỮ NGUYÊN LAYOUT GẦN NHƯ CŨ ======
-
+            // Header
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -142,75 +150,23 @@ fun HomeScreen(
                 }
             }
 
+            // Delivery Address
             item {
-                Text(
-                    text = "Delivery to: $deliveryText",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Button(
-                    onClick = { locationViewModel.fetchCurrentLocation() },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium
-                ) {
+                Column(Modifier.fillMaxWidth()) {
                     Text(
-                        "Change Location",
-                        style = MaterialTheme.typography.bodySmall
+                        text = "Delivery to: $deliveryText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = { showEditLocation = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) { Text("Change Address", style = MaterialTheme.typography.bodySmall) }
                 }
             }
-
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = searchText,
-                        onValueChange = { searchText = it },
-                        placeholder = { Text("Search", style = MaterialTheme.typography.bodySmall, color = Color(0xFF999999)) },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                            )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent
-                        ),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        textStyle = MaterialTheme.typography.bodySmall
-                    )
-
-                    Spacer(Modifier.width(d.rowGap))
-
-                    Card(
-                        modifier = Modifier
-                            .size(56.dp) // giữ 56dp như cũ
-                            .clickable { onFilterClick() },
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = "Filter",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            }
-
+            // Categories
             item {
                 Row(
                     modifier = Modifier
@@ -239,30 +195,66 @@ fun HomeScreen(
                 } else {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(d.sectionGap)) {
                         items(success.categories) { category ->
-                            CategoryCard(category = category, onClick = { onCategoryClick(category) })
+                            CategoryCard(
+                                category = category,
+                                onClick = { onCategoryClick(category) }
+                            )
                         }
                     }
                 }
             }
 
+            // Popular
             item {
-                Text(
-                    text = "POPULAR TODAY",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "POPULAR TODAY",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+
+                    AssistChip(
+                        onClick = onFilterClick,
+                        label = { Text("Search") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = null)
+                        }
+                    )
+                }
             }
 
             if (success.popularItems.isEmpty()) {
                 item { EmptyLottie(empty, progress) }
             } else {
-                items(success.popularItems /* , key = { it.id } nếu có id */) { it ->
-                    PopularItemCard(item = it, onClick = { onItemClick(it) })
+                // Lấy vị trí người dùng
+                val userLatLng = (locationState as? LocationState.Success)?.location
+
+                items(success.popularItems, key = { it.id ?: it.hashCode() }) { item ->
+                    // Tính khoảng cách km nếu đủ dữ liệu
+                    val distanceKm = userLatLng?.let { (ulat, ulng) ->
+                        val ilat = item.lat?.toDouble()
+                        val ilng = item.lng?.toDouble()
+                        if (ilat != null && ilng != null) haversineKm(ulat, ulng, ilat, ilng) else null
+                    }
+
+                    // Rút gọn địa chỉ cho UI (nếu có)
+                    val addrShort = extractDistrictOrWard(addresses[item.id])
+
+                    PopularItemCard(
+                        item = item,
+                        locationText = addrShort,   // Địa chỉ hiển thị riêng
+                        distanceKm = distanceKm,    // Khoảng cách hiển thị riêng
+                        onClick = { onItemClick(item) }
+                    )
                     Spacer(Modifier.height(d.rowGap))
                 }
             }
 
-            // Footer spinner khi đang tải thêm
+            // Load-more indicator
             item {
                 if (isLoadingMore) {
                     Row(
@@ -281,9 +273,31 @@ fun HomeScreen(
             modifier = Modifier.align(Alignment.TopCenter)
         )
     }
-}
 
-/* ---------- Helpers ---------- */
+    if (showEditLocation) {
+        EditLocationPopup(
+            currentLocation = currentAddressText,
+            proximity = (locationState as? LocationState.Success)?.location?.let { (lat, lng) ->
+                Point.fromLngLat(lng, lat)
+            },
+            onDismiss = { showEditLocation = false },
+            onSave = { point, addr ->
+                if (point != null) {
+                    locationViewModel.setManualLocation(
+                        lat = point.latitude(),
+                        lng = point.longitude(),
+                        address = addr
+                    )
+                } else {
+                    locationViewModel.setManualAddress(addr)
+                }
+                showEditLocation = false
+            },
+            onGetCurrentLocation = { locationViewModel.fetchCurrentLocation() },
+            isGettingCurrent = isGettingCurrent
+        )
+    }
+}
 
 @Composable
 private fun rememberPullUpToLoadMore(
@@ -301,7 +315,7 @@ private fun rememberPullUpToLoadMore(
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 if (source == NestedScrollSource.Drag && !listState.canScrollForward) {
                     val dy = available.y
-                    if (dy < 0f) { // kéo thêm ở đáy
+                    if (dy < 0f) {
                         accumulated += -dy
                         if (accumulated >= triggerPx && !isLoadingMore) {
                             accumulated = 0f
@@ -327,6 +341,10 @@ private fun rememberPullUpToLoadMore(
 @Composable
 private fun EmptyLottie(composition: LottieComposition?, progress: Float) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        LottieAnimation(composition = composition, progress = { progress }, modifier = Modifier.size(90.dp))
+        LottieAnimation(
+            composition = composition,
+            progress = { progress },
+            modifier = Modifier.size(90.dp)
+        )
     }
 }

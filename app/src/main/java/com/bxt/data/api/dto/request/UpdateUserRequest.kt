@@ -1,8 +1,9 @@
 package com.bxt.data.api.dto.request
 
-data class UpdateUserRequest(
-    val username: String? = null,
-    val email: String? = null,
-    val phoneNumber: String? = null,
-    val address: String? = null,
+
+data class UpdateProfileRequest(
+    val username: String,
+    val email: String,
+    val fullName: String,
+    val phone: String,
 )

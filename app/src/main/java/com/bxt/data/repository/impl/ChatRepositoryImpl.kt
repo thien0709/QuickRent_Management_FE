@@ -2,11 +2,7 @@ package com.bxt.data.repository.impl
 
 import android.util.Log
 import com.bxt.data.repository.ChatRepository
-import com.google.firebase.database.ChildEventListener
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -14,6 +10,27 @@ import javax.inject.Singleton
 class ChatRepositoryImpl @Inject constructor() : ChatRepository {
 
     private val database = FirebaseDatabase.getInstance().reference
+
+    override fun getInitialMessages(
+        myUserId: String,
+        otherUserId: String,
+        onResult: (List<Map<String, Any?>>) -> Unit
+    ) {
+        database.child("users").child(myUserId)
+            .child("chats").child(otherUserId).child("messages")
+            .orderByChild("timestamp")
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val messages = snapshot.children.mapNotNull { it.value as? Map<String, Any?> }
+                    onResult(messages)
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.w("ChatRepositoryImpl", "getInitialMessages cancelled", error.toException())
+                    onResult(emptyList())
+                }
+            })
+    }
 
     override fun sendMessage(
         myUserId: String,
@@ -24,7 +41,7 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
             .child("chats").child(otherUserId)
             .child("messages").push().key ?: return
 
-        val lastText = messageMap["text"] as? String ?: "Tin nhắn"
+        val lastText = messageMap["text"] as? String ?: (if (messageMap.containsKey("attachable")) "Đã gửi một sản phẩm" else "Tin nhắn")
         val timestamp = messageMap["timestamp"] as? Long ?: System.currentTimeMillis()
 
         val updates = mapOf(
@@ -46,6 +63,8 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
     ): ChildEventListener {
         val messagesRef = database.child("users").child(myUserId)
             .child("chats").child(otherUserId).child("messages")
+            .orderByChild("timestamp")
+            .startAt((System.currentTimeMillis()).toDouble())
 
         val listener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
@@ -65,6 +84,7 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
         messagesRef.addChildEventListener(listener)
         return listener
     }
+
 
     override fun removeMessagesListener(
         myUserId: String,

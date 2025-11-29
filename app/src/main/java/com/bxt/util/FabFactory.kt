@@ -40,27 +40,21 @@ fun NotificationIcon(count: Int = 0) {
 
 object FabActions {
     fun profile(nav: NavController) = listOf(
-        FabAction("Thông báo", { NotificationIcon(1) }) { nav.navigate("notifications") },
-        FabAction("Vận chuyển", { Icon(Icons.Default.GridView, null) }) { nav.navigate("transport") },
-        FabAction("Thuê xe", { Icon(Icons.Default.Edit, null) }) { nav.navigate("rental") }
-    )
+        FabAction("Thông báo", { NotificationIcon(1) }) { nav.navigate("notifications") })
 
     fun rental(nav: NavController) = listOf(
         FabAction("Add item ", { Icon(Icons.Default.Add, null) }) { nav.navigate("add_item") },
         FabAction("See request", { Icon(Icons.Default.Assignment, null) }) { nav.navigate("rental_service") },
-        FabAction("See transaction", { Icon(Icons.Default.Receipt, null) }) { nav.navigate("transactions_rental") },
-    )
+        )
 
     fun transport(nav: NavController) = listOf(
         FabAction("Add item ", { Icon(Icons.Default.Add, null) }) { nav.navigate("add_transport_service") },
-        FabAction("See request", { Icon(Icons.Default.Assignment, null) }) { nav.navigate("transport_service") },
-        FabAction("See transaction", { Icon(Icons.Default.Receipt, null) }) { nav.navigate("transactions_transport") },
+        FabAction("See requests", { Icon(Icons.Default.Assignment, null) }) { nav.navigate("transport_requests") }
     )
 
-    fun home(nav: NavController) = listOf(
-        FabAction("Quét QR", { Icon(Icons.Default.QrCodeScanner, null) }) { nav.navigate("qr") },
-        FabAction("Thông báo", { NotificationIcon(3) }) { nav.navigate("notifications") },
-        FabAction("Hỗ trợ", { Icon(Icons.Default.Help, null) }) { nav.navigate("support") }
+    fun chat(nav: NavController) = listOf(
+       FabAction("Chat with AI", { Icon(Icons.Default.SmartToy, null) }) { nav.navigate("chat_gemini") }
     )
+
 
 }

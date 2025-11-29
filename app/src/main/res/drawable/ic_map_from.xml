@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="36dp" android:height="36dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+
+    <!-- Cột cờ -->
+    <path android:fillColor="#546E7A"
+        android:pathData="M6,2 L8,2 L8,22 L6,22 z"/>
+
+    <!-- Lá cờ -->
+    <path android:fillColor="#2E7D32"
+        android:pathData="M8,3 L18,5 L12,8 L18,11 L8,13 z"/>
+
+    <!-- Đế -->
+    <path android:fillColor="#90A4AE"
+        android:pathData="M5,22 L9,22 L9,23 L5,23 z"/>
+</vector>

@@ -25,17 +25,14 @@ import com.bxt.ui.components.BottomNavItem
 import com.bxt.ui.components.BottomNavigationBar
 import com.bxt.ui.components.ErrorPopupManager
 import com.bxt.ui.screen.*
-import com.bxt.viewmodel.RentalServiceViewModel
-import com.bxt.viewmodel.TransactionDetailViewModel
 import com.bxt.viewmodel.TransportServiceViewModel
 import com.bxt.viewmodel.WelcomeViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.first
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-
 @Composable
-fun AppNavigation() {
+fun AppNavigation(
+    initialDeeplinkRoute: String? = null
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -48,16 +45,25 @@ fun AppNavigation() {
         val isFirstTime = welcomeViewModel.dataStoreManager.isFirstTime.first()
         startDestination = if (isFirstTime) "welcome" else "home"
     }
+    LaunchedEffect(startDestination, initialDeeplinkRoute) {
+        if (startDestination != null && !initialDeeplinkRoute.isNullOrBlank()) {
+            navController.navigate(initialDeeplinkRoute) {
+                launchSingleTop = true
+            }
+        }
+    }
 
     val routesToHideBottomBar = listOf(
         "welcome",
         "login",
         "register",
-        "item_detail/", // Đã sửa từ "item/" thành "item_detail/"
+        "item_detail/",
         "rent_item/",
-        "chat_screen/", // Thêm để ẩn bottom bar trong chat
+        "chat_screen/",
+        "chat_gemini",
         "add_item",
-        "add_transport_service"
+        "add_transport_service",  "transport_detail/",
+        "transaction_detail/"
     )
 
     val hideBottomBar = routesToHideBottomBar.any { routePrefix ->
@@ -72,8 +78,12 @@ fun AppNavigation() {
                         items = listOf(
                             BottomNavItem("Home", Icons.Default.Home, "home"),
                             BottomNavItem("Rental", Icons.Default.ShoppingCart, "category"),
-                            BottomNavItem("Transport", Icons.Default.DeliveryDining, "transport_service"),
-                            BottomNavItem("Chat", Icons.Default.Textsms, "chat_list"), // Đã sửa từ "chat" thành "chat_list"
+                            BottomNavItem(
+                                "Transport",
+                                Icons.Default.DeliveryDining,
+                                "transport_service"
+                            ),
+                            BottomNavItem("Chat", Icons.Default.Textsms, "chat_list"),
                             BottomNavItem("Profile", Icons.Default.Person, "profile")
                         ),
                         currentRoute = currentRoute,
@@ -130,33 +140,57 @@ fun AppNavigation() {
                 composable("home") {
                     HomeScreen(
                         onCategoryClick = { category ->
-                            navController.navigate("category/${category.id}")
+                            category.id?.let { categoryId ->
+                                navController.navigate("category?categoryId=$categoryId")
+                            }
                         },
                         onItemClick = { item ->
-                            // Đã sửa: navigate đến route đúng
                             navController.navigate("item_detail/${item.id}")
                         },
                         onAllCategoriesClick = {
                             navController.navigate("category")
                         },
-                        onFilterClick = {}
+                        onFilterClick = { navController.navigate("search") },
+
+                        )
+                }
+
+                composable("search") {
+                    SearchItemScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        onItemClick = { item ->
+                            navController.navigate("item_detail/${item.id}")
+                        }
                     )
                 }
+
                 composable("profile") {
                     ProfileScreen(navController)
                 }
-                composable("category") {
+
+                composable("edit_profile") {
+                    EditProfileScreen(navController = navController)
+                }
+                composable(
+                    route = "category?categoryId={categoryId}",
+                    arguments = listOf(navArgument("categoryId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    })
+                ) { backStackEntry ->
+                    val categoryIdString = backStackEntry.arguments?.getString("categoryId")
+                    val categoryId = categoryIdString?.toLongOrNull()
+
                     CategoryScreen(
+                        categoryId = categoryId,
                         navController = navController,
-                        onBackClick = { navController.navigateUp() },
                         onProductClick = { productId ->
-                            // Đã sửa: navigate đến route đúng
                             navController.navigate("item_detail/$productId")
                         }
                     )
                 }
 
-                // Route chính cho Item Detail
                 composable(
                     route = "item_detail/{itemId}",
                     arguments = listOf(navArgument("itemId") { type = NavType.LongType })
@@ -166,17 +200,16 @@ fun AppNavigation() {
                         itemId = itemId,
                         navController = navController,
                         onClickBack = { navController.popBackStack() },
-                        onClickRent = { itemId, price ->
-                            navController.navigate("rent_item/$itemId/$price")
+                        onClickRent = { rentItemId ->
+                            navController.navigate("rent_item/$rentItemId")
                         }
                     )
                 }
 
                 composable(
-                    route = "rent_item/{itemId}/{price}",
+                    route = "rent_item/{itemId}",
                     arguments = listOf(
-                        navArgument("itemId") { type = NavType.LongType },
-                        navArgument("price") { type = NavType.StringType }
+                        navArgument("itemId") { type = NavType.LongType }
                     )
                 ) {
                     RentalItemScreen(
@@ -206,21 +239,33 @@ fun AppNavigation() {
                 composable("rental_service") {
                     RentalServiceScreen(
                         onBackClick = { navController.popBackStack() },
-                        onRentalClick = { id -> navController.navigate("rental_detail/$id") }
+                        onRentalClick = { requestId ->
+                            if (requestId != null) navController.navigate("transaction_detail/$requestId")
+                        }
                     )
                 }
-
-                composable("transactions") {
-                    // TransactionsScreen khi có
+                composable("transaction_detail/{rentalRequestId}", arguments = listOf(navArgument("rentalRequestId") { type = NavType.LongType })) {
+                    TransactionDetailScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onNavigateToTransport = { fromLat, fromLng, toLat, toLng ->
+                            navController.navigate("add_transport_service")
+                        }
+                    )
                 }
 
                 composable("transport_service") {
-                    val viewModel: TransportServiceViewModel = hiltViewModel()
                     TransportServiceScreen(
                         navController = navController,
-                        viewModel = hiltViewModel(),
+                        viewModel = hiltViewModel<TransportServiceViewModel>(),
+                        onServiceClick = { serviceId ->
+                            navController.navigate("transport_detail/$serviceId")
+                        }
                     )
                 }
+                composable("transport_detail/{serviceId}", arguments = listOf(navArgument("serviceId") { type = NavType.LongType })) {
+                    TransportDetailScreen(navController = navController)
+                }
+
 
                 composable("add_transport_service") {
                     AddTransportScreen(
@@ -237,7 +282,13 @@ fun AppNavigation() {
                 composable("chat_list") {
                     ChatListScreen(
                         navController = navController,
-                        viewModel = hiltViewModel() // Thêm viewModel nếu cần
+                        viewModel = hiltViewModel()
+                    )
+                }
+                composable("chat_gemini") {
+                    ChatGeminiScreen(
+                        navController = navController,
+                        viewModel = hiltViewModel()
                     )
                 }
 
@@ -254,6 +305,7 @@ fun AppNavigation() {
                 ) { backStackEntry ->
                     ChatScreen(navController = navController)
                 }
+
                 composable("rental_service") {
                     RentalServiceScreen(
                         onBackClick = { navController.popBackStack() },
@@ -266,14 +318,61 @@ fun AppNavigation() {
                 composable(
                     route = "transaction_detail/{rentalRequestId}",
                     arguments = listOf(navArgument("rentalRequestId") { type = NavType.LongType })
-                ) { backStackEntry ->
-                    val vm: TransactionDetailViewModel = hiltViewModel(backStackEntry)
+                ) {
                     TransactionDetailScreen(
-                        viewModel = vm,
                         onBackClick = { navController.popBackStack() },
-                        onUploadSuccess = { navController.popBackStack() }
+                        onNavigateToTransport = { fromLat, fromLng, toLat, toLng ->
+                            navController.navigate(
+                                "transport_service?fromLat=$fromLat&fromLng=$fromLng&toLat=$toLat&toLng=$toLng"
+                            )
+                        }
                     )
                 }
+
+                composable(
+                    route = "transport_service?fromLat={fromLat}&fromLng={fromLng}&toLat={toLat}&toLng={toLng}",
+                    arguments = listOf(
+                        navArgument("fromLat") { type = NavType.FloatType; defaultValue = -1f },
+                        navArgument("fromLng") { type = NavType.FloatType; defaultValue = -1f },
+                        navArgument("toLat") { type = NavType.FloatType; defaultValue = -1f },
+                        navArgument("toLng") { type = NavType.FloatType; defaultValue = -1f }
+                    )
+                ) {
+                    TransportServiceScreen(
+                        navController = navController,
+                        viewModel = hiltViewModel(),
+                        onServiceClick = { serviceId ->
+                            navController.navigate("transport_detail/$serviceId")
+                        }
+                    )
+                }
+                composable("transport_requests") {
+                    TransportRequestScreen(navController = navController)
+                }
+
+                composable(
+                    route = "transport_service_detail/{serviceId}?entity={entity}&entityId={entityId}&asOwner={asOwner}",
+                    arguments = listOf(
+                        navArgument("serviceId") { type = NavType.LongType },                 // bắt buộc
+                        navArgument("entity")   { type = NavType.StringType; defaultValue = "" }, // optional -> "" nếu không truyền
+                        navArgument("entityId") { type = NavType.LongType;  defaultValue = -1L }, // optional -> -1L làm sentinel
+                        navArgument("asOwner")  { type = NavType.BoolType;  defaultValue = false } // optional -> false
+                    )
+                ) {
+                    TransportServiceDetailScreen(navController = navController)
+                }
+
+                composable(
+                    route = "notifications"
+                ) {
+                    NotificationScreen(
+                        navController = navController,
+                        viewModel = hiltViewModel()
+                    )
+
+                }
+
+
 
             }
             ErrorPopupManager.ErrorPopup()

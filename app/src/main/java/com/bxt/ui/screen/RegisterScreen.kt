@@ -7,7 +7,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -56,12 +58,14 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = d.pagePadding),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .padding(horizontal = d.pagePadding)
+            .windowInsetsPadding(WindowInsets.ime)
+            .verticalScroll(rememberScrollState()),
+    horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Đăng ký tài khoản",
+            text = "Register",
             style = MaterialTheme.typography.headlineSmall
         )
 
@@ -102,7 +106,7 @@ fun RegisterScreen(
             ) {
                 Icon(Icons.Default.Edit, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Thay đổi avatar", style = MaterialTheme.typography.bodySmall)
+                Text("Change avatar", style = MaterialTheme.typography.bodySmall)
             }
 
             if (viewModel.avatarUri != null) {
@@ -113,7 +117,7 @@ fun RegisterScreen(
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null)
                     Spacer(Modifier.width(4.dp))
-                    Text("Xoá ảnh", style = MaterialTheme.typography.bodySmall)
+                    Text("Delete Image", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -124,7 +128,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = viewModel.username,
             onValueChange = viewModel::onUsernameChanged,
-            label = { Text("Tên đăng nhập", style = MaterialTheme.typography.labelSmall) },
+            label = { Text("Username", style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
             singleLine = true,
             enabled = !viewModel.isLoading,
@@ -159,7 +163,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = viewModel.fullName,
             onValueChange = viewModel::onFullNameChanged,
-            label = { Text("Họ và tên", style = MaterialTheme.typography.labelSmall) },
+            label = { Text("Full Name", style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null) },
             singleLine = true,
             enabled = !viewModel.isLoading,
@@ -176,7 +180,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = viewModel.phoneNumber,
             onValueChange = viewModel::onPhoneNumberChanged,
-            label = { Text("Số điện thoại", style = MaterialTheme.typography.labelSmall) },
+            label = { Text("Phone", style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
             singleLine = true,
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -194,7 +198,7 @@ fun RegisterScreen(
         OutlinedTextField(
             value = viewModel.password,
             onValueChange = viewModel::onPasswordChanged,
-            label = { Text("Mật khẩu", style = MaterialTheme.typography.labelSmall) },
+            label = { Text("Password", style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -233,7 +237,7 @@ fun RegisterScreen(
             if (viewModel.isLoading || uiState is RegisterState.Loading) {
                 CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(d.progressSmall))
             } else {
-                Text("Đăng ký", style = MaterialTheme.typography.bodySmall)
+                Text("Sign Up", style = MaterialTheme.typography.bodySmall)
             }
         }
     }

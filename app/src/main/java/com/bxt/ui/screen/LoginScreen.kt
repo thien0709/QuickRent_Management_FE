@@ -24,13 +24,15 @@ import com.bxt.R
 import com.bxt.ui.state.LoginState
 import com.bxt.ui.theme.LocalDimens
 import com.bxt.viewmodel.AuthViewModel
+import com.bxt.viewmodel.FcmRegistrationViewModel
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onSignUpClick: () -> Unit,
     onForgotPasswordClick: () -> Unit,
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    fcmVM: FcmRegistrationViewModel= hiltViewModel()
 ) {
     val d = LocalDimens.current
 
@@ -41,6 +43,7 @@ fun LoginScreen(
     LaunchedEffect(loginState) {
         if (loginState is LoginState.Success) {
             onLoginSuccess()
+            fcmVM.registerIfLoggedIn()
             viewModel.resetLoginState()
         }
     }
@@ -55,7 +58,7 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_background),
+                painter = painterResource(id = R.drawable.ic_launcher_logo),
                 contentDescription = null,
                 modifier = Modifier.size(100.dp)
             )
@@ -121,7 +124,7 @@ fun LoginScreen(
                 onClick = { viewModel.login() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(d.buttonHeight), // chỉnh trong LocalDimens nếu muốn 50dp
+                    .height(d.buttonHeight),
                 enabled = loginState !is LoginState.Loading,
                 shape = MaterialTheme.shapes.medium
             ) {

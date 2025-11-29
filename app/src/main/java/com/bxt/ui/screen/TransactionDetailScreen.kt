@@ -1,12 +1,9 @@
 package com.bxt.ui.screen
 
-import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -15,14 +12,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -31,86 +25,63 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.bxt.data.api.dto.response.TransactionImageResponse
-import com.bxt.viewmodel.Capabilities
-import com.bxt.viewmodel.FullTransactionDetails
-import com.bxt.viewmodel.RentalStep
-import com.bxt.viewmodel.TransactionDetailState
-import com.bxt.viewmodel.TransactionDetailViewModel
+import com.bxt.viewmodel.*
 import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.launch
-import java.math.BigDecimal
+import android.content.ActivityNotFoundException
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionDetailScreen(
     onBackClick: () -> Unit,
-    onUploadSuccess: () -> Unit,
+    onNavigateToTransport: (fromLat: Float, fromLng: Float, toLat: Float, toLng: Float) -> Unit,
     viewModel: TransactionDetailViewModel = hiltViewModel()
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
+    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(ui.error) {
         ui.error?.let {
-            scope.launch { snackbar.showSnackbar(it) }
+            scope.launch { snackbarHostState.showSnackbar(it) }
             viewModel.clearError()
-        }
-    }
-    LaunchedEffect(ui.uploadSuccess) {
-        if (ui.uploadSuccess) {
-            scope.launch { snackbar.showSnackbar("Tải ảnh thành công!") }
-            onUploadSuccess()
-            viewModel.clearUploadSuccess()
         }
     }
     LaunchedEffect(ui.actionSuccess) {
         if (ui.actionSuccess) {
-            scope.launch { snackbar.showSnackbar("Thao tác thành công!") }
+            scope.launch { snackbarHostState.showSnackbar("Action successful!") }
             viewModel.clearActionSuccess()
         }
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Chi tiết giao dịch") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
-                    }
-                }
+                title = { Text("Rental request details") },
+                navigationIcon = { IconButton(onClick = onBackClick) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
             )
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            when (val s = ui.state) {
-                is TransactionDetailState.Loading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-                is TransactionDetailState.Error -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Lỗi: ${s.message}")
-                    }
-                }
-                is TransactionDetailState.Success -> {
+            when (val state = ui.state) {
+                is DetailState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                is DetailState.Error -> Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) { Text("An error occurred: ${state.message}") }
+                is DetailState.Success -> {
                     TransactionDetailContent(
-                        details = s.details,
-                        caps = s.caps,
+                        details = state.details,
+                        caps = state.caps,
                         isUploading = ui.isUploading,
                         isActionInProgress = ui.isActionInProgress,
-                        onOwnerConfirmRequest = { viewModel.ownerConfirmRequest() },
-                        onOwnerConfirmCash = { viewModel.ownerConfirmCashReceived() },
-                        onOwnerComplete = { viewModel.ownerComplete() },
-                        onRenterConfirmPickup = { viewModel.renterConfirmPickup() },
-                        onUpload = { ctx, type, uris -> viewModel.uploadImages(ctx, uris, type) }
+                        viewModel = viewModel,
+                        onNavigateToTransport = onNavigateToTransport
                     )
                 }
             }
@@ -120,29 +91,15 @@ fun TransactionDetailScreen(
 
 @Composable
 private fun TransactionDetailContent(
-    details: FullTransactionDetails,
+    details: FullRentalDetails,
     caps: Capabilities,
     isUploading: Boolean,
     isActionInProgress: Boolean,
-    onOwnerConfirmRequest: () -> Unit,
-    onOwnerConfirmCash: () -> Unit,
-    onOwnerComplete: () -> Unit,
-    onRenterConfirmPickup: () -> Unit,
-    onUpload: (Context, String, List<Uri>) -> Unit
+    viewModel: TransactionDetailViewModel,
+    onNavigateToTransport: (fromLat: Float, fromLng: Float, toLat: Float, toLng: Float) -> Unit
 ) {
     val context = LocalContext.current
     val nf = remember { NumberFormat.getCurrencyInstance(Locale("vi", "VN")) }
-
-    var ownerPickupUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
-    val ownerPickupPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) {
-        ownerPickupUris = it.orEmpty()
-    }
-
-    var renterReturnUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
-    val renterReturnPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) {
-        renterReturnUris = it.orEmpty()
-    }
-
     val pickupImages = details.images.filter { it.imageType.equals("PICKUP", true) }
     val returnImages = details.images.filter { it.imageType.equals("RETURN", true) }
 
@@ -151,217 +108,293 @@ private fun TransactionDetailContent(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Trạng thái hiện tại
-        if (caps.showCurrentStep) {
-            CurrentStepCard(details.currentStep)
-        }
+        CurrentStepCard(details.currentStep)
 
-        // Timeline của quy trình
-        RentalTimelineCard(details.currentStep)
-
-        // Sản phẩm
-        Text("Sản phẩm", style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = details.item.imagePrimary,
-                contentDescription = null,
-                modifier = Modifier.size(80.dp).clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(details.item.title ?: "N/A", fontWeight = FontWeight.SemiBold)
-                details.item.rentalPricePerHour?.let { Text("Giá thuê: ${nf.format(it)}/giờ") }
-                details.item.depositAmount?.let { Text("Đặt cọc: ${nf.format(it)}") }
+        // --- Info Sections ---
+        Section(title = "Item") {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                AsyncImage(
+                    model = details.item.imagePrimary,
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp).clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(details.item.title ?: "N/A", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    details.item.rentalPricePerHour?.let { Text("Rental price: ${nf.format(it)}/hour") }
+                    details.item.depositAmount?.let { Text("Deposit: ${nf.format(it)}") }
+                }
             }
         }
 
-        // Thông tin giao dịch
-        Text("Thông tin giao dịch", style = MaterialTheme.typography.titleMedium)
-        InfoRow("Mã giao dịch:", details.transaction.transactionCode ?: "-")
-        InfoRow("Trạng thái yêu cầu:", details.request.status ?: "-")
-        InfoRow("Phương thức thanh toán:", details.transaction.paymentMethod ?: "-")
-        InfoRow("Trạng thái thanh toán:", details.transaction.paymentStatus ?: "-")
-        InfoRow("Bắt đầu thuê:", formatInstant(details.request.rentalStartTime))
-        InfoRow("Kết thúc thuê:", formatInstant(details.request.rentalEndTime))
-
-        if (caps.showBankingPendingHint) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                Spacer(Modifier.width(8.dp))
-                Text("Đang chờ xác nhận từ cổng thanh toán…")
+        Section(title = "Transaction Information") {
+            details.transaction?.let {
+                InfoRow("Transaction Code:", it.transactionCode ?: "-")
+                InfoRow("Payment Method:", it.paymentMethod ?: "-")
+                InfoRow("Payment Status:", it.paymentStatus ?: "-")
             }
+            InfoRow("Rental Start:", formatInstant(details.request.rentalStartTime))
+            InfoRow("Rental End:", formatInstant(details.request.rentalEndTime))
         }
 
-        Divider()
+        Section(title = "Pickup Images") { ImageRow(pickupImages) }
+        Section(title = "Return Images") { ImageRow(returnImages) }
 
-        // Ảnh
-        Text("Ảnh bàn giao (PICKUP)", style = MaterialTheme.typography.titleMedium)
-        ImageRow(pickupImages)
-        Text("Ảnh trả hàng (RETURN)", style = MaterialTheme.typography.titleMedium)
-        ImageRow(returnImages)
 
-        Divider()
-
-        // Hành động của CHỦ CHO THUÊ
+        // --- Action Sections ---
         if (details.isOwner) {
-            Text("Hành động (Chủ cho thuê)", style = MaterialTheme.typography.titleMedium)
+            OwnerActions(
+                caps = caps,
+                isActionInProgress = isActionInProgress,
+                isUploading = isUploading,
+                onConfirm = viewModel::ownerConfirmRequest,
+                onReject = viewModel::ownerRejectRequest,
+                onComplete = viewModel::ownerCompleteRequest,
+                onUpload = { uris -> viewModel.uploadImages(context, uris, "PICKUP") }
+            )
+        }
 
-            // Xác nhận yêu cầu thuê
-            if (caps.ownerCanConfirmRequest) {
-                Button(
-                    onClick = onOwnerConfirmRequest,
-                    enabled = !isActionInProgress,
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
+        if (details.isRenter) {
+            RenterActions(
+                details = details,
+                caps = caps,
+                isUploading = isUploading,
+                isActionInProgress = isActionInProgress,
+                onConfirmPickup = viewModel::renterConfirmPickup,
+                onUploadReturn = { uris -> viewModel.uploadImages(context, uris, "RETURN") },
+                onHireTransport = onNavigateToTransport
+            )
+        }
+
+        if (caps.userCanCancel) {
+            Section(title = "Other Actions") {
+                ActionCard(
+                    title = "Cancel Rental Request",
+                    description = "Are you sure you want to cancel this request?",
+                    isLoading = isActionInProgress
                 ) {
-                    if (isActionInProgress) CircularProgressIndicator(Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Xác nhận yêu cầu thuê")
+                    Button(
+                        onClick = viewModel::userCancelRequest,
+                        enabled = !isActionInProgress,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) { Text("I’m sure I want to cancel") }
                 }
-                Text(
-                    "Xác nhận để bắt đầu quy trình cho thuê.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
-
-            // Upload ảnh PICKUP
-            if (caps.ownerCanUploadPickup) {
-                OutlinedButton(
-                    onClick = { ownerPickupPicker.launch("image/*") },
-                    enabled = !isUploading,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Chọn ảnh PICKUP (${ownerPickupUris.size})") }
-                if (ownerPickupUris.isNotEmpty()) PreviewRow(ownerPickupUris)
-
-                Button(
-                    onClick = { onUpload(context, "PICKUP", ownerPickupUris) },
-                    enabled = ownerPickupUris.isNotEmpty() && !isUploading,
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
-                ) {
-                    if (isUploading) CircularProgressIndicator(Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Tải ảnh PICKUP")
-                }
-                Text(
-                    "Chụp ảnh tình trạng sản phẩm TRƯỚC khi cho thuê.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
-
-            // Xác nhận thanh toán tiền mặt
-            if (caps.ownerCanConfirmCashPaid) {
-                Button(
-                    onClick = onOwnerConfirmCash,
-                    enabled = !isActionInProgress,
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
-                ) {
-                    if (isActionInProgress) CircularProgressIndicator(Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Xác nhận đã nhận tiền (CASH)")
-                }
-                Text(
-                    "Xác nhận khi người thuê đã thanh toán tiền mặt.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
-
-            // Hoàn tất giao dịch
-            if (caps.ownerCanComplete) {
-                var verified by remember { mutableStateOf(false) }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = verified, onCheckedChange = { verified = it })
-                    Text("Đã nhận lại hàng & hoàn cọc (nếu có)")
-                }
-                Button(
-                    onClick = onOwnerComplete,
-                    enabled = verified && !isActionInProgress,
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
-                ) {
-                    if (isActionInProgress) CircularProgressIndicator(Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Hoàn tất giao dịch")
-                }
-                Text(
-                    "Xác nhận đã nhận lại hàng từ người thuê và hoàn cọc.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
             }
         }
 
-        // Hành động của NGƯỜI THUÊ
-        if (details.isRenter) {
-            Text("Hành động (Người thuê)", style = MaterialTheme.typography.titleMedium)
+    }
+}
 
-            // Thanh toán (chỉ hiển thị nếu cần)
-            if (caps.renterCanMakePayment) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Cần thanh toán",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "Vui lòng thanh toán theo phương thức đã chọn để nhận hàng.",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+// --- Action Components ---
+
+@Composable
+private fun OwnerActions(
+    caps: Capabilities,
+    isActionInProgress: Boolean,
+    isUploading: Boolean,
+    onConfirm: () -> Unit,
+    onReject: () -> Unit,
+    onComplete: () -> Unit,
+    onUpload: (List<Uri>) -> Unit
+) {
+    var ownerPickupUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    val ownerPickupPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { ownerPickupUris = it.orEmpty() }
+
+    Section(title = "Your Actions (Owner)") {
+        if (caps.ownerCanConfirmOrReject) {
+            ActionCard(
+                title = "Confirm request?",
+                description = "Confirm to start the rental process.",
+                isLoading = isActionInProgress
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onReject, enabled = !isActionInProgress) { Text("Reject") }
+                    Button(onClick = onConfirm, enabled = !isActionInProgress) { Text("Confirm") }
+                }
+            }
+        }
+        if (caps.ownerCanUploadPickupImages) {
+            ImageUploadCard(
+                title = "Upload Pickup Images",
+                description = "Take photos of the product condition BEFORE renting.",
+                uris = ownerPickupUris, isLoading = isUploading,
+                onSelectImages = { ownerPickupPicker.launch("image/*") },
+                onUpload = { onUpload(ownerPickupUris).also { ownerPickupUris = emptyList() } }
+            )
+        }
+        if (caps.ownerCanComplete) {
+            ActionCard(
+                title = "Complete Transaction",
+                description = "Confirm items returned and refund deposit (if any) to finish.",
+                isLoading = isActionInProgress
+            ) {
+                Button(onClick = onComplete, enabled = !isActionInProgress) { Text("Complete") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RenterActions(
+    details: FullRentalDetails,
+    caps: Capabilities,
+    isUploading: Boolean,
+    isActionInProgress: Boolean,
+    onConfirmPickup: () -> Unit,
+    onUploadReturn: (List<Uri>) -> Unit,
+    onHireTransport: (fromLat: Float, fromLng: Float, toLat: Float, toLng: Float) -> Unit
+) {
+    var renterReturnUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    val renterReturnPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { renterReturnUris = it.orEmpty() }
+    var pickupChoice by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+
+    Section(title = "Your Actions (Renter)") {
+
+        if (caps.renterCanChoosePickupOrDelivery) {
+            ActionCard(
+                title = "Delivery Method",
+                description = "The product is ready. Please choose how you want to receive it.",
+                isLoading = isActionInProgress
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            pickupChoice = "SELF"
+                            val pickupLat = details.request.latFrom
+                            val pickupLng = details.request.lngFrom
+
+                            if (pickupLat != null && pickupLng != null) {
+                                val gmmIntentUri =
+                                    "google.navigation:q=$pickupLat,$pickupLng".toUri()
+
+                                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                                mapIntent.setPackage("com.google.android.apps.maps")
+
+                                try {
+                                    context.startActivity(mapIntent)
+                                } catch (e: ActivityNotFoundException) {
+                                    Toast.makeText(context, "Please install Google Maps to use this feature.", Toast.LENGTH_LONG).show()
+                                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/dir/?api=1&origin=lat,lng&destination=lat,lng"))
+                                    context.startActivity(browserIntent)
+                                }
+                            } else {
+                                Toast.makeText(context, "Store address not found.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = if (pickupChoice == "SELF") ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer) else ButtonDefaults.outlinedButtonColors()
+                    ) {
+                        Text("I will pick up myself")
+                    }
+                    Button(
+                        onClick = {
+                            pickupChoice = "DELIVERY"
+                            val fromLat = details.request.latFrom?.toFloat()
+                            val fromLng = details.request.lngFrom?.toFloat()
+                            val toLat = details.request.latTo?.toFloat()
+                            val toLng = details.request.lngTo?.toFloat()
+
+                            if (fromLat != null && fromLng != null && toLat != null && toLng != null) {
+                                onHireTransport(fromLat, fromLng, toLat, toLng)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Hire a transporter")
                     }
                 }
             }
+        }
 
-            // Chỉ đường tới điểm nhận hàng
-            if (caps.renterCanOpenPickupMap) {
-                Button(
-                    onClick = {
-                        details.pickupLocation?.let { openMapsForNavigation(context, it.lat, it.lng, it.label) }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
-                ) { Text("Chỉ đường tới điểm nhận hàng") }
-            }
-
-            // Xác nhận đã nhận hàng
-            if (caps.renterCanConfirmPickup) {
-                Button(
-                    onClick = onRenterConfirmPickup,
-                    enabled = !isActionInProgress,
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
-                ) {
-                    if (isActionInProgress) CircularProgressIndicator(Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Xác nhận đã nhận hàng")
+        if (pickupChoice == "SELF") {
+            ActionCard(
+                title = "Confirm Pickup",
+                description = "Please carefully check the product before confirming with the owner.",
+                isLoading = isActionInProgress
+            ) {
+                Button(onClick = onConfirmPickup, enabled = !isActionInProgress) {
+                    Text("I have received the product")
                 }
-                Text(
-                    "Xác nhận khi bạn đã nhận được hàng từ chủ cho thuê.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
             }
+        }
 
-            // Upload ảnh RETURN
-            if (caps.renterCanUploadReturn) {
-                OutlinedButton(
-                    onClick = { renterReturnPicker.launch("image/*") },
-                    enabled = !isUploading,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Chọn ảnh RETURN (${renterReturnUris.size})") }
-                if (renterReturnUris.isNotEmpty()) PreviewRow(renterReturnUris)
+        if (caps.renterCanUploadReturnImages) {
+            ImageUploadCard(
+                title = "Upload Return Images",
+                description = "Take photos of the product condition BEFORE returning.",
+                uris = renterReturnUris,
+                isLoading = isUploading,
+                onSelectImages = { renterReturnPicker.launch("image/*") },
+                onUpload = { onUploadReturn(renterReturnUris).also { renterReturnUris = emptyList() } }
+            )
+        }
+    }
+}
 
-                Button(
-                    onClick = { onUpload(context, "RETURN", renterReturnUris) },
-                    enabled = renterReturnUris.isNotEmpty() && !isUploading,
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
-                ) {
-                    if (isUploading) CircularProgressIndicator(Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary)
-                    else Text("Tải ảnh RETURN")
+// --- UI Helper Components (Không thay đổi) ---
+
+@Composable
+private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        content()
+    }
+}
+
+@Composable
+private fun ActionCard(
+    title: String,
+    description: String,
+    isLoading: Boolean,
+    buttons: @Composable RowScope.() -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+            Spacer(Modifier.height(4.dp))
+            if (isLoading) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 }
-                Text(
-                    "Chụp ảnh tình trạng sản phẩm TRƯỚC khi trả lại cho chủ.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
+            } else {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    buttons()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ImageUploadCard(
+    title: String,
+    description: String,
+    uris: List<Uri>,
+    isLoading: Boolean,
+    onSelectImages: () -> Unit,
+    onUpload: () -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+            OutlinedButton(onClick = onSelectImages, enabled = !isLoading, modifier = Modifier.fillMaxWidth()) {
+                Text(if (uris.isEmpty()) "Select image" else "Select again (${uris.size} ảnh)")
+            }
+            if (uris.isNotEmpty()) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 8.dp)) {
+                    items(uris) { uri ->
+                        AsyncImage(model = uri, contentDescription = null, modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
+                    }
+                }
+            }
+            Button(onClick = onUpload, enabled = uris.isNotEmpty() && !isLoading, modifier = Modifier.fillMaxWidth()) {
+                if (isLoading) CircularProgressIndicator(Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                else Text("Upload images")
             }
         }
     }
@@ -369,126 +402,11 @@ private fun TransactionDetailContent(
 
 @Composable
 private fun CurrentStepCard(currentStep: RentalStep) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "Trạng thái hiện tại",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                currentStep.displayName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                currentStep.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun RentalTimelineCard(currentStep: RentalStep) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "Quy trình thuê đồ",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(12.dp))
-
-            val steps = listOf(
-                RentalStep.REQUEST_CREATED,
-                RentalStep.OWNER_CONFIRMED,
-                RentalStep.PICKUP_IMAGES_UPLOADED,
-                RentalStep.PAYMENT_COMPLETED,
-                RentalStep.ITEM_PICKED_UP,
-                RentalStep.RENTAL_DUE,
-                RentalStep.RETURN_IMAGES_UPLOADED,
-                RentalStep.COMPLETED
-            )
-
-            steps.forEachIndexed { index, step ->
-                TimelineItem(
-                    step = step,
-                    isCompleted = step.ordinal <= currentStep.ordinal,
-                    isCurrent = step == currentStep,
-                    isLast = index == steps.size - 1
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TimelineItem(
-    step: RentalStep,
-    isCompleted: Boolean,
-    isCurrent: Boolean,
-    isLast: Boolean
-) {
-    Row(verticalAlignment = Alignment.Top) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = if (isCompleted) Icons.Default.CheckCircle else Icons.Default.Circle,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = when {
-                    isCurrent -> MaterialTheme.colorScheme.primary
-                    isCompleted -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.outline
-                }
-            )
-            if (!isLast) {
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .height(32.dp)
-                        .background(
-                            if (isCompleted) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outline
-                        )
-                )
-            }
-        }
-        Spacer(Modifier.width(12.dp))
-        Column {
-            Text(
-                text = step.displayName,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                color = if (isCurrent) MaterialTheme.colorScheme.primary else Color.Unspecified
-            )
-            if (isCurrent) {
-                Text(
-                    text = step.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(Modifier.height(if (isLast) 0.dp else 8.dp))
-        }
-    }
-}
-
-@Composable
-private fun PreviewRow(uris: List<Uri>) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(vertical = 12.dp)) {
-        items(uris) { uri ->
-            AsyncImage(
-                model = uri,
-                contentDescription = null,
-                modifier = Modifier.size(100.dp).clip(RoundedCornerShape(10.dp)),
-                contentScale = ContentScale.Crop
-            )
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Trạng thái hiện tại", style = MaterialTheme.typography.labelMedium)
+            Text(currentStep.displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Text(currentStep.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
         }
     }
 }
@@ -496,52 +414,27 @@ private fun PreviewRow(uris: List<Uri>) {
 @Composable
 private fun ImageRow(images: List<TransactionImageResponse>) {
     if (images.isEmpty()) {
-        Text("Chưa có hình ảnh.", style = MaterialTheme.typography.bodySmall)
+        Text("Don't have a images.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
         return
     }
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(images) { img ->
-            AsyncImage(
-                model = img.imageUrl,
-                contentDescription = img.imageType,
-                modifier = Modifier.size(100.dp).clip(RoundedCornerShape(10.dp)),
-                contentScale = ContentScale.Crop
-            )
+            AsyncImage(model = img.imageUrl, contentDescription = img.imageType, modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
         }
     }
 }
 
 @Composable
 private fun InfoRow(label: String, value: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, fontWeight = FontWeight.SemiBold)
-        Text(value)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+        Text(value, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
 private fun formatInstant(instant: Instant?): String {
     if (instant == null) return "-"
     return runCatching {
-        DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy")
-            .withLocale(Locale("vi", "VN"))
-            .withZone(ZoneId.systemDefault())
-            .format(instant)
+        DateTimeFormatter.ofPattern("HH:mm, dd/MM/yyyy").withLocale(Locale("vi", "VN")).withZone(ZoneId.systemDefault()).format(instant)
     }.getOrDefault("-")
-}
-
-private fun openMapsForNavigation(context: Context, lat: BigDecimal, lng: BigDecimal, label: String?) {
-    val gmaps = Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=$lat,$lng"))
-        .setPackage("com.google.android.apps.maps")
-    try {
-        context.startActivity(gmaps); return
-    } catch (_: ActivityNotFoundException) {}
-
-    val labelEnc = Uri.encode(label ?: "Điểm nhận hàng")
-    val geo = Intent(Intent.ACTION_VIEW, Uri.parse("geo:$lat,$lng?q=$lat,$lng($labelEnc)"))
-    try {
-        context.startActivity(geo); return
-    } catch (_: ActivityNotFoundException) {}
-
-    val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving"))
-    context.startActivity(web)
 }

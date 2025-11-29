@@ -5,15 +5,17 @@ import com.bxt.data.api.dto.response.ItemDetail
 import com.bxt.data.api.dto.response.ItemResponse
 import com.bxt.data.api.dto.response.LoginResponse
 import com.bxt.data.api.dto.response.RentalRequestResponse
-import com.bxt.data.api.dto.response.RentalTransactionResponse
+import com.bxt.data.api.dto.response.TransportPackageResponse
+import com.bxt.data.api.dto.response.TransportPassengerResponse
 import com.bxt.data.api.dto.response.TransportServiceResponse
 import com.bxt.data.api.dto.response.UserResponse
 import com.bxt.di.ApiResult
-import com.bxt.di.ErrorResponse
+import com.bxt.viewmodel.Capabilities
 import com.bxt.viewmodel.ChatThreadUi
-import com.bxt.viewmodel.FullTransactionDetails
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.libraries.places.api.model.AutocompletePrediction
+import com.bxt.viewmodel.FullRentalDetails
+import com.bxt.viewmodel.FullTransportDetails
+import com.bxt.viewmodel.UnifiedTrip
+
 
 sealed class LoginState {
     object Idle : LoginState()
@@ -50,27 +52,44 @@ data class UserState(
     val user: ApiResult<UserResponse>? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val shouldNavigateToLogin: Boolean = false
+    val shouldNavigateToLogin: Boolean = false,
+    val updateSuccess: Boolean = false
 )
 
-sealed class CategoryState {
-    object Loading : CategoryState()
-    data class Error(val message: String) : CategoryState()
+data class UpdateProfileState(
+    val isLoading: Boolean = false,
+    val isSuccess: Boolean = false,
+    val error: String? = null
+)
+
+sealed interface CategoryState {
+    object Loading : CategoryState
+    data class Error(val message: String) : CategoryState
     data class Success(
         val categories: List<CategoryResponse>,
-        val products: List<ItemResponse> = emptyList(),
-        val selectedCategory: CategoryResponse? = null,
+        val products: List<ItemResponse>,
+        val selectedCategory: CategoryResponse?,
         val isLoadingProducts: Boolean = false
-    ) : CategoryState()
+    ) : CategoryState
 }
 
 sealed class LocationState {
-    object Loading : LocationState()
-    data class Success(val location: Pair<Double, Double>, val address: String? = null) : LocationState()
-    data class Error(val message: String, val location: Pair<Double, Double>) : LocationState()
+    data object Loading : LocationState()
+
+    data class Success(
+        val location: Pair<Double, Double>? = null,
+        val address: String? = null
+    ) : LocationState()
+
+    data class Error(
+        val message: String,
+        val location: Pair<Double, Double>? = null
+    ) : LocationState()
+
     data class PermissionRequired(val shouldShowRationale: Boolean) : LocationState()
-    data class GpsDisabled(val isEnabled: Boolean) : LocationState()
+    data class GpsDisabled(val shouldShowRationale: Boolean) : LocationState()
 }
+
 sealed interface ItemState {
     data object Loading : ItemState
     data class Error(val message: String?) : ItemState
@@ -92,16 +111,10 @@ sealed interface RentalState {
     data class Error(val message: String) : RentalState
 }
 
-
-sealed interface RentalRequestsState {
-    data object Loading : RentalRequestsState // Giữ nguyên
-    data class Error(val message: ErrorResponse) : RentalRequestsState // Giữ nguyên
-
-    data class Success(
-        val data: List<RentalRequestResponse> = emptyList(),
-        val isLoadingMore: Boolean = false, // Cờ báo đang tải trang tiếp theo
-        val canLoadMore: Boolean = true     // Cờ báo còn trang để tải hay không
-    ) : RentalRequestsState
+sealed class RentalServiceState {
+    data object Loading : RentalServiceState()
+    data class Success(val requests: List<RentalRequestResponse> = emptyList()) : RentalServiceState()
+    data class Error(val message: String) : RentalServiceState()
 }
 
 sealed interface TransportServiceListState {
@@ -117,11 +130,11 @@ sealed interface AddTransportServiceState {
     data class Error(val message: String) : AddTransportServiceState
 }
 
-data class LocationPickerState(
-    val searchQuery: String = "",
-    val predictions: List<AutocompletePrediction> = emptyList(),
-    val selectedLocation: LatLng? = null
-)
+//data class LocationPickerState(
+//    val searchQuery: String = "",
+//    val predictions: List<AutocompletePrediction> = emptyList(),
+//    val selectedLocation: LatLng? = null
+//)
 
 
 sealed interface CategoriesUiState {
@@ -136,8 +149,67 @@ sealed interface ChatListUiState {
     data class Error(val message: String) : ChatListUiState
 }
 
+sealed interface ItemDataState {
+    object Loading : ItemDataState
+    data class Success(val item: ItemResponse) : ItemDataState
+    data class Error(val message: String) : ItemDataState
+}
+
 sealed interface TransactionDetailState {
     object Loading : TransactionDetailState
-    data class Success(val details: FullTransactionDetails) : TransactionDetailState
+    data class Success(val details: FullRentalDetails, val caps: Capabilities) :
+        TransactionDetailState
+
     data class Error(val message: String) : TransactionDetailState
+}
+
+
+sealed interface TransportDetailState {
+    object Loading : TransportDetailState
+    data class Success(val details: FullTransportDetails) : TransportDetailState
+    data class Error(val message: String) : TransportDetailState
+}
+
+//data class TransportServiceDetails(
+//    val service: TransportServiceResponse,
+//    val passengers: List<TransportPassengerResponse>,
+//    val packages: List<TransportPackageResponse>
+//)
+//
+//sealed interface TransportTransactionState {
+//    data object Loading : TransportTransactionState
+//    data class Error(val message: String) : TransportTransactionState
+//    data class Success(val details: TransportServiceDetails) : TransportTransactionState
+//}
+
+
+data class Permissions(
+    val canConfirm: Boolean = false,
+    val canStart: Boolean = false,
+    val canComplete: Boolean = false,
+    val canCancelTrip: Boolean = false,
+    val canCancelMyBooking: Boolean = false
+)
+
+data class TransportServiceDetails(
+    val service: TransportServiceResponse,
+    val passengers: List<TransportPassengerResponse>,
+    val packages: List<TransportPackageResponse>
+)
+
+sealed interface TransportTransactionState {
+    data object Loading : TransportTransactionState
+    data class Error(val message: String) : TransportTransactionState
+    data class Success(
+        val details: TransportServiceDetails,
+        val isOwner: Boolean,
+        val myPassenger: TransportPassengerResponse?,
+        val permissions: Permissions
+    ) : TransportTransactionState
+}
+
+sealed class TransportRequestState {
+    object Loading : TransportRequestState()
+    data class Success(val items: List<UnifiedTrip>) : TransportRequestState()
+    data class Error(val message: String) : TransportRequestState()
 }

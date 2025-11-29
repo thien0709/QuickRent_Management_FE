@@ -11,6 +11,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -24,8 +25,10 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val BASE_URL = "http://10.0.2.2:8080/api/"
-    private const val TIMEOUT = 10L
 
+    private val client by lazy { OkHttpClient.Builder().build() }
+    private const val TIMEOUT_DEFAULT = 30L
+    private const val TIMEOUT_GEMINI = 120L
 
     @Provides
     @Singleton
@@ -34,15 +37,35 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(authInterceptor: AuthInterceptor, tokenAuthenticator: TokenAuthenticator): OkHttpClient {
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor,
+        tokenAuthenticator: TokenAuthenticator
+    ): OkHttpClient {
+
+        val timeoutInterceptor = Interceptor { chain ->
+            val request = chain.request()
+
+            if (request.url.encodedPath.contains("/api/chat-gemini")) {
+                chain.withConnectTimeout(TIMEOUT_GEMINI.toInt(), TimeUnit.SECONDS)
+                    .withReadTimeout(TIMEOUT_GEMINI.toInt(), TimeUnit.SECONDS)
+                    .withWriteTimeout(TIMEOUT_GEMINI.toInt(), TimeUnit.SECONDS)
+                    .proceed(request)
+            } else {
+                chain.proceed(request)
+            }
+        }
+
         return OkHttpClient.Builder()
-            .connectTimeout(TIMEOUT, TimeUnit.SECONDS)
-            .readTimeout(TIMEOUT, TimeUnit.SECONDS)
-            .writeTimeout(TIMEOUT, TimeUnit.SECONDS)
+            .connectTimeout(TIMEOUT_DEFAULT, TimeUnit.SECONDS)
+            .readTimeout(TIMEOUT_DEFAULT, TimeUnit.SECONDS)
+            .writeTimeout(TIMEOUT_DEFAULT, TimeUnit.SECONDS)
             .addInterceptor(authInterceptor)
+            .addInterceptor(timeoutInterceptor)
             .authenticator(tokenAuthenticator)
             .build()
     }
+
+
     @Provides
     @Singleton
     fun provideGson(): Gson {

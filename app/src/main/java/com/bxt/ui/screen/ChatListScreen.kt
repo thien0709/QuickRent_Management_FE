@@ -19,7 +19,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.bxt.ui.components.ExpandableFab
 import com.bxt.ui.state.ChatListUiState
+import com.bxt.util.FabActions
 import com.bxt.viewmodel.ChatListViewModel
 import com.bxt.viewmodel.ChatThreadUi
 import java.text.SimpleDateFormat
@@ -35,7 +37,7 @@ fun ChatListScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Tin nhắn") }) }
+        topBar = { TopAppBar(title = { Text("Message") }) }
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = isRefreshing,
@@ -50,6 +52,7 @@ fun ChatListScreen(
             )
         }
     }
+    ExpandableFab(actions = FabActions.chat(navController))
 }
 
 @Composable
@@ -69,7 +72,7 @@ private fun ChatListContent(
             is ChatListUiState.Loading -> ListLoadingState()
             is ChatListUiState.Success -> {
                 if (state.threads.isEmpty()) {
-                    EmptyState(message = "Chưa có cuộc trò chuyện nào")
+                    EmptyState(message = "No chats available")
                 } else {
                     ChatListSuccess(
                         threads = state.threads,
@@ -80,7 +83,7 @@ private fun ChatListContent(
             is ChatListUiState.Error -> {
                 val threads = (state as? ChatListUiState.Success)?.threads
                 if (threads.isNullOrEmpty()) {
-                    ErrorState(message = "Không thể tải danh sách cuộc trò chuyện")
+                    ErrorState(message = "Cannot load conversations")
                 }
             }
         }

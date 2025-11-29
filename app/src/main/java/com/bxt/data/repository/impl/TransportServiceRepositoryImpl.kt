@@ -3,6 +3,7 @@ package com.bxt.data.repository.impl
 import com.bxt.data.api.ApiCallExecutor
 import com.bxt.data.api.ApiService
 import com.bxt.data.api.dto.request.TransportServiceRequest
+import com.bxt.data.api.dto.response.PagedResponse
 import com.bxt.data.api.dto.response.TransportServiceResponse
 import com.bxt.data.repository.TransportServiceRepository
 import com.bxt.di.ApiResult
@@ -44,18 +45,6 @@ class TransportServiceRepositoryImpl(
         }
     }
 
-    override suspend fun getTransportServicesByOwner(): ApiResult<List<TransportServiceResponse>> {
-        return apiCallExecutor.execute {
-            apiService.getTransportServicesByOwner()
-        }
-    }
-
-    override suspend fun getTransportServicesByRenter(): ApiResult<List<TransportServiceResponse>> {
-        return apiCallExecutor.execute {
-            apiService.getTransportServicesByRenter()
-        }
-    }
-
     override suspend fun updateServiceStatus(
         serviceId: Long,
         newStatus: String
@@ -65,4 +54,30 @@ class TransportServiceRepositoryImpl(
         }
     }
 
+    override suspend fun confirmTransportService(id: Long): ApiResult<TransportServiceResponse> {
+        return apiCallExecutor.execute {
+            apiService.confirmTransportService(id)
+        }
+    }
+
+    override suspend fun startTransportService(id: Long): ApiResult<TransportServiceResponse> {
+        return apiCallExecutor.execute {
+            apiService.startTransportService(id)
+        }
+    }
+
+    override suspend fun completeTransportService(id: Long): ApiResult<TransportServiceResponse> {
+        return apiCallExecutor.execute {
+            apiService.completeTransportService(id)
+        }
+    }
+
+    override suspend fun cancelTransportService(
+        id: Long,
+        reason: String?
+    ): ApiResult<TransportServiceResponse> {
+        return apiCallExecutor.execute {
+            apiService.cancelTransportService(id, reason)
+        }
+    }
 }
